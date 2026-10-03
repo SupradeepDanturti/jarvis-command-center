@@ -25,6 +25,14 @@ Install Playwright separately if needed, then run `node scripts/browser-smoke.cj
 
 ## Visual screens and installed games
 
+### Black-hole Home composition and sound controls
+
+- Home now keeps the NASA Black hole movie even when another background is selected for the other pages. The browser check verifies that behavior and the visible NASA credit. The processor circle was replaced by a compact CPU value/live trace, with vitals and sound controls in an unboxed strip and app shortcuts below.
+- Trusted Edge browser and touch layout checks passed after the change. Across nine sizes, the Home check verifies a 100% CPU reading fits beside the trace, the processor font stays at or below 60px, telemetry groups do not overlap, and controls avoid the dock. All six playback/volume controls stay visible and have at least 44×44px touch targets. Landscape and portrait screenshots were inspected locally.
+- Volume down, mute and volume up were clicked with their HTTP dispatch mocked; each used POST and its fixed existing media ID. The check did not change the laptop's actual sound. Physical volume-key behavior and the revised Home appearance still need confirmation on the Redmi after reload.
+- Clock checks exposed a test timing race between injected times and the real one-second tick. Fixed-time assertions now capture the clock state in the same browser evaluation that sets the time. The clock implementation was unchanged; the complete browser check passed afterward with no page errors or CSP violations.
+- Updated frontend and check scripts passed JavaScript syntax and Git whitespace checks. No backend restart or authentication/CA change was required.
+
 ### Moving backgrounds across pages
 
 - The trusted Edge browser check passed with local moving backgrounds on all nine ordinary screens, including Clock, and the dedicated scene on Ambient. It verifies the expected default scene per page, one shared backdrop player, negative stacking order and no pointer interception, muted inline looping, the scene override and pause surviving reload/navigation, reduced-motion pause/resume, simulated hidden/visible document events, and rapid page changes. Ambient hides and pauses the shared backdrop. No page errors or CSP violations were reported.

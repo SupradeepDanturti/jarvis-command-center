@@ -44,12 +44,17 @@ const assert = require('node:assert/strict');
         await screen(id);
         if(id==='ambient')await page.locator(`[data-scene-select="${variant||'horizon'}"]`).click();
         if (id === 'games') await page.waitForFunction(() => state.gameLibrary !== null);
+        if(id==='home')for(const media of ['previous','play-pause','next','volume-down','mute','volume-up']){
+          const button=page.locator(`.orbit-controls [data-media="${media}"]`);
+          check(await button.isVisible(),`${width}×${height}: ${media} must stay visible`);
+          check(await button.evaluate(el=>{const r=el.getBoundingClientRect();return r.width>=44&&r.height>=44}),`${width}×${height}: ${media} needs a 44px touch target`);
+        }
         // Exercise wide numerals even when the current CPU load/time is narrow.
         if (id === 'clock') await page.evaluate(() => updateClock(new Date(2026,9,3,23,58,0),false));
         const layout = await page.evaluate(() => {
           const dock = document.querySelector('.surface-dock').getBoundingClientRect();
           const content = document.querySelector('#page-content').getBoundingClientRect();
-          const targets = [...document.querySelectorAll('#page-content button, .clock-digits, .clock-dial, .ambient-caption, .ambient-live-clock, .hero-reading')];
+          const targets = [...document.querySelectorAll('#page-content button, .clock-digits, .ambient-caption, .ambient-live-clock, .orbit-cpu, .orbit-intro, .orbit-credit, .orbit-telemetry .surface-vitals')];
           const overlap = targets.filter(el => {
             const r = el.getBoundingClientRect();
             return r.width && r.height && r.top < dock.bottom && r.bottom > dock.top && r.right > dock.left && r.left < dock.right;
@@ -60,31 +65,23 @@ const assert = require('node:assert/strict');
           }).map(el => el.className || el.textContent.trim());
           const scene = document.querySelector('.desk-screen');
           let largeReadingFits = true;
-          let readingInsideCircle = true;
-          let readingProportion = 0;
-          let circleCrossers = [];
-          const hero = document.querySelector('.hero-reading');
-          if (hero) {
-            const metric = hero.querySelector('[data-metric]');
+          let readingFont = 0;
+          let telemetryOverlap = false;
+          const reading = document.querySelector('.orbit-cpu-value');
+          if (reading) {
+            const metric = reading.querySelector('[data-metric]');
             const current = metric.textContent;
             metric.textContent = '100';
-            const halo = document.querySelector('.core-halo').getBoundingClientRect();
-            largeReadingFits = hero.getBoundingClientRect().width <= halo.width - 8;
-            const centerX = halo.left + halo.width / 2;
-            const centerY = halo.top + halo.height / 2;
-            const radius = halo.width / 2 - 6;
-            circleCrossers = [...document.querySelectorAll('.core-reading > :not(.core-halo)')].filter(el => {
-              const r = el.getBoundingClientRect();
-              return [[r.left,r.top],[r.right,r.top],[r.left,r.bottom],[r.right,r.bottom]]
-                .some(([x,y]) => Math.hypot(x-centerX,y-centerY) > radius);
-            }).map(el => el.className);
-            readingInsideCircle = circleCrossers.length === 0;
-            readingProportion = parseFloat(getComputedStyle(hero).fontSize) / halo.width;
+            const line=reading.closest('.orbit-cpu-line');
+            largeReadingFits=line.scrollWidth<=line.clientWidth+1;
+            readingFont=parseFloat(getComputedStyle(reading).fontSize);
+            const groups=[...document.querySelector('.orbit-telemetry').children].map(el=>el.getBoundingClientRect());
+            telemetryOverlap=groups.some((r,i)=>groups.slice(i+1).some(s=>r.left<s.right&&r.right>s.left&&r.top<s.bottom&&r.bottom>s.top));
             metric.textContent = current;
           }
           return {
             overflow: document.documentElement.scrollWidth > innerWidth + 1,
-            overlap, outside, largeReadingFits, readingInsideCircle, readingProportion, circleCrossers,
+            overlap, outside, largeReadingFits, readingFont, telemetryOverlap,
             fits: content.bottom <= dock.top - 8,
             sceneHeight: scene?.getBoundingClientRect().height,
             dockLabel: parseFloat(getComputedStyle(document.querySelector('.surface-dock small')).fontSize),
@@ -93,9 +90,9 @@ const assert = require('node:assert/strict');
         });
         const label = `${width}×${height} ${entry}`;
         check(!layout.overflow, `${label}: page overflow`);
-        check(layout.largeReadingFits, `${label}: 100% reading does not fit inside the halo`);
-        check(layout.readingInsideCircle, `${label}: ${layout.circleCrossers.join(', ')} crosses the circle`);
-        check(layout.readingProportion <= .36, `${label}: processor reading is too large relative to circle`);
+        check(layout.largeReadingFits, `${label}: 100% reading and live trace do not fit`);
+        check(layout.readingFont <= 60, `${label}: processor reading is too large`);
+        check(!layout.telemetryOverlap, `${label}: telemetry groups overlap`);
         if (height >= 600 || ['clock','ambient'].includes(id)) check(!layout.overlap.length, `${label}: dock covers ${layout.overlap.join(', ')}`);
         if (id !== 'games') check(!layout.outside.length, `${label}: content clipped ${layout.outside.join(', ')}`);
         check(layout.dockLabel >= 10, `${label}: dock labels too small (${layout.dockLabel}px)`);

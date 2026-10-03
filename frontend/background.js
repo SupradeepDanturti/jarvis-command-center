@@ -4,17 +4,17 @@ try{Object.assign(backgroundPreferences,JSON.parse(localStorage.getItem('g16-bac
 if(backgroundPreferences.scene!=='auto'&&!Object.hasOwn(ambientScenes,backgroundPreferences.scene))backgroundPreferences.scene='auto';
 if(typeof backgroundPreferences.motion!=='boolean')backgroundPreferences.motion=true;
 const backgroundMotion=matchMedia('(prefers-reduced-motion: reduce)');
-const pageBackgrounds={home:'horizon',gaming:'grid',games:'blackhole',apps:'aurora',hardware:'horizon',graphs:'grid',system:'aurora',devices:'aurora',clock:'horizon'};
+const pageBackgrounds={home:'blackhole',gaming:'grid',games:'blackhole',apps:'aurora',hardware:'horizon',graphs:'grid',system:'aurora',devices:'aurora',clock:'horizon'};
 let backgroundGeneration=0;
 function saveBackgroundPreferences(){try{localStorage.setItem('g16-background-preferences',JSON.stringify(backgroundPreferences))}catch{}}
 function backgroundSettings(){
-  return `<div class="detail-row background-setting"><label for="background-scene">Background scene</label><select id="background-scene">${[['auto','Match each screen'],...Object.entries(ambientScenes).map(([id,scene])=>[id,scene.name])].map(([id,name])=>`<option value="${id}" ${backgroundPreferences.scene===id?'selected':''}>${name}</option>`).join('')}</select></div><div class="page-actions"><button id="background-motion" aria-pressed="${backgroundPreferences.motion}" ${backgroundMotion.matches?'disabled':''}>${backgroundMotion.matches?'Motion reduced':backgroundPreferences.motion?'Pause backgrounds':'Resume backgrounds'}</button></div><p class="section-note">Local artwork behind your screens. Motion pauses while hidden and follows your device’s reduced-motion setting. Ambient has its own scene controls.</p>`;
+  return `<div class="detail-row background-setting"><label for="background-scene">Background scene</label><select id="background-scene">${[['auto','Match each screen'],...Object.entries(ambientScenes).map(([id,scene])=>[id,scene.name])].map(([id,name])=>`<option value="${id}" ${backgroundPreferences.scene===id?'selected':''}>${name}</option>`).join('')}</select></div><div class="page-actions"><button id="background-motion" aria-pressed="${backgroundPreferences.motion}" ${backgroundMotion.matches?'disabled':''}>${backgroundMotion.matches?'Motion reduced':backgroundPreferences.motion?'Pause backgrounds':'Resume backgrounds'}</button></div><p class="section-note">Local artwork behind your screens. Motion pauses while hidden and follows your device’s reduced-motion setting. Home keeps its Black hole scene. Ambient has its own scene controls.</p>`;
 }
 function updateSurfaceBackground(){
   const layer=document.querySelector('.surface-backdrop'),video=document.querySelector('#surface-background');
   const dedicated=state.page==='ambient';layer.hidden=dedicated;
   if(dedicated){video.pause();return}
-  const id=backgroundPreferences.scene==='auto'?(pageBackgrounds[state.page]||'aurora'):backgroundPreferences.scene;
+  const id=state.page==='home'?'blackhole':backgroundPreferences.scene==='auto'?(pageBackgrounds[state.page]||'aurora'):backgroundPreferences.scene;
   const scene=ambientScenes[id];
   if(video.dataset.scene!==id){
     backgroundGeneration++;
