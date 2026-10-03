@@ -13,7 +13,7 @@ ORIGIN = {"origin": "http://testserver"}
 @pytest.fixture
 def client():
     app = create_app(pairing_code="ABCD1234")
-    with TestClient(app) as client:
+    with TestClient(app, client=('127.0.0.1', 50000)) as client:
         yield client
 
 
@@ -98,6 +98,7 @@ def test_static_shell_and_security_headers(client):
 
 def test_expired_session(client):
     paired(client)
-    token = client.cookies.get('g16_session')
-    client.app.state.pairing.sessions[token] = 0
+    token = client.cookies.get('g16_device')
+    with client.app.state.devices.db:
+        client.app.state.devices.db.execute('UPDATE devices SET expires=0')
     assert client.get('/api/apps').status_code == 401

@@ -2,7 +2,7 @@
 
 A local touchscreen dashboard for a Dell G16, opened in a Redmi Pad Pro browser. The laptop runs the backend; the tablet displays telemetry and sends registered controls over Wi-Fi.
 
-**Foundation build:** six responsive pages, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, history graphs, paired device access, configured app launching, and Windows media keys. No cloud assets or frontend build step.
+**Current build:** six responsive pages, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, history graphs, HTTPS with approved remembered browsers, configured app launching, and Windows media keys. No cloud assets or frontend build step.
 
 Read [SPEC.md](SPEC.md) for the complete target, implementation decisions, security model, and roadmap.
 
@@ -12,25 +12,28 @@ Read [SPEC.md](SPEC.md) for the complete target, implementation decisions, secur
 cd D:\TabletDashboard
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\scripts\setup-https.ps1
 .\scripts\start.ps1 -Lan
 ```
 
 For laptop-only use omit `-Lan`. Default port is **18761**, chosen to avoid common development ports; override with `-Port 18762`. Use one server worker. If your PowerShell policy blocks the script, run the equivalent directly:
 
 ```powershell
-.\.venv\Scripts\python.exe -m uvicorn backend.main:app --host 0.0.0.0 --port 18761 --no-access-log
+.\.venv\Scripts\python.exe -m uvicorn backend.main:app --host 0.0.0.0 --port 18761 --no-access-log --no-proxy-headers --ssl-certfile .state/private/tls/server.pem --ssl-keyfile .state/private/tls/server-key.pem
 ```
 
 ## Connect the Redmi tablet
 
 1. Connect the tablet and laptop to the same private Wi-Fi.
-2. Open the **Wi-Fi adapter** URL printed by the startup script, e.g. `http://192.168.1.100:18761`.
-3. Enter the eight-character pairing code from **G16 Command Center.txt** on Desktop or in Downloads for the background server. For manual runs it is printed in the terminal and saved in `.state/pairing-code.txt`.
-4. Tap Fullscreen for a dedicated dashboard view. Swipe horizontally on the dashboard to change pages.
+2. Copy **G16 Dashboard CA.cer** from laptop Downloads to the tablet using USB, or download it from the background server's setup-only page at `http://LAPTOP_IP:18760`. If downloading, verify the installed certificate's SHA-256 fingerprint against the trusted laptop connection text file.
+3. In tablet Settings, search **CA certificate** and install the file as a CA certificate. Opening the downloaded file directly may show “Install CA certificates in Settings”; follow that instruction.
+4. Open the **HTTPS** Wi-Fi address, e.g. `https://192.168.1.100:18761`. Name the browser and request approval.
+5. On the laptop, open `https://localhost:18761`. First-time laptop access uses the setup code from **G16 Command Center.txt** on Desktop or in Downloads. In **System → Approved devices**, match the tablet request's fingerprint and approve it.
+6. Tap Fullscreen for a dedicated dashboard view. Swipe horizontally on the dashboard to change pages.
 
-Windows may request firewall access; allow only the private network for this server. If connection fails, verify the Wi-Fi address, port, firewall, and that your Wi-Fi does not isolate devices. No router port forwarding is needed. The code changes and paired sessions reset when the server restarts. Sessions expire after 12 hours.
+Windows may request firewall access; allow only your trusted local network for this server. If connection fails, verify the Wi-Fi address, port, firewall, and that your Wi-Fi does not isolate devices. No router port forwarding is needed. Approved browsers are remembered for 180 days across restarts, unless revoked or their cookies are cleared. New browsers always require laptop approval. See [SECURITY.md](SECURITY.md) for the full flow and limitations.
 
-HTTP is intended for a trusted private LAN and does not encrypt traffic. Local HTTPS and individual device management are planned. Browser screen wake lock generally requires HTTPS; fullscreen works over HTTP. Actual tablet sleep/wake behavior depends on Android and browser settings.
+The dashboard uses HTTPS. Old `http://` bookmarks on port 18761 produce an empty response because this port now expects TLS. Port 18760 serves only the public certificate and setup instructions, with no credentials, telemetry, or control endpoints. Actual tablet sleep/wake behavior depends on Android and browser settings.
 
 ## Start automatically when signing into Windows
 
@@ -45,13 +48,13 @@ Use `-Port` when installing to choose a different port, then restart the task. T
 
 The background server writes **G16 Command Center.txt** to your Desktop and Downloads, containing the tablet URL and current pairing code. These files update after every server restart and check for network address changes every 30 seconds. Redirected Windows folders (such as a OneDrive Desktop) are respected. They are local files and are never served by the dashboard or committed to Git.
 
-The code is also saved in `.state/pairing-code.txt`. To view it directly:
+The code is also saved in `.state/private/pairing-code.txt`. To view it directly:
 
 ```powershell
-Get-Content .state\pairing-code.txt
+Get-Content .state\private\pairing-code.txt
 ```
 
-Logs rotate in `.state/server.log` (three files of up to approximately 2 MB each). To stop and disable automatic startup:
+Logs rotate in `.state/private/server.log` (three files of up to approximately 2 MB each). Device approvals persist in `.state/private/devices.sqlite3`; this database contains hashed credentials and device metadata, not telemetry history. Use `scripts/restart-server.ps1` to restart safely after changes. To stop and disable automatic startup:
 
 ```powershell
 .\scripts\remove-startup.ps1

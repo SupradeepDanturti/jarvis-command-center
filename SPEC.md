@@ -1,6 +1,6 @@
 # G16 Command Center — implementation specification
 
-Version 0.1 • 2026-10-03 • Dell G16 host + Redmi Pad Pro touch surface
+Version 0.2 • 2026-10-03 • Dell G16 host + Redmi Pad Pro touch surface
 
 ## Product contract
 
@@ -19,6 +19,7 @@ Primary layout is landscape, with a responsive portrait layout. Support current 
 - Graph ranges: 30 seconds, 1 minute, 5 minutes, 15 minutes, 1 hour. History is in-memory and starts when the server starts. No fabricated prehistory.
 - Pairing, session expiry, same-origin controls, reconnection, stale indicators, fullscreen, optional screen wake lock, swipe navigation, and touch-responsive layouts.
 - Optional silent startup at Windows user sign-in on dedicated port 18761, with current connection instructions exported to Desktop and Downloads and refreshed after network changes.
+- HTTPS, laptop-approved browsers remembered for 180 days across restarts, revocation, a persistent local device registry, and a setup-only public certificate download on port 18760. See SECURITY.md for enrollment and trust boundaries.
 
 ## Information architecture and future acceptance criteria
 
@@ -39,12 +40,12 @@ The target comprises 12 pages. The six initial pages are implemented; remaining 
 
 ## Architecture
 
-`Redmi browser → same-origin HTTP/WebSocket → FastAPI → telemetry/control adapters → Windows`
+`Redmi browser → same-origin HTTPS/WSS → FastAPI → telemetry/control adapters → Windows`
 
 - Backend: Python 3.14, FastAPI, Uvicorn, psutil. A thread collects potentially blocking sensor readings so HTTP/WebSocket handlers remain responsive.
 - Frontend: dependency-free modules in plain JavaScript and CSS; all assets are served by the laptop. A frontend framework can be introduced if custom widget composition warrants it.
 - Configuration: `config/apps.json` defaults; ignored `config/apps.local.json` override for machine-specific app paths. Future games/macros/settings follow the same local override pattern.
-- Auth state: random startup pairing code in console and ignored `.state/pairing-code.txt`; random server-side sessions with 12-hour expiry. Restart invalidates sessions and changes the pairing code.
+- Auth state: random startup recovery code in console and ignored `.state/private/pairing-code.txt`; approved device credentials are stored only as hashes in `.state/private/devices.sqlite3`. Secure HttpOnly cookies authenticate approved browsers for up to 180 days, surviving server restart. Recovery codes change on restart. Remote code possession alone never grants approval; device management requires an owner credential and a direct loopback connection.
 - Sample schema: UTC ISO timestamp, source, CPU, optional GPU, memory, drives/disk rates, network, optional battery, system, integration status. Missing values are `null`; the UI shows an em dash or unavailable label.
 - Initial sample/push interval: approximately 1 second. NVIDIA query every 2 seconds; app process refresh every 15 seconds. Sample overhead may extend the interval. Next stage separates fast 500 ms load readings, medium 1 s metrics, and slow 5–10 s static metadata.
 - Single sampler per process. Start Uvicorn with one worker. Per-client WebSocket sends the newest shared snapshot; it never spawns a hardware sampler.
@@ -53,7 +54,11 @@ The target comprises 12 pages. The six initial pages are implemented; remaining 
 ## API contract
 
 - `GET /api/health`: public availability/version only.
-- `POST /api/pair`: `{code}`; correct code sets HttpOnly, SameSite=Strict cookie. Five attempts per remote address per minute.
+- `GET /api/auth`: this browser's approval state and whether local device management is available.
+- `POST /api/pair`: `{code,name?}`; localhost setup creates an approved owner browser; remote requests create only pending enrollment. Five attempts per address per minute.
+- `POST /api/device/request`: `{name}`; no-code enrollment request, blocked from telemetry/controls until approved. Pending cookie/request expires in ten minutes.
+- `POST /api/device/activate`: finish an approved request and remember this browser with a persistent cookie.
+- `GET /api/devices`, `POST /api/devices/{id}/approve`, `POST /api/devices/{id}/revoke`: direct-loopback owner browser only. Revocation also closes the live WebSocket.
 - `POST /api/logout`: revoke current session and delete cookie.
 - `GET /api/system`: current authenticated snapshot; 503 until a valid sample exists.
 - `GET /api/history?seconds=60`: authenticated history; seconds between 30 and 3,600.
@@ -69,11 +74,11 @@ REST mutations require an Origin matching the request authority. No CORS wildcar
 1. Laptop starts server; terminal displays pairing code.
 2. Tablet and laptop join the same private Wi-Fi.
 3. Start with `scripts/start.ps1 -Lan`; use the laptop's Wi-Fi IPv4 URL on port 18761.
-4. Tablet enters startup code; cookie authenticates subsequent REST and WebSocket requests.
+4. Tablet installs the public CA certificate once, requests browser approval, and the laptop owner matches its fingerprint before approving. Subsequent REST/WebSocket connections authenticate with the remembered browser cookie.
 5. UI shows live connection only after receiving a current sample. Disconnection marks readings stale immediately; an open socket without recent samples is marked stale after five seconds.
 6. Reconnection uses exponential backoff with jitter up to approximately ten seconds. Android foregrounding retries a closed connection. Session rejection reopens pairing.
 
-Use private-network firewall access only. No automatic firewall changes, router forwarding, or remote internet exposure. An optional user-installed scheduled task starts the server silently at Windows sign-in via `scripts/install-startup.ps1`; it uses the interactive user account, runs on battery, ignores duplicate instances, and retries failures. This is available in the foundation following the user's startup request. Plain HTTP is an initial trusted-LAN transport; anyone able to inspect traffic can observe pairing/session data. HTTPS is the later transport milestone and also enables browser screen wake lock. Fullscreen requires a touch gesture; automatic tablet wake/kiosk behavior depends on Android/browser settings and is not guaranteed by a website.
+Use trusted-local-network firewall access only. No automatic firewall changes, router forwarding, or remote internet exposure. An optional user-installed scheduled task starts the server silently at Windows sign-in via `scripts/install-startup.ps1`; it uses the interactive user account, runs on battery, ignores duplicate instances, and retries failures. Dashboard controls use HTTPS; remote plaintext requests are rejected. A separate HTTP listener on port 18760 serves only the public certificate and setup instructions. Users must verify a downloaded certificate's fingerprint against the trusted laptop connection file, or transfer it via USB. Fullscreen requires a touch gesture; automatic tablet wake/kiosk behavior depends on Android/browser settings and is not guaranteed by a website.
 
 ## UI constraints
 
@@ -97,7 +102,7 @@ Use private-network firewall access only. No automatic firewall changes, router 
 
 **M5 — Macros and personalization:** registered action sequences, widget/page layout persistence, theme controls, portrait polish, durable history/export if needed.
 
-**M6 — Dedicated tablet operation:** local HTTPS provisioning, revocable per-device sessions, startup lifecycle polish and Android kiosk guidance. Measure performance on the actual Redmi Pad Pro.
+**M6 — Dedicated tablet operation:** stable local hostname/passkey evaluation, startup lifecycle polish and Android kiosk guidance. Local HTTPS and revocable remembered-browser access are already implemented. Measure performance on the actual Redmi Pad Pro.
 
 ## Verification and release gates
 

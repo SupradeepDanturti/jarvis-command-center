@@ -39,23 +39,31 @@ def network_addresses():
     return sorted(addresses, key=lambda entry: ('wi-fi' not in entry[0].lower() and 'wifi' not in entry[0].lower(), entry[0]))
 
 
-def connection_text(code, port, addresses):
+def connection_text(code, port, addresses, scheme='http', setup_port=None, fingerprint=None):
     lines = [HEADER, '', 'Connect your Redmi tablet to the same Wi-Fi as the laptop.', '',
              'TABLET ADDRESS:']
-    lines.extend(f'http://{ip}:{port}  ({adapter})' for adapter, ip in addresses)
+    lines.extend(f'{scheme}://{ip}:{port}  ({adapter})' for adapter, ip in addresses)
     if not addresses:
         lines.append('Waiting for Wi-Fi. This file updates automatically after connecting.')
-    lines.extend(['', f'PAIRING CODE: {code}', '', f'Laptop address: http://localhost:{port}', '',
+    lines.extend(['', f'LAPTOP SETUP / RECOVERY CODE: {code}', '', f'Laptop address: {scheme}://localhost:{port}', '',
                   'The server runs silently after you sign into Windows.',
-                  'The code changes when the server restarts. Read the latest code in this file.',
+                  'Approve new browsers from System > Approved devices on the laptop.',
+                  'Approved browsers reconnect without a code, including after server restarts.',
+                  'For HTTPS on the Redmi, install G16 Dashboard CA.cer as a CA certificate once.',
+                  'The recovery code changes on restart; approved devices stay approved for 180 days.',
                   'This file also updates when your network address changes.'])
+    if setup_port is not None:
+        lines += ['', 'TABLET CERTIFICATE DOWNLOAD (setup only, no dashboard controls):']
+        lines += [f'http://{ip}:{setup_port}' for _, ip in addresses]
+    if fingerprint:
+        lines += ['', 'Verify the tablet CA certificate SHA-256 against this trusted laptop value:', fingerprint]
     return '\n'.join(lines) + '\n'
 
 
-def write_connection_files(code, port, directories=None, addresses=None):
+def write_connection_files(code, port, directories=None, addresses=None, scheme='http', setup_port=None, fingerprint=None):
     directories = connection_directories() if directories is None else directories
     addresses = network_addresses() if addresses is None else addresses
-    text = connection_text(code, port, addresses)
+    text = connection_text(code, port, addresses, scheme, setup_port, fingerprint)
     results = []
     for directory in directories:
         destination = Path(directory) / FILE_NAME
