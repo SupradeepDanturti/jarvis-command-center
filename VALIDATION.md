@@ -12,6 +12,16 @@
 
 Install Playwright separately if needed, then run `node scripts/browser-smoke.cjs` while the local server is running. The script uses installed Edge in headless mode and reads the current ignored `.state/private/pairing-code.txt`. For a bundled Playwright package, set `G16_PLAYWRIGHT_PATH` to its package directory. Screenshots are written to ignored `artifacts/`. Run `node scripts/security-smoke.cjs` to validate LAN browser approval/revocation; set `G16_TABLET_URL` to the laptop's current HTTPS LAN address if it differs from the development machine.
 
+## Tablet sizing corrections
+
+- The user's physical Redmi landscape photo showed the dock covering launcher shortcuts. Touch viewport checks reproduced overlap at 1280×720, 1024×600 and 960×600, and undersized navigation/launcher labels.
+- Responsive rules now use visible viewport height, shared header/dock safe-area reservations, fluid type and portrait compositions. The Performance dock label is **Live** so every label stays readable on narrow screens. The stylesheet URL has a revision to refresh cached tablet styles on reload.
+- `node scripts/tablet-layout-smoke.cjs` checks six primary screens across 1280×800, 1280×720, 1024×600, 960×600, 800×1280, 768×1024, 600×960, 412×915 and 640×400 with touch enabled. It checks page overflow, dock overlap, readable labels, tablet composition fit, full-height scenes, wide clock numerals, short-window scrolling and immersive rotation. It pairs a fresh QA browser and revokes only its own credential afterward. `--report` records issues without failing, for diagnosing a regression.
+- Updated landscape/portrait Home, Apps, Games, Clock and Ambient screenshots were inspected in desktop Edge. These are browser viewport checks, not Android device emulation; the user still needs to reload the physical Redmi and confirm the revised appearance.
+- Thirty backend tests passed, including approved-only display reporting, same-origin enforcement, rejection of device-ID spoofing/invalid sizes, local-owner-only reading, report expiry/capacity, and cleanup on revocation/logout. The display reports contain only layout details and are not written to the database or logs.
+- The tablet check also verifies automatic size reports after resizing and entering/exiting fullscreen, live Display size text, and the copied diagnostic text (clipboard writes are mocked). Adding the display endpoint requires a background-server restart through the existing helper; existing approvals and CA files are preserved.
+- After the user reloaded and entered fullscreen, the actual approved **Redmi Pad Pro** browser at 192.168.2.20 reported **1280×800** layout and visible area, **2×** pixel scale, **Landscape**, and **Fullscreen**. A second read confirmed a newer report. This verifies reporting from the physical tablet; visual satisfaction with the adjusted layout still needs user confirmation.
+
 ## Visual screens and installed games
 
 - The desk-display redesign passed real Edge checks with no sidebar or overview cards, a visible floating dock, Home fitting above the dock at 1280×800, all ten screens reachable (including the More menu), full-width Clock/Ambient, and no horizontal page overflow at 800×1280 or 412×915. Games uses its own horizontally scrolling poster rail; swiping it does not switch screens.

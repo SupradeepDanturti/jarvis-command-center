@@ -13,9 +13,292 @@ body:is([data-view=clock],[data-view=ambient]) main{max-width:none;padding:0}.de
 .presentation{overflow:hidden}.presentation>.surface-bar,.presentation>.surface-navigation{display:none}.presentation main{padding:0;width:100%;max-width:none;margin:0;height:100dvh}.presentation .desk-screen{height:100dvh;min-height:0;padding:35px 5vw;border:0;border-radius:0}.presentation .exit-immersive{display:flex;align-items:center;gap:8px;position:absolute;top:65px;right:5vw;border:0;background:#10181088;font-size:10px;padding:0 12px;min-height:44px;z-index:5}.exit-immersive svg{width:15px;height:15px;transform:rotate(180deg)}.presentation [data-screen-focus]{display:none}.presentation .ambient-caption{bottom:130px}.presentation .ambient-live-clock{bottom:143px}
 dialog{border-color:#a6b39325;background:#151a16;border-radius:15px;box-shadow:0 30px 100px #0008}.dialog-mark{display:flex;align-items:center;gap:12px;font-size:27px;letter-spacing:-1px}.primary{border-radius:4px}.primary:hover{background:#d1faaa}#device-name{font-size:16px;letter-spacing:0;text-transform:none}body.stale .hero-reading,body.stale .thermal-reading,body.stale [data-metric]{color:#858b80}
 @keyframes aurora-drift{to{transform:translate(5%,-8%) rotate(15deg) scale(1.3)}}@keyframes grid-drift{to{background-position:0 65px,0 65px}}
-@media(min-width:1700px){main{padding-top:105px}.home-stage{min-height:450px}.core-reading{height:410px}.core-halo{width:430px;height:430px}.hero-reading{font-size:270px}.surface-statement h2{font-size:185px}}
-@media(max-width:1000px){main{padding:85px 5vw 125px}.home-stage{gap:20px;min-height:340px}.surface-statement h2{font-size:105px;letter-spacing:-5px}.core-reading{min-width:280px;height:300px}.core-halo{width:295px;height:295px}.hero-reading{font-size:165px;letter-spacing:-8px}.surface-vitals{gap:42px}.home-launch .apps-grid{gap:5px}.home-launch{gap:12px}.app-tile{padding:5px}.clock-composition{gap:5%}.clock-digits{font-size:14vw;letter-spacing:-7px}.clock-dial{width:29vw}.clock-greeting{font-size:13px}.library-title{font-size:65px}.app-library{gap:20px!important}.game-card{flex-basis:270px}.performance-heading h2{font-size:90px}.thermal-reading{font-size:210px}}
-@media(max-width:700px){.surface-status{gap:12px}.surface-dock button{min-width:51px;min-height:55px;padding:5px}.surface-dock small{font-size:7px}.surface-dock{gap:1px;padding:7px;border-radius:20px}.home-stage{gap:8px}.surface-statement h2{font-size:86px;letter-spacing:-5px}.surface-overline{font-size:7px;letter-spacing:1.5px}.core-reading{min-width:220px;height:260px}.core-halo{width:250px;height:250px}.hero-reading{font-size:140px;letter-spacing:-7px}.reading-label{font-size:7px;letter-spacing:1.5px}.reading-detail{font-size:8px}.surface-vitals{gap:30px}.surface-vital strong{font-size:31px}.surface-vital>span{font-size:7px}.home-media>span{display:none}.home-media{gap:3px}.home-launch .app-icon img,.home-launch .app-icon svg{width:25px;height:25px}.home-launch .app-name{font-size:7px}.home-launch .surface-link{display:none}.home-launch .apps-grid{max-width:none}.surface-header h1{font-size:38px}.detail-grid{grid-template-columns:1fr}.apps-grid.app-library{grid-template-columns:repeat(4,minmax(0,1fr));gap:15px!important}.apps-surface>h2{font-size:80px}.app-library .app-tile{min-height:125px}.app-library .app-icon{width:50px;height:50px}.app-library .app-name{font-size:12px}.library-title{font-size:50px}.game-filters{gap:9px}.game-filters button{font-size:9px}.game-toolbar input{width:130px}.game-toolbar{gap:10px}.game-card{flex-basis:245px;min-height:340px}.clock-composition{flex-direction:column;gap:30px}.clock-dial{width:240px}.clock-digits{font-size:110px;letter-spacing:-7px}.digital-clock{text-align:center}.clock-meta{font-size:10px}.desk-screen{min-height:760px}.clock-composition{padding:20px 0}.ambient-caption h2{font-size:55px}.scene-controls{gap:10px}.screen-actions{gap:6px}.screen-actions span{display:none}.ambient-live-clock{bottom:210px}.ambient-live-clock>span{font-size:29px}.screen-kicker{font-size:7px;letter-spacing:1px}.performance-vitals{gap:20px;flex-wrap:wrap}.performance-heading h2{font-size:70px}.thermal-reading{font-size:175px}.performance-surface{gap:30px 15px}.performance-main .surface-trace{width:180px}}
-@media(max-width:540px){main{padding:80px 24px 125px}.surface-bar{padding:0 24px;height:65px}.surface-status .status{font-size:6px;letter-spacing:.5px}.surface-status time{font-size:11px}.surface-status{gap:9px}.surface-status button{width:35px}.surface-navigation{bottom:max(12px,env(safe-area-inset-bottom))}.surface-dock button{min-width:47px;padding:4px}.surface-dock small{font-size:6px}.surface-dock span,.surface-dock svg{width:19px;height:19px}.surface-dock{gap:0;padding:7px}.home-surface{gap:22px;min-height:calc(100dvh - 205px)}.home-stage{flex-direction:column;align-items:flex-start;gap:25px;min-height:0}.surface-statement h2{font-size:77px;letter-spacing:-4px;margin:20px 0 15px;line-height:.95}.surface-statement h2 br{display:none}.surface-statement h2 i{margin-left:8px;letter-spacing:-4px}.surface-statement p{font-size:12px}.surface-statement .surface-link{display:none}.core-reading{width:100%;height:245px;margin:0;min-width:0}.core-halo{width:270px;height:270px}.hero-reading{font-size:150px;letter-spacing:-7px}.hero-reading em{font-size:27px}.surface-trace{height:19px;margin-bottom:9px}.home-understory{align-items:center;gap:15px;flex-wrap:wrap;padding:8px 0}.surface-vitals{gap:35px}.surface-vital strong{font-size:30px}.surface-vital em{font-size:13px}.surface-vital>span{font-size:7px}.home-media{margin-left:auto}.home-media button{width:35px;min-height:44px}.home-media button:not(:nth-of-type(2)){display:none}.home-launch .apps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;width:100%}.home-launch .app-tile{min-height:66px}.home-launch .app-name{font-size:8px}.home-launch .app-icon img,.home-launch .app-icon svg{width:27px;height:27px}.surface-header{margin:15px 0 25px}.surface-header h1{font-size:34px;letter-spacing:-1px}.apps-surface>h2{font-size:74px;letter-spacing:-4px;margin:20px 0 28px}.apps-grid.app-library{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px!important}.app-library .app-icon img,.app-library .app-icon svg{width:34px;height:34px}.app-library .app-icon{width:49px;height:49px}.app-library .app-tile{min-height:120px;padding:6px}.app-library .app-name{font-size:11px}.app-library .app-status{font-size:7px}.apps-caption{font-size:11px}.library-header{align-items:flex-start;gap:12px}.library-title{font-size:48px;letter-spacing:-2.5px;max-width:220px;line-height:1.05}.library-title i{letter-spacing:-2.5px}.library-header>button{font-size:9px;padding:0;min-height:44px;gap:6px}.library-header>button svg{width:12px}.game-toolbar{flex-direction:column;align-items:flex-start;gap:10px;margin-top:15px}.game-toolbar input{width:100%;font-size:11px}.game-filters{gap:14px}.game-card{flex-basis:245px;min-height:370px}.games-grid{gap:14px}.game-info h3{font-size:22px}.game-summary{font-size:10px}.desk-screen{padding:85px 24px 125px;min-height:780px}.screen-kicker{font-size:6px;letter-spacing:.7px}.clock-composition{gap:25px}.clock-dial{width:205px}.clock-digits{font-size:88px;letter-spacing:-5px}.clock-greeting{font-size:12px}.clock-meta{font-size:9px;gap:12px;margin-top:16px}.clock-seconds{font-size:7px}.clock-seconds b{font-size:12px}.screen-bottom{gap:10px}.screen-actions button{font-size:9px;padding:0 3px}.screen-actions svg{width:15px;height:15px}.segmented{gap:12px}.segmented button{font-size:8px}.ambient-caption{left:24px;bottom:255px}.ambient-caption h2{font-size:48px;letter-spacing:-2px}.ambient-caption p{font-size:10px}.ambient-live-clock{left:24px;right:auto;bottom:175px;text-align:left}.ambient-live-clock small{font-size:8px}.scene-controls{gap:11px}.scene-controls button{font-size:8px;white-space:nowrap;padding:0 1px}.ambient-screen .screen-bottom{flex-wrap:wrap;justify-content:space-between}.ambient-screen .screen-actions{margin-left:auto}.performance-surface{grid-template-columns:1fr;gap:30px}.performance-heading h2{font-size:75px}.performance-main{text-align:center}.thermal-reading{font-size:190px;letter-spacing:-12px}.performance-vitals{grid-column:1;display:grid;grid-template-columns:repeat(2,1fr);gap:22px}.performance-surface>.surface-link{grid-column:1}.device-entry{gap:10px}.device-entry p{min-width:100%;font-size:10px}.core-grid{grid-template-columns:repeat(5,1fr)}.presentation .desk-screen{padding:25px}.presentation .exit-immersive{top:52px;right:20px;font-size:9px}.presentation .clock-composition{gap:25px}.presentation .clock-digits{font-size:24vw}.presentation .clock-dial{width:45vw}}
-@media(max-height:650px) and (min-width:701px){main{padding-top:75px;padding-bottom:110px}.home-stage{min-height:260px}.home-surface{gap:15px}.surface-statement h2{font-size:95px;margin:18px 0}.core-reading{height:250px}.core-halo{width:265px;height:265px}.hero-reading{font-size:160px}.home-launch{padding-top:5px}.surface-vital strong{font-size:28px}.desk-screen{min-height:100dvh}.clock-dial{width:35vh}.clock-digits{font-size:24vh}.clock-composition{padding:15px 0}.ambient-caption{bottom:185px}.ambient-live-clock{bottom:195px}.presentation .ambient-caption{bottom:100px}.presentation .ambient-live-clock{bottom:112px}.game-card{min-height:280px;flex-basis:210px}.library-title{font-size:60px}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* Size the composition against the visible browser window, including its toolbars.
+   These shared insets reserve real space for the floating dock and Android cutouts. */
+:root {
+  font-family: system-ui, 'Segoe UI', Roboto, Arial, sans-serif;
+  --surface-top: calc(76px + env(safe-area-inset-top, 0px));
+  --surface-bottom: calc(116px + env(safe-area-inset-bottom, 0px));
+  --surface-side: clamp(24px, 5vw, 85px);
+  --display-height: calc(100dvh - var(--surface-top) - var(--surface-bottom));
+}
+main {
+  padding: var(--surface-top) var(--surface-side) var(--surface-bottom);
+}
+.surface-bar {
+  height: var(--surface-top);
+  padding: env(safe-area-inset-top, 0px) var(--surface-side) 0;
+}
+.surface-status .status { font-size: 10px; letter-spacing: .6px; }
+.surface-status time { font-size: 14px; }
+.surface-navigation {
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  width: min(560px, calc(100vw - 24px));
+  max-width: none;
+}
+.surface-dock {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  width: 100%;
+  gap: 2px;
+  padding: 8px;
+}
+.surface-dock button { min-width: 0; min-height: 62px; padding: 5px 2px; }
+.surface-dock small { font-size: 10px; letter-spacing: 0; }
+.surface-dock span, .surface-dock svg { width: 22px; height: 22px; }
+.more-menu { bottom: 92px; max-height: calc(100dvh - 125px); overflow-y: auto; }
+.more-menu .nav { font-size: 14px; }
+.section-note { font-size: 12px; line-height: 1.6; }
+.page-actions { flex-wrap: wrap; }
+.menu-label, .surface-overline, .reading-label, .surface-vital > span {
+  font-size: 11px;
+  letter-spacing: 1.4px;
+}
+.surface-overline, .reading-label, .surface-vital > span { color: #9aa58e; }
+.reading-detail, .app-status { font-size: 11px; color: #96a18c; }
+.hero-reading, .thermal-reading, .clock-digits, .ambient-live-clock > span {
+  font-family: inherit;
+  letter-spacing: -.035em;
+}
+.home-surface {
+  height: max(390px, var(--display-height));
+  min-height: 0;
+  gap: clamp(14px, 2dvh, 24px);
+}
+.home-stage { flex: 1; min-height: 0; gap: 5%; }
+.surface-statement { min-width: 0; }
+.surface-statement h2 {
+  font-size: clamp(64px, min(11vw, 15dvh), 145px);
+  letter-spacing: -.065em;
+  line-height: .9;
+  margin: 16px 0;
+}
+.surface-statement h2 i { letter-spacing: -.055em; }
+.surface-statement p { font-size: 14px; line-height: 1.5; }
+.surface-statement .surface-link { font-size: 13px; }
+.core-reading {
+  width: 45%;
+  min-width: 0;
+  height: clamp(190px, 38dvh, 380px);
+  margin: 0;
+}
+.core-halo { width: min(33vw, 38dvh, 380px); height: auto; aspect-ratio: 1; }
+.hero-reading { font-size: clamp(100px, min(19vw, 21dvh), 235px); line-height: 1.15; }
+.hero-reading em { font-size: .2em; }
+.surface-trace { margin: 0 0 10px; }
+.home-understory { flex: 0 0 auto; padding: 0; gap: 20px; }
+.surface-vitals { gap: clamp(25px, 5vw, 65px); }
+.surface-vital strong { font-size: clamp(28px, 4.3dvh, 38px); }
+.surface-vital > span { margin-bottom: 5px; font-size: 10px; letter-spacing: 1px; }
+.surface-vital small { font-size: 11px; }
+.home-media > span { font-size: 16px; margin-right: 5px; }
+.home-launch { flex: 0 0 auto; gap: 16px; padding-top: 10px; }
+.home-launch .apps-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; max-width: 900px; }
+.home-launch .app-tile { padding: 5px 2px; min-height: 76px; min-width: 0; }
+.home-launch .app-name { font-size: 11px; line-height: 1.25; text-align: center; }
+.home-launch .app-icon img, .home-launch .app-icon svg { width: 30px; height: 30px; }
+.home-launch .surface-link { font-size: 12px; }
+.performance-surface {
+  min-height: max(390px, var(--display-height));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: 1fr auto auto;
+  gap: 16px 30px;
+}
+.performance-heading h2 {
+  font-size: clamp(60px, min(9vw, 14dvh), 140px);
+  letter-spacing: -.06em;
+  margin: 16px 0;
+}
+.performance-heading h2 i { letter-spacing: -.05em; }
+.thermal-reading { font-size: clamp(135px, min(23vw, 30dvh), 280px); }
+.thermal-reading em { letter-spacing: -.07em; }
+.performance-vitals { gap: 20px; padding-top: 15px; flex-wrap: wrap; }
+.apps-surface > h2 {
+  font-size: clamp(46px, min(7vw, 11dvh), 100px);
+  letter-spacing: -.055em;
+  margin: 14px 0 24px;
+  line-height: 1.05;
+}
+.apps-surface > h2 i { letter-spacing: -.045em; }
+.apps-grid.app-library { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: clamp(10px, 2dvh, 24px) 20px; }
+.app-library .app-tile { min-height: clamp(100px, 17dvh, 145px); gap: 10px; padding: 8px; }
+.app-library .app-name { font-size: 14px; }
+.app-library .app-status { font-size: 11px; line-height: 1.3; text-align: center; }
+.apps-caption { font-size: 13px; margin-top: 20px; }
+.library-title { font-size: clamp(36px, min(6vw, 10dvh), 80px); margin: 12px 0; }
+.library-header > button { font-size: 13px; flex-shrink: 0; }
+.game-summary { font-size: 12px; }
+.game-toolbar { margin: 10px 0; }
+.game-filters button, .game-toolbar input { font-size: 12px; }
+.games-grid { padding-bottom: 14px; }
+.game-card {
+  height: clamp(200px, calc(var(--display-height) - 220px), 440px);
+  min-height: 0;
+  flex-basis: clamp(170px, 24vw, 310px);
+}
+.game-store { font-size: 10px; }
+.game-info { bottom: 18px; left: 16px; right: 16px; }
+.game-info h3 { font-size: clamp(18px, 2vw, 23px); margin-bottom: 12px; }
+.game-info button { font-size: 12px; }
+.desk-screen {
+  height: 100dvh;
+  min-height: 0;
+  padding: var(--surface-top) var(--surface-side) var(--surface-bottom);
+}
+.screen-kicker { font-size: 10px; letter-spacing: 1.2px; }
+.clock-composition { flex: 1; min-height: 0; padding: 12px 0; gap: 5%; }
+.clock-dial { width: min(28vw, 44dvh, 380px); }
+.clock-digits { font-size: clamp(60px, min(14vw, 26dvh), 210px); }
+.clock-greeting { font-size: 15px; margin-bottom: 16px; }
+.clock-meta { font-size: 12px; margin-top: 18px; }
+.segmented button, .screen-actions button, .scene-controls button { font-size: 12px; }
+.screen-bottom { flex-shrink: 0; }
+.ambient-caption { left: var(--surface-side); bottom: calc(var(--surface-bottom) + 90px); }
+.ambient-caption h2 { font-size: clamp(42px, 6vw, 80px); }
+.ambient-caption p, .ambient-live-clock small { font-size: 12px; }
+.ambient-live-clock { right: var(--surface-side); bottom: calc(var(--surface-bottom) + 100px); }
+.ambient-live-clock > span { font-size: clamp(30px, 4vw, 46px); }
+.presentation .desk-screen { min-height: 0; }
+#toast { bottom: var(--surface-bottom); font-size: 13px; }
+
+/* Browser chrome can make a wide tablet surprisingly short. */
+@media (max-height: 740px) and (orientation: landscape) {
+  .surface-statement .surface-link { display: none; }
+  .surface-statement h2 { font-size: clamp(62px, 14dvh, 104px); margin: 12px 0; }
+  .surface-statement p { margin-bottom: 0; }
+  .home-media > span { display: none; }
+  .home-launch .surface-link { display: none; }
+  .app-library .app-icon { width: 48px; height: 48px; }
+  .app-library .app-icon img, .app-library .app-icon svg { width: 34px; height: 34px; }
+  .performance-vitals { padding-top: 10px; }
+  .screen-actions { gap: 8px; }
+  .screen-actions button { padding: 0 6px; }
+}
+@media (max-width: 1000px) {
+  .home-media > span, .home-launch .surface-link { display: none; }
+  .surface-link { font-size: 13px; }
+  .detail-grid { column-gap: 30px; }
+  .core-grid { grid-template-columns: repeat(5, 1fr); }
+}
+/* Portrait tablets get a centered reading, not a desktop row with dead space. */
+@media (orientation: portrait) and (max-width: 1000px) {
+  .home-stage { flex-direction: column; justify-content: center; gap: clamp(24px, 4dvh, 50px); }
+  .surface-statement { width: 100%; }
+  .surface-statement h2 { font-size: clamp(66px, 12vw, 110px); margin: 14px 0; line-height: 1; }
+  .surface-statement h2 br { display: none; }
+  .surface-statement h2 i { margin-left: .12em; }
+  .surface-statement .surface-link { display: none; }
+  .core-reading { width: 100%; height: clamp(220px, 29dvh, 380px); }
+  .core-halo { width: min(54vw, 31dvh, 410px); }
+  .hero-reading { font-size: clamp(135px, min(27vw, 17dvh), 235px); }
+  .home-understory { margin-top: 10px; }
+  .home-launch .apps-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .home-launch .app-tile { min-height: 80px; }
+  .home-launch .app-icon img, .home-launch .app-icon svg { width: 34px; height: 34px; }
+  .home-launch .app-name { font-size: 13px; }
+  .performance-surface { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto auto; gap: 24px; }
+  .performance-heading h2 { font-size: clamp(64px, 10vw, 90px); margin: 12px 0; }
+  .performance-main { align-self: center; }
+  .thermal-reading { font-size: clamp(170px, min(28vw, 23dvh), 280px); }
+  .performance-vitals { grid-column: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+  .performance-surface > .surface-link { grid-column: 1; }
+  .clock-composition { flex-direction: column; gap: clamp(28px, 5dvh, 65px); }
+  .clock-dial { width: min(45vw, 33dvh, 400px); }
+  .clock-digits { font-size: clamp(80px, 21vw, 185px); }
+  .digital-clock { text-align: center; }
+  .ambient-caption { bottom: calc(var(--surface-bottom) + 180px); }
+  .ambient-live-clock { left: var(--surface-side); right: auto; text-align: left; bottom: calc(var(--surface-bottom) + 95px); }
+}
+@media (max-width: 800px) {
+  .apps-grid.app-library { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 12px; }
+  .surface-status { gap: 12px; }
+  .screen-actions { gap: 6px; }
+  .screen-actions span { display: none; }
+  .screen-actions button { width: 44px; justify-content: center; padding: 0; }
+  .scene-controls { gap: 10px; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .home-media { gap: 3px; }
+  .surface-vitals { gap: 24px; }
+}
+@media (max-width: 540px) {
+  :root { --surface-top: calc(68px + env(safe-area-inset-top, 0px)); --surface-side: 22px; }
+  .surface-status .status { font-size: 9px; letter-spacing: 0; }
+  .surface-status time { display: none; }
+  .surface-status { gap: 4px; }
+  .surface-dock { padding: 6px; border-radius: 20px; }
+  .surface-dock button { min-height: 60px; border-radius: 12px; }
+  .home-surface { height: auto; min-height: var(--display-height); }
+  .home-stage { flex: 1 0 auto; gap: 20px; }
+  .surface-overline { font-size: 10px; letter-spacing: 1px; }
+  .surface-statement h2 { font-size: 64px; }
+  .surface-statement p { font-size: 13px; }
+  .core-reading { height: 235px; }
+  .core-halo { width: 260px; }
+  .hero-reading { font-size: 135px; }
+  .reading-label { font-size: 10px; }
+  .home-understory { gap: 14px; flex-wrap: wrap; }
+  .surface-vitals { gap: 24px; }
+  .surface-vital > span { font-size: 9px; letter-spacing: .5px; }
+  .surface-vital strong { font-size: 30px; }
+  .home-media { margin-left: auto; }
+  .home-media button:not(:nth-of-type(2)) { display: none; }
+  .home-launch .app-tile { min-height: 70px; }
+  .home-launch .app-name { font-size: 11px; }
+  .home-launch .app-icon img, .home-launch .app-icon svg { width: 28px; height: 28px; }
+  .apps-grid.app-library { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 6px; }
+  .app-library .app-tile { min-height: 110px; }
+  .app-library .app-icon { width: 48px; height: 48px; }
+  .app-library .app-icon img, .app-library .app-icon svg { width: 34px; height: 34px; }
+  .app-library .app-name { font-size: 13px; }
+  .app-library .app-status { font-size: 10px; }
+  .library-header { gap: 10px; }
+  .library-title { font-size: 42px; letter-spacing: -2px; }
+  .library-title i { letter-spacing: -2px; }
+  .library-header > button { font-size: 11px; padding: 0; }
+  .game-toolbar { flex-wrap: wrap; gap: 8px; }
+  .game-toolbar input { width: 100%; }
+  .game-filters { gap: 10px; }
+  .game-filters button { font-size: 11px; }
+  .game-card { flex-basis: 230px; height: 340px; }
+  .screen-kicker { font-size: 9px; letter-spacing: .6px; }
+  .clock-dial { width: min(55vw, 28dvh); }
+  .clock-digits { font-size: 23vw; }
+  .clock-greeting { font-size: 13px; }
+  .clock-meta { font-size: 11px; gap: 14px; }
+  .clock-composition { gap: 26px; }
+  .screen-bottom { gap: 8px; }
+  .segmented { gap: 8px; }
+  .scene-controls { gap: 8px; flex-wrap: wrap; }
+  .scene-controls button { font-size: 11px; }
+  .ambient-screen .screen-bottom { align-items: flex-end; }
+  .ambient-caption h2 { font-size: 42px; }
+  .performance-surface { min-height: 0; }
+  .performance-heading h2 { font-size: 66px; }
+  .thermal-reading { font-size: 190px; }
+  .device-entry p { min-width: 100%; font-size: 12px; }
+}
+/* Very short windows may scroll regular screens; keep scenes contained. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .home-surface { height: auto; gap: 18px; }
+  .home-stage { min-height: 225px; }
+  .home-understory { flex-wrap: wrap; }
+  .surface-statement h2 { font-size: 58px; }
+  .reading-label { font-size: 9px; letter-spacing: .7px; }
+  .core-reading { height: 200px; }
+  .core-halo { width: 205px; }
+  .hero-reading { font-size: 100px; }
+  .apps-grid.app-library { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .clock-dial { width: min(26vw, 38dvh); }
+  .clock-digits { font-size: min(14vw, 24dvh); }
+  .clock-greeting { font-size: 12px; margin-bottom: 8px; }
+  .clock-meta { font-size: 10px; margin-top: 8px; }
+  .clock-composition { padding: 6px 0; }
+  .screen-actions span { display: none; }
+  .ambient-caption { bottom: calc(var(--surface-bottom) + 60px); }
+  .ambient-caption h2 { font-size: 36px; margin: 8px 0; }
+  .ambient-live-clock { bottom: calc(var(--surface-bottom) + 70px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

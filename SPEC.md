@@ -85,7 +85,8 @@ Use trusted-local-network firewall access only. No automatic firewall changes, r
 
 ## UI constraints
 
-- Landscape-first modular grid; collapse columns in portrait and use bottom navigation on narrow screens.
+- Landscape-first screen compositions sized against the visible browser width and height. Reserve shared space for the floating dock and device safe areas; keep primary actions clear of navigation with browser chrome visible or in fullscreen. Portrait centers the main reading and uses two shortcut rows.
+- Approved browsers report their own display size, visible area, orientation, scale and fullscreen state on connection, resizing and a 30-second visible-page heartbeat. Keep only the latest bounded report in memory for five minutes, show it to the direct-loopback owner in Device access, and offer a local display readout/copy button under Tablet settings. These reports describe the browser viewport, not hardware identity or advertised panel resolution.
 - Primary touch controls at least 48 CSS px; graph range controls have a 48 px height and at least 44 px width.
 - Use system fonts, high-contrast text, lime primary accent, cyan/purple/orange sensor colors, tabular numeric readings.
 - Navigation supports taps and deliberate horizontal swipes outside controls. No hover-only features.

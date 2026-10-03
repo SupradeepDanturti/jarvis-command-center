@@ -6,7 +6,11 @@ A local touchscreen dashboard for a Dell G16, opened in a Redmi Pad Pro browser.
 
 Read [SPEC.md](SPEC.md) for the complete target, implementation decisions, security model, and roadmap.
 
-The display uses a small floating dock: **Home, Performance, Games, Apps, Clock, Ambient**. **More** opens Hardware, Live graphs, System & controls, and Device access. Home shows one large live reading with compact vitals and launcher icons. Clock and Ambient fill the display; Games uses a sideways poster gallery. There is no permanent sidebar or overview card grid.
+The display uses a small floating dock: **Home, Live (performance), Games, Apps, Clock, Ambient**. **More** opens Hardware, Live graphs, System & controls, and Device access. Home shows one large live reading with compact vitals and launcher icons. Clock and Ambient fill the display; Games uses a sideways poster gallery. There is no permanent sidebar or overview card grid.
+
+Tablet layouts adjust to both width and the visible browser height, leaving space for the dock and Android safe areas. Landscape keeps the main composition and shortcuts above the dock; portrait centers the live reading and arranges shortcuts in two rows. Rotate normally or use Fullscreen; neither is required to make the layout fit. After an update, reload the tablet page to load the latest styles. Short phone windows and detailed settings can scroll.
+
+Approved browsers automatically report their current display size, visible area, orientation, pixel scale and fullscreen mode while this page is visible. On the laptop, **More → Device access** shows the latest size beside each reporting browser. Reports refresh on resizing/fullscreen changes and every 30 seconds; only the latest report is kept in memory for five minutes. For manual troubleshooting, the tablet’s **More → System & controls → Tablet settings** includes **Display size** and **Copy display details**. Reload once after installing this update to enable automatic reports.
 
 ## Run on Windows
 

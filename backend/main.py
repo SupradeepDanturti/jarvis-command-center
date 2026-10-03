@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import os
 from pathlib import Path
 import secrets
+from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
@@ -12,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .controllers import AppRegistry, media_action
 from .devices import COOKIE, DEVICE_TTL, PENDING_TTL, DeviceStore
+from .display import DisplayReports
 from .games import GameLibrary
 from .security import Pairing, require_origin, same_origin
 from .telemetry import Telemetry
@@ -35,6 +37,17 @@ class LaunchRequest(BaseModel):
     id: str = Field(min_length=1, max_length=80, pattern=r"^[a-z0-9_-]+$")
 
 
+class DisplayRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid', allow_inf_nan=False)
+    width: int = Field(ge=1, le=16384, strict=True)
+    height: int = Field(ge=1, le=16384, strict=True)
+    visibleWidth: int = Field(ge=1, le=16384, strict=True)
+    visibleHeight: int = Field(ge=1, le=16384, strict=True)
+    scale: float = Field(gt=0, le=16)
+    mode: Literal['Fullscreen', 'Normal browser']
+    orientation: Literal['Landscape', 'Portrait']
+
+
 def create_app(pairing_code=None, device_db=None):
     state_dir = ROOT / '.state/private'
     code = pairing_code or secrets.token_hex(4).upper()
@@ -43,6 +56,7 @@ def create_app(pairing_code=None, device_db=None):
     telemetry = Telemetry()
     registry = AppRegistry()
     games = GameLibrary()
+    display_reports = DisplayReports()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -62,6 +76,7 @@ def create_app(pairing_code=None, device_db=None):
     app.state.registry = registry
     app.state.games = games
     app.state.devices = devices
+    app.state.display_reports = display_reports
 
     def local(request):
         return request.client is not None and request.client.host in {'127.0.0.1', '::1'}
@@ -140,7 +155,13 @@ def create_app(pairing_code=None, device_db=None):
 
     @app.get('/api/devices', dependencies=[Depends(owner)])
     def device_list():
-        return devices.list()
+        return [{**device, 'display': display_reports.get(device['id']) if device['status'] == 'approved' else None}
+                for device in devices.list()]
+
+    @app.post('/api/device/display', dependencies=[Depends(require_origin)])
+    def report_display(body: DisplayRequest, device=Depends(authenticate)):
+        display_reports.record(device['id'], body.model_dump())
+        return {'ok': True}
 
     @app.post('/api/devices/{device_id}/approve', dependencies=[Depends(owner), Depends(require_origin)])
     def approve(device_id: str):
@@ -150,12 +171,14 @@ def create_app(pairing_code=None, device_db=None):
     @app.post('/api/devices/{device_id}/revoke', dependencies=[Depends(owner), Depends(require_origin)])
     def revoke(device_id: str):
         devices.revoke(device_id)
+        display_reports.remove(device_id)
         return {'ok': True}
 
     @app.post("/api/logout", dependencies=[Depends(authenticate), Depends(require_origin)])
     def logout(request: Request, response: Response):
         device = devices.lookup(request.cookies.get(COOKIE))
         devices.revoke(device['id'])
+        display_reports.remove(device['id'])
         response.delete_cookie(COOKIE)
         return {"ok": True}
 
