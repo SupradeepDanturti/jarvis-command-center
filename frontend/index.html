@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e14"><meta name="color-scheme" content="dark">
+  <title>G16 · Command Center</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a href="#home" class="brand" aria-label="Command center home"><span class="brand-mark">G<span>16</span></span><small>COMMAND CENTER</small></a>
+    <nav aria-label="Dashboard pages">
+      <button class="nav active" data-page="home"><span>▦</span>Overview</button>
+      <button class="nav" data-page="gaming"><span>◇</span>Gaming</button>
+      <button class="nav" data-page="hardware"><span>▤</span>Hardware</button>
+      <button class="nav" data-page="graphs"><span>⌁</span>Live graphs</button>
+      <button class="nav" data-page="apps"><span>⊞</span>Applications</button>
+      <button class="nav" data-page="system"><span>⚙</span>System</button>
+    </nav>
+    <div class="sidebar-bottom"><span class="device-icon">▱</span><strong>Redmi Pad Pro</strong><small>Your touch command surface</small><button id="fullscreen" class="subtle">⛶ &nbsp; Fullscreen</button></div>
+  </aside>
+  <main>
+    <header><div><div class="eyebrow">LOCAL NETWORK / PERSONAL CONTROL</div><h1 id="page-title">Command center<span>.</span></h1><p id="page-description">Your laptop. Everything in view.</p></div><div class="header-right"><span id="connection" class="status">● PAIR DEVICE</span><time id="clock"></time></div></header>
+    <div class="machine-strip"><div><span class="online-dot"></span><strong id="hostname">DELL G16</strong><span class="separator">/</span><span id="system-summary">Waiting for connection</span></div><span id="sample-age">LIVE TELEMETRY</span></div>
+    <div id="offline-banner" class="notice" hidden>Connection interrupted. Reconnecting automatically; readings below are stale.</div>
+    <section id="page-content" aria-label="Dashboard"></section>
+    <footer><span><i class="online-dot"></i> LOCAL FIRST <span class="separator">/</span> v0.1 FOUNDATION</span><span id="footer-ip">Secure device pairing</span></footer>
+  </main>
+  <dialog id="pair-dialog"><form id="pair-form"><div class="dialog-mark">G16</div><div class="eyebrow">WELCOME TO YOUR COMMAND CENTER</div><h2>Pair with your laptop.</h2><p>Enter the eight-character code shown in the dashboard terminal on your Dell G16.</p><label for="pair-code">PAIRING CODE</label><input id="pair-code" name="code" minlength="8" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="A1B2C3D4" required><button class="primary" type="submit">Connect device <span>→</span></button><p id="pair-error" role="alert"></p><small>On the same Wi-Fi. Runs entirely on your laptop.</small></form></dialog>
+  <div id="toast" role="status" hidden></div>
+</body>
+</html>
