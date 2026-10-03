@@ -3,6 +3,7 @@
 This is a local Windows FastAPI dashboard for a Dell G16 and Redmi Pad Pro. Read README.md for setup, SPEC.md for scope, SECURITY.md for trust boundaries, and VALIDATION.md for verified behavior. Project-wide rules are in .cursor/rules/.
 
 - Keep the touch interface clear, responsive, and free of implementation details. Serve frontend assets locally; show unavailable sensors honestly.
+- Preserve the desk-display design: one composition per screen, large readings/type, a floating dock, and full-screen clock/artwork. Keep detailed settings in More; avoid reintroducing a permanent sidebar, boxed overview widgets, or repeated status bars.
 - Preserve HTTPS/WSS, approved browser authentication, direct-loopback owner management, and the setup-only HTTP listener. Follow .cursor/rules/security.mdc for changes touching these boundaries.
 - Use port 18761 for the dashboard and 18760 for public certificate setup. Do not use common development port 8000.
 - Keep .state/, secrets, private keys, recovery codes, database files, logs, and config/apps.local.json out of Git. Preserve existing approvals and CA trust when updating.

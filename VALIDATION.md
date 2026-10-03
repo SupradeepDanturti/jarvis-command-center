@@ -14,6 +14,8 @@ Install Playwright separately if needed, then run `node scripts/browser-smoke.cj
 
 ## Visual screens and installed games
 
+- The desk-display redesign passed real Edge checks with no sidebar or overview cards, a visible floating dock, Home fitting above the dock at 1280×800, all ten screens reachable (including the More menu), full-width Clock/Ambient, and no horizontal page overflow at 800×1280 or 412×915. Games uses its own horizontally scrolling poster rail; swiping it does not switch screens.
+
 - Landscape, immersive-clock, ambient, game-library, and mobile screenshots were inspected. All artwork and brand logos are local; Steam covers are read from the existing authenticated laptop cache.
 - Actual discovery found five installed titles across Steam, Epic, GOG and Riot: Counter-Strike 2, Red Dead Redemption 2, Sherlock Holmes: Crimes and Punishments, A Plague Tale: Requiem, and VALORANT. Unreal Engine, Fab/Quixel plugins, Steam redistributables, and stale League of Legends metadata were excluded.
 - The backend was restarted through the scheduled-task helper to activate launcher changes; approved-device credentials and CA trust were preserved. Trusted HTTPS browser/security checks passed afterward.

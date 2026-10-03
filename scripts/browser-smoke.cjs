@@ -13,6 +13,7 @@ const assert = require('node:assert/strict');
   try {
     context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     page = await context.newPage();
+    async function screen(id){const button=page.locator(`[data-page="${id}"]`);if(!await button.isVisible())await page.locator('#more-toggle').click();await button.click()}
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error' && /Content Security Policy|Refused/i.test(message.text())) errors.push(message.text()); });
@@ -25,13 +26,17 @@ const assert = require('node:assert/strict');
     await page.waitForFunction(() => document.querySelector('#connection').textContent.includes('LIVE CONNECTION'));
     await page.waitForFunction(() => document.querySelector('[data-metric="memory.percent"]').textContent !== '—');
     assert.equal(await page.locator('[data-app]').count(),8);
+    assert.equal(await page.locator('.sidebar').count(),0);
+    assert.equal(await page.locator('#page-content .card').count(),0);
+    assert.equal(await page.locator('.surface-dock').isVisible(),true);
+    assert.equal(await page.locator('#page-content').evaluate(el=>el.getBoundingClientRect().bottom<=innerHeight-100),true,'Home composition must fit above the dock');
     assert.equal(await page.evaluate(()=>document.querySelector('#page-content').scrollWidth<=document.querySelector('#page-content').clientWidth),true);
     await page.screenshot({path:path.join(artifacts,'dashboard-landscape.png'),fullPage:true});
     for (const id of ['gaming','games','hardware','graphs','apps','clock','ambient','system','devices','home']) {
-      await page.locator(`[data-page="${id}"]`).click();
+      await screen(id);
       assert.equal(await page.locator(`[data-page="${id}"]`).getAttribute('aria-current'),'page');
     }
-    await page.locator('[data-page="apps"]').click();
+    await screen('apps');
     for(const id of ['steam','discord','brave','youtube']){
       assert.equal(await page.locator(`[data-app="${id}"] img`).count(),1);
       assert.equal(await page.locator(`[data-app="${id}"] img`).evaluate(img=>img.complete&&img.naturalWidth>0),true);
@@ -44,7 +49,8 @@ const assert = require('node:assert/strict');
     assert.deepEqual(launchBody,{id:'youtube'});
     await page.unroute('**/api/apps/launch');
     await page.screenshot({path:path.join(artifacts,'applications-landscape.png'),fullPage:true});
-    await page.locator('[data-page="clock"]').click();
+    await screen('clock');
+    assert.equal(await page.locator('.clock-screen').evaluate(el=>el.getBoundingClientRect().width===innerWidth),true);
     assert.match(await page.locator('[data-clock-hours]').innerText(),/^\d{2}$/);
     await page.locator('[data-clock-format="12"]').click();
     assert.match(await page.locator('[data-clock-period]').innerText(),/AM|PM/);
@@ -54,7 +60,8 @@ const assert = require('node:assert/strict');
     await page.screenshot({path:path.join(artifacts,'clock-immersive.png')});
     await page.locator('[data-screen-exit]').click();
     assert.equal(await page.locator('body').evaluate(body=>body.classList.contains('presentation')),false);
-    await page.locator('[data-page="ambient"]').click();
+    await screen('ambient');
+    assert.equal(await page.locator('.ambient-screen').evaluate(el=>el.getBoundingClientRect().width===innerWidth),true);
     await page.waitForFunction(()=>document.querySelector('#ambient-video').currentTime>.3);
     assert.equal(await page.evaluate(()=>new Promise(resolve=>{const video=document.querySelector('#ambient-video');let previous=video.currentTime;const deadline=Date.now()+25000;const timer=setInterval(()=>{const current=video.currentTime;if(current<previous-.5){clearInterval(timer);resolve(true)}else if(Date.now()>deadline){clearInterval(timer);resolve(false)}previous=current},200)})),true,'Ambient video must loop');
     await page.screenshot({path:path.join(artifacts,'ambient-landscape.png'),fullPage:true});
@@ -65,10 +72,12 @@ const assert = require('node:assert/strict');
       assert.equal(await page.locator('.ambient-screen').getAttribute('data-scene'),scene);
     }
     await page.locator('[data-motion-toggle]').click();
-    await page.locator('[data-page="games"]').click();
+    await screen('games');
     await page.waitForFunction(()=>state.gameLibrary!==null);
     const gameCount=await page.locator('[data-game]').count();
     assert.equal(gameCount,await page.evaluate(()=>state.games.length));
+    await page.locator('#games-list').evaluate(el=>{for(const [type,x] of [['touchstart',320],['touchend',80]]){const event=new Event(type,{bubbles:true});Object.defineProperty(event,'changedTouches',{value:[{clientX:x,clientY:200}]});el.dispatchEvent(event)}});
+    assert.equal(await page.evaluate(()=>state.page),'games','Swiping the poster rail must not change screens');
     if(gameCount){
       await page.locator('#game-search').fill('no game matches this search 99999');
       assert.equal(await page.locator('[data-game]').count(),0);
@@ -76,9 +85,9 @@ const assert = require('node:assert/strict');
       assert.equal(await page.locator('[data-game]').count(),gameCount);
     }
     await page.screenshot({path:path.join(artifacts,'games-landscape.png'),fullPage:true});
-    await page.locator('[data-page="home"]').click();
-    await page.locator('[data-range="300"]').click();
-    assert.equal(await page.locator('[data-range="300"]').getAttribute('class'),'active');
+    await screen('graphs');
+    await page.locator('[data-range="300"]').first().click();
+    assert.equal(await page.locator('[data-range="300"]').first().getAttribute('class'),'active');
     await context.setOffline(true);
     // Chromium offline emulation does not reliably drop an existing WebSocket.
     await page.evaluate(() => state.socket.close());
@@ -89,13 +98,13 @@ const assert = require('node:assert/strict');
     for(const viewport of [{width:800,height:1280},{width:412,height:915}]) {
       await page.setViewportSize(viewport);
       for(const id of ['home','apps','clock','ambient','games','devices']){
-        await page.locator(`[data-page="${id}"]`).click();
+        await screen(id);
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`${id} overflows at ${viewport.width}`);
       }
-      await page.locator('[data-page="home"]').click();
+      await screen('home');
       await page.screenshot({path:path.join(artifacts,`dashboard-${viewport.width}.png`),fullPage:true});
     }
-    await page.locator('[data-page="system"]').click();
+    await screen('system');
     await page.locator('#disconnect').click();
     await page.locator('#pair-dialog').waitFor({state:'visible'});
     assert.equal(await page.evaluate(async()=> (await fetch('/api/apps')).status),401);

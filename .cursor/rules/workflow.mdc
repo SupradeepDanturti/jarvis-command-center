@@ -7,6 +7,7 @@ alwaysApply: true
 
 - Follow AGENTS.md and the setup/run/test instructions in README.md and VALIDATION.md.
 - Keep frontend assets local, touch controls usable, and unavailable readings honest. Do not introduce demo sensor values into the live app.
+- Preserve screen-level desk-display compositions, bold type, the floating dock, and full-screen clock/artwork. Detailed settings belong in More; the user explicitly rejected sidebar/card-grid dashboard styling.
 - Use dashboard port 18761 and certificate setup port 18760. Preserve silent startup in the user's desktop session.
 - Avoid restarting the active server for static edits. Use scripts/restart-server.ps1 when a backend restart is necessary.
 - Test changed behavior and document actual verification; never claim an unperformed reboot or physical control test passed.

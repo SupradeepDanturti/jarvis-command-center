@@ -6,6 +6,8 @@ A local touchscreen dashboard for a Dell G16, opened in a Redmi Pad Pro browser.
 
 Read [SPEC.md](SPEC.md) for the complete target, implementation decisions, security model, and roadmap.
 
+The display uses a small floating dock: **Home, Performance, Games, Apps, Clock, Ambient**. **More** opens Hardware, Live graphs, System & controls, and Device access. Home shows one large live reading with compact vitals and launcher icons. Clock and Ambient fill the display; Games uses a sideways poster gallery. There is no permanent sidebar or overview card grid.
+
 ## Run on Windows
 
 ```powershell
@@ -28,7 +30,7 @@ For laptop-only use omit `-Lan`. Default port is **18761**, chosen to avoid comm
 2. Copy **G16 Dashboard CA.cer** from laptop Downloads to the tablet using USB, or download it from the background server's setup-only page at `http://LAPTOP_IP:18760`. If downloading, verify the installed certificate's SHA-256 fingerprint against the trusted laptop connection text file.
 3. In tablet Settings, search **CA certificate** and install the file as a CA certificate. Opening the downloaded file directly may show “Install CA certificates in Settings”; follow that instruction.
 4. Open the **HTTPS** Wi-Fi address, e.g. `https://192.168.1.100:18761`. Name the browser and request approval.
-5. On the laptop, open `https://localhost:18761/#devices`. First-time laptop access uses the setup code from **G16 Command Center.txt** on Desktop or in Downloads; tap **Set up this laptop**. In **Device access → Approved devices**, match the tablet request's fingerprint and approve it. The same list also appears on System.
+5. On the laptop, open `https://localhost:18761/#devices`, or choose **More → Device access**. First-time laptop access uses the setup code from **G16 Command Center.txt** on Desktop or in Downloads; tap **Set up this laptop**. In **Approved devices**, match the tablet request's fingerprint and approve it. The same list also appears on System.
 6. Tap Fullscreen for a dedicated dashboard view. Swipe horizontally on the dashboard to change pages.
 
 Windows may request firewall access; allow only your trusted local network for this server. If connection fails, verify the Wi-Fi address, port, firewall, and that your Wi-Fi does not isolate devices. No router port forwarding is needed. Approved browsers are remembered for 180 days across restarts, unless revoked or their cookies are cleared. New browsers always require laptop approval. See [SECURITY.md](SECURITY.md) for the full flow and limitations.
@@ -91,17 +93,17 @@ Open **Clock** for the analog/digital time station. Switch between 12-hour and 2
 
 Open **Ambient** for three desk scenes: **Event horizon** (an original silent 16-second video loop), **Neon drift**, and **Aurora**. All artwork plays locally without internet streaming. Pause/resume motion with the playback button; reduced-motion preferences start with motion paused. Hidden tabs pause the video. The scene and clock format are remembered in this browser; no authentication secrets are stored with these preferences.
 
-On either screen, tap **Immersive view** to hide the dashboard frame and request browser fullscreen. **Back to dashboard** or Escape restores the controls. **Keep awake** requests the browser's screen wake lock while visible; Android may release it when you switch apps or turn off the screen.
+Clock and Ambient already fill the display. Tap **Immersive view** to hide the dock and request browser fullscreen. **Back to display** or Escape restores the controls. **Keep awake** requests the browser's screen wake lock while visible; Android may release it when you switch apps or turn off the screen.
 
 The original video is included in the repository. To regenerate it with installed Edge and a separately available Playwright package, run `node scripts/render-ambient.cjs`; the script accepts `G16_PLAYWRIGHT_PATH` as described in VALIDATION.md. Asset provenance is in [ASSETS.md](ASSETS.md).
 
 ## Installed games
 
-**Game library** detects installed games from all registered Steam libraries, Epic installation manifests, GOG registry entries, and Riot installation metadata. It excludes Steam redistributables, Unreal Engine/plugins, incomplete installations, and missing installation paths. Locally cached Steam artwork is displayed when available; other games get a branded fallback cover. Game artwork remains on the laptop and is served only to approved browsers.
+**Games** detects installed games from all registered Steam libraries, Epic installation manifests, GOG registry entries, and Riot installation metadata. It excludes Steam redistributables, Unreal Engine/plugins, incomplete installations, and missing installation paths. Swipe/scroll the poster gallery sideways to see more games. Locally cached Steam artwork is displayed when available; other games get a branded fallback cover. Game artwork remains on the laptop and is served only to approved browsers.
 
 Search by title, filter by launcher, and tap **Play on laptop**. Steam and Epic launch through their registered launcher protocols; Riot uses its client with fixed product/patchline arguments; GOG launches its registered executable. The tablet sends only the detected game ID. Game processes and gameplay status are not yet tracked.
 
-Opening the tab checks the library, with a one-minute discovery cache. **Refresh library** rescans immediately after you install or remove a game. Portable games and launchers without a supported local record need a trusted laptop registration in ignored `config/games.local.json`:
+Opening Games checks the library, with a one-minute discovery cache. **Refresh** rescans immediately after you install or remove a game. Portable games and launchers without a supported local record need a trusted laptop registration in ignored `config/games.local.json`:
 
 ```json
 [

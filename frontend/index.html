@@ -5,34 +5,29 @@
   <meta name="theme-color" content="#080b11"><meta name="color-scheme" content="dark">
   <title>G16 · Command Center</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/theme.css"><script src="/static/icons.js" defer></script><script src="/static/screens.js" defer></script><script src="/static/games.js" defer></script><script src="/static/app.js" defer></script>
+  <link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/surface.css"><script src="/static/icons.js" defer></script><script src="/static/screens.js" defer></script><script src="/static/games.js" defer></script><script src="/static/app.js" defer></script>
 </head>
 <body>
-  <aside class="sidebar">
-    <a href="#home" class="brand" aria-label="Command center home"><img src="/static/assets/g16-mark.svg" width="44" height="44" alt=""><div><span class="brand-mark">G16<span> /</span></span><small>COMMAND CENTER</small></div></a>
-    <div class="nav-label">CONTROL DECK <span>01—10</span></div>
-    <nav aria-label="Dashboard pages">
-      <button class="nav active" data-page="home" aria-label="Overview"><span data-icon="home"></span>Overview</button>
-      <button class="nav" data-page="gaming" aria-label="Gaming"><span data-icon="gaming"></span>Gaming</button>
-      <button class="nav" data-page="games" aria-label="Game library"><span data-icon="gaming"></span>Game library</button>
-      <button class="nav" data-page="hardware" aria-label="Hardware"><span data-icon="hardware"></span>Hardware</button>
-      <button class="nav" data-page="graphs" aria-label="Live graphs"><span data-icon="graphs"></span>Live graphs</button>
-      <button class="nav" data-page="apps" aria-label="Applications"><span data-icon="apps"></span>Applications</button>
-      <button class="nav" data-page="clock" aria-label="Clock"><span data-icon="clock"></span>Clock</button>
-      <button class="nav" data-page="ambient" aria-label="Ambient"><span data-icon="ambient"></span>Ambient</button>
-      <button class="nav" data-page="system" aria-label="System"><span data-icon="system"></span>System</button>
-      <button class="nav" data-page="devices" aria-label="Device access"><span data-icon="devices"></span>Device access</button>
+  <header class="surface-bar"><a href="#home" class="surface-brand" aria-label="G16 home"><img src="/static/assets/g16-mark.svg" width="27" height="27" alt=""><span>G16<span class="brand-slash"> /</span></span></a><div class="surface-status"><span id="connection" class="status">● PAIR DEVICE</span><time id="clock"></time><button id="fullscreen" aria-label="Toggle fullscreen"><span data-icon="fullscreen"></span></button></div></header>
+  <div id="surface-navigation" class="surface-navigation">
+    <div id="more-menu" class="more-menu" hidden><span class="menu-label">A CLOSER LOOK</span><button class="nav" data-page="hardware"><span data-icon="hardware"></span>Hardware</button><button class="nav" data-page="graphs"><span data-icon="graphs"></span>Live graphs</button><button class="nav" data-page="system"><span data-icon="system"></span>System & controls</button><button class="nav" data-page="devices"><span data-icon="devices"></span>Device access</button></div>
+    <nav class="surface-dock" aria-label="Display screens">
+      <button class="nav active" data-page="home" aria-label="Home"><span data-icon="home"></span><small>Home</small></button>
+      <button class="nav" data-page="gaming" aria-label="Performance"><span data-icon="hardware"></span><small>Performance</small></button>
+      <button class="nav" data-page="games" aria-label="Games"><span data-icon="gaming"></span><small>Games</small></button>
+      <button class="nav" data-page="apps" aria-label="Apps"><span data-icon="apps"></span><small>Apps</small></button>
+      <button class="nav" data-page="clock" aria-label="Clock"><span data-icon="clock"></span><small>Clock</small></button>
+      <button class="nav" data-page="ambient" aria-label="Ambient"><span data-icon="ambient"></span><small>Ambient</small></button>
+      <button id="more-toggle" aria-label="More screens" aria-controls="more-menu" aria-expanded="false"><span data-icon="system"></span><small>More</small></button>
     </nav>
-    <div class="sidebar-bottom"><div class="surface-label"><span class="online-dot"></span> PAIRED SURFACE</div><strong>Redmi Pad Pro</strong><small>One machine. Total control.</small><button id="fullscreen" class="subtle"><span data-icon="fullscreen"></span> Fullscreen</button></div>
-  </aside>
+  </div>
   <main>
-    <header><div><div class="eyebrow">G16 / PERSONAL COMMAND SYSTEM</div><h1 id="page-title">Command center<span>.</span></h1><p id="page-description">Your laptop. Everything in view.</p></div><div class="header-right"><span id="connection" class="status">● PAIR DEVICE</span><time id="clock"></time></div></header>
-    <div class="machine-strip"><div><span class="online-dot"></span><strong id="hostname">DELL G16</strong><span class="separator">/</span><span id="system-summary">Waiting for connection</span></div><span id="sample-age">LIVE TELEMETRY</span></div>
+    <div class="surface-header"><h1 id="page-title">Command center</h1><p id="page-description">Your laptop. Everything in view.</p></div>
+    <div hidden><strong id="hostname">DELL G16</strong><span id="system-summary"></span><span id="sample-age"></span><span id="footer-ip"></span></div>
     <div id="offline-banner" class="notice" hidden>Connection interrupted. Reconnecting automatically; readings below are stale.</div>
-    <section id="page-content" aria-label="Dashboard"></section>
-    <footer><span><i class="online-dot"></i> DESIGNED FOR YOUR DESK <span class="separator">/</span> G16 CC · 02</span><span id="footer-ip">Secure device pairing</span></footer>
+    <section id="page-content" aria-label="Desk display"></section>
   </main>
-  <dialog id="pair-dialog"><form id="pair-form"><div class="dialog-mark"><img src="/static/assets/g16-mark.svg" width="44" height="44" alt="">G16</div><div class="eyebrow">PRIVATE DEVICE ACCESS</div><h2 id="pair-title">Approve this browser.</h2><p id="pair-description">Checking your device…</p><label for="device-name">DEVICE NAME</label><input id="device-name" name="device" maxlength="60" autocomplete="off" placeholder="Redmi Pad Pro" required><div id="setup-code"><label for="pair-code">LAPTOP SETUP CODE</label><input id="pair-code" name="code" minlength="8" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="A1B2C3D4"></div><button class="primary" type="submit">Request approval <span>→</span></button><p id="pair-error" role="alert"></p><small id="pair-note">Only approved browsers can see or control your laptop.</small></form></dialog>
+  <dialog id="pair-dialog"><form id="pair-form"><div class="dialog-mark"><img src="/static/assets/g16-mark.svg" width="44" height="44" alt="">G16</div><div class="eyebrow">PRIVATE DEVICE ACCESS</div><h2 id="pair-title">Approve this browser.</h2><p id="pair-description">Checking your device…</p><label for="device-name">DEVICE NAME</label><input id="device-name" name="device" maxlength="60" autocomplete="off" placeholder="Redmi Pad Pro" required><div id="setup-code" hidden><label for="pair-code">LAPTOP SETUP CODE</label><input id="pair-code" name="code" minlength="8" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="A1B2C3D4"></div><button class="primary" type="submit">Request approval <span>→</span></button><p id="pair-error" role="alert"></p><small id="pair-note">Only approved browsers can see or control your laptop.</small></form></dialog>
   <div id="toast" role="status" hidden></div>
 </body>
 </html>

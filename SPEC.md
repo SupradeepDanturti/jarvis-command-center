@@ -4,7 +4,7 @@ Version 0.3 • 2026-10-03 • Dell G16 host + Redmi Pad Pro touch surface
 
 ## Product contract
 
-The tablet is an independent browser control surface connected to the laptop over a private LAN. The laptop collects telemetry, launches configured apps, and performs supported controls. No desktop streaming, display extension, cloud server, or Corsair branding is involved. The experience takes inspiration from compact touchscreen hardware dashboards: dark modular panels, readable metrics, thin borders, sparklines, and large controls.
+The tablet is an independent browser control surface connected to the laptop over a private LAN. The laptop collects telemetry, launches configured apps, and performs supported controls. No desktop streaming, display extension, cloud server, or Corsair branding is involved. The interface feels like a dedicated desk display: screen-level compositions, bold typography, large live readings, a floating dock, full-screen clock/artwork, and a poster gallery. A permanent sidebar, overview card grid, and repeated status strips are absent.
 
 Primary layout is landscape, with a responsive portrait layout. Support current Chromium-based Android browsers and Windows Edge/Chrome. Design around flexible viewport dimensions rather than assuming the tablet's panel resolution equals its CSS viewport.
 
@@ -14,7 +14,7 @@ Primary layout is landscape, with a responsive portrait layout. Support current 
 - One shared sampler collects CPU utilization/per-core load/reported clock, RAM, disk capacity/read/write, aggregate network throughput/adapters/IPs, battery/AC status, hostname, OS, and uptime.
 - NVIDIA temperature, utilization, clock, memory, and power are read with a fixed `nvidia-smi` query if available. Other GPU vendors are reported unavailable until adapters are added.
 - Overview, Gaming, Game library, Hardware, Live graphs, Applications, Clock, Ambient, System, and Device access pages share a single connection and sampler. Gaming emphasizes live utilization; FPS remains unavailable pending RTSS. Device access provides a dedicated approval/revocation list, also available on System.
-- Custom geometric G16 emblem and consistent interface glyphs, graphite panels, green/cyan accents, locally served app logos, and touch navigation. Brave and a fixed YouTube-in-Brave shortcut join the app defaults.
+- Custom geometric G16 emblem, consistent glyphs, dark open compositions, ivory/sage typography, locally served app logos, and a floating touch dock. Home, Performance, Games, Apps, Clock, and Ambient are primary screens; Hardware, Live graphs, System, and Device access are in More. Brave and a fixed YouTube-in-Brave shortcut join the app defaults.
 - Clock offers analog/digital local time, date/timezone, 12/24-hour format, immersive view, and optional wake lock. Ambient offers an original local silent WebM loop plus two CSS scenes, pause/resume, reduced-motion support, and remembered visual preferences.
 - Game library discovers installed Steam/Epic/GOG/Riot titles from launcher records, with filtering/search/refresh and ID-only launch dispatch. Local Steam artwork requires approved browser access. Portable/unsupported titles can use ignored laptop-side registrations. Running-game state remains future work.
 - Registered apps launch by ID; running state matches configured process names. Default URI registrations depend on an installed Windows handler, so launch may fail with a visible error.
