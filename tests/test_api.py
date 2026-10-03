@@ -25,7 +25,7 @@ def paired(client):
 
 
 def test_private_endpoints_require_pairing(client):
-    for url in ['/api/system', '/api/apps', '/api/history']:
+    for url in ['/api/system', '/api/apps', '/api/history', '/api/media/state']:
         assert client.get(url).status_code == 401
     assert client.post('/api/apps/launch', json={"id": "files"}, headers=ORIGIN).status_code == 401
     with pytest.raises(WebSocketDisconnect):
@@ -70,6 +70,7 @@ def test_live_websocket_and_logout_revocation(client):
         assert data['data']['source'] == 'live'
         assert data['data']['cpu']['temperature'] is None
         assert data['data']['memory']['total'] > 0
+        assert set(data['media']) == {'status', 'available', 'sampledAt'}
     assert client.post('/api/logout', headers=ORIGIN).status_code == 200
     assert client.get('/api/apps').status_code == 401
 
@@ -102,3 +103,12 @@ def test_expired_session(client):
     with client.app.state.devices.db:
         client.app.state.devices.db.execute('UPDATE devices SET expires=0')
     assert client.get('/api/apps').status_code == 401
+    assert client.get('/api/media/state').status_code == 401
+
+
+def test_media_status_reads_state_without_sending_keys(client):
+    paired(client)
+    snapshot = {'status': 'playing', 'available': True, 'sampledAt': 1234}
+    with patch.object(client.app.state.media, 'sample', return_value=snapshot), patch('backend.main.media_action') as action:
+        assert client.get('/api/media/state').json() == snapshot
+        action.assert_not_called()

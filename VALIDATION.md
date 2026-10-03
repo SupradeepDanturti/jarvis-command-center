@@ -1,5 +1,13 @@
 # Foundation validation — 2026-10-03
 
+## Playback state and held volume controls
+
+- 39 backend checks passed on Windows/Python 3.14. New checks cover native playback-state mapping, disappearing/erroring players clearing old state, authenticated read-only media status, expired access, and playback snapshots in the existing authenticated WebSocket stream.
+- The real Windows media-session API returned the active player's Paused status on this laptop. Reading state does not send media keys or capture track metadata. Windows-only WinRT dependencies are pinned in requirements.
+- The complete trusted browser smoke check passed again: pairing, native keep-awake, all ten screens, fullscreen/ambient controls, responsive layouts, reconnect/logout, and no JavaScript or CSP errors. The background task was restarted with the existing helper to load the backend update; user approvals and certificate trust were preserved.
+- `node scripts/media-controls-smoke.cjs` passed in trusted installed Edge: real status endpoint, mocked Playing/Paused/external state and Home/System icons, single-step taps, mouse and actual Chromium touch holds, release without an extra click, delayed responses without queued repeats, blur/navigation/disconnection/refusal stopping repeats, and keyboard activation. All physical media dispatch was intercepted; the user's volume and playback were not changed by QA. Only the test browser's credential was revoked.
+- The user confirmed the earlier play/pause action works and that Windows volume taps change by two. Physical Redmi hold behavior and its icon after this update need confirmation after reloading.
+
 - 27 backend tests passed locally on Windows/Python 3.14, including connection-file refresh, approved-device authorization, revocation, credential persistence, certificate renewal, isolated certificate-download routes, multi-library game discovery, invalid/stale game filtering, ID-only game dispatch, and Brave/YouTube argument resolution.
 - JavaScript syntax check and Python compilation passed.
 - Headless Microsoft Edge browser check passed: device pairing, live telemetry rendering, all ten pages, app logos, YouTube ID dispatch, clock format/immersive view, ambient playback/scenes, game catalog/search, graph range selection, dropped connection/reconnection, 1280×800 landscape, 800×1280 portrait, 412×915 narrow portrait, no horizontal overflow, logout revocation, and no page errors or CSP violations.

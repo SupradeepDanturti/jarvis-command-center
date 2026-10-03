@@ -15,6 +15,7 @@ from .controllers import AppRegistry, media_action
 from .devices import COOKIE, DEVICE_TTL, PENDING_TTL, DeviceStore
 from .display import DisplayReports
 from .games import GameLibrary
+from .media import MediaMonitor
 from .security import Pairing, require_origin, same_origin
 from .telemetry import Telemetry
 
@@ -57,6 +58,7 @@ def create_app(pairing_code=None, device_db=None):
     registry = AppRegistry()
     games = GameLibrary()
     display_reports = DisplayReports()
+    media_monitor = MediaMonitor()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -64,11 +66,15 @@ def create_app(pairing_code=None, device_db=None):
             state_dir.mkdir(parents=True, exist_ok=True)
             (state_dir / "pairing-code.txt").write_text(code, encoding="utf-8")
         task = asyncio.create_task(telemetry.run())
+        media_task = asyncio.create_task(media_monitor.run())
         print(f"\nG16 Command Center | Laptop setup code: {code}\nApproved browsers are remembered for 180 days, including across restarts.\n", flush=True)
         yield
         task.cancel()
+        media_task.cancel()
         with suppress(asyncio.CancelledError):
             await task
+        with suppress(asyncio.CancelledError):
+            await media_task
 
     app = FastAPI(title="G16 Command Center", lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.pairing = pairing
@@ -77,6 +83,7 @@ def create_app(pairing_code=None, device_db=None):
     app.state.games = games
     app.state.devices = devices
     app.state.display_reports = display_reports
+    app.state.media = media_monitor
 
     def local(request):
         return request.client is not None and request.client.host in {'127.0.0.1', '::1'}
@@ -212,6 +219,10 @@ def create_app(pairing_code=None, device_db=None):
     def media(action: str):
         return media_action(action)
 
+    @app.get('/api/media/state', dependencies=[Depends(authenticate)])
+    async def media_state():
+        return media_monitor.sample()
+
     @app.get('/api/games', dependencies=[Depends(authenticate)])
     def game_catalog():
         return app.state.games.catalog()
@@ -236,7 +247,8 @@ def create_app(pairing_code=None, device_db=None):
         await ws.accept()
         try:
             while devices.valid(ws.cookies.get(COOKIE)):
-                await ws.send_json({"type": "telemetry", "data": telemetry.latest, "errors": telemetry.errors})
+                await ws.send_json({"type": "telemetry", "data": telemetry.latest, "errors": telemetry.errors,
+                                    "media": media_monitor.latest})
                 await asyncio.sleep(1)
             await ws.close(code=1008)
         except (WebSocketDisconnect, RuntimeError, OSError):

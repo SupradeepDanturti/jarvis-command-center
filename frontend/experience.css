@@ -198,3 +198,5 @@ body[data-view=home] .backdrop-wash { background: linear-gradient(90deg, #0008, 
   .ambient-caption .scene-credit { max-width: 270px; font-size: 10px; }
   .scene-controls { gap: 6px 12px; max-width: 270px; }
 }
+.controls button.is-held, .orbit-controls .orbit-volume button.is-held { background: #bbf78024; box-shadow: inset 0 0 0 1px #bbf780; }
+[data-media="volume-up"], [data-media="volume-down"] { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
