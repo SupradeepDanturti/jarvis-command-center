@@ -33,6 +33,12 @@ Install Playwright separately if needed, then run `node scripts/browser-smoke.cj
 
 ## Visual screens and installed games
 
+### App shortcut removal
+
+- Removed Edge from the shared default app registry and its unused frontend glyph. Home and Apps use this same registry; the README launcher list is updated.
+- Restarted the background server through `scripts/restart-server.ps1` to load the configuration. The trusted browser check confirmed there is no Edge entry in the server catalog, Home shortcuts or full Apps library, with the remaining navigation, media, wake-lock and playback checks passing. The QA browser revoked only its own credential.
+- All 30 backend tests and modified JavaScript syntax checks passed. Existing approvals and CA trust were preserved. Open tablet pages need a reload to discard their old app tiles.
+
 ### Black-hole Home composition and sound controls
 
 - Home now keeps the NASA Black hole movie even when another background is selected for the other pages. The browser check verifies that behavior and the visible NASA credit. The processor circle was replaced by a compact CPU value/live trace, with vitals and sound controls in an unboxed strip and app shortcuts below.

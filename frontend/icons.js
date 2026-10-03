@@ -12,7 +12,6 @@ const glyphPaths={
   fullscreen:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',
   files:'<path d="M3 7V5h6l2 3h10v12H3Z"/>',
   terminal:'<path d="m5 7 5 5-5 5m8 0h6"/>',
-  edge:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18Z"/>',
   play:'<path d="m9 5 11 7-11 7Z"/>',
   pause:'<path d="M8 5v14m8-14v14"/>',
   previous:'<path d="M5 5v14m14-14L8 12l11 7Z"/>',

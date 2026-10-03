@@ -76,7 +76,7 @@ The server starts when you sign into your account, after Windows boots. It does 
 
 ## Configure applications
 
-The default launcher includes Steam, Discord, Spotify, Brave, YouTube, OBS, Edge, Files, Settings, and Terminal. Brand logos are stored locally. Brave is detected in standard machine/user installation locations. **YouTube opens on the laptop in Brave**, with a fixed URL argument; it does not play on the tablet or use your default browser. Website tiles show “Open in Brave” rather than pretending to know which browser tab is open.
+The default launcher includes Steam, Discord, Spotify, Brave, YouTube, OBS, Files, Settings, and Terminal. Edge is excluded from Home and the Apps library. Brand logos are stored locally. Brave is detected in standard machine/user installation locations. **YouTube opens on the laptop in Brave**, with a fixed URL argument; it does not play on the tablet or use your default browser. Website tiles show “Open in Brave” rather than pretending to know which browser tab is open.
 
 Copy `config/apps.json` to `config/apps.local.json` and edit it **on the laptop**. Restart the backend to reload. The local override is excluded from Git.
 

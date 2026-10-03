@@ -41,6 +41,7 @@ const assert = require('node:assert/strict');
     await screen('home');
     await page.waitForFunction(()=>document.querySelectorAll('[data-app]').length===8);
     assert.equal(await page.locator('[data-app]').count(),8);
+    assert.equal(await page.locator('[data-app="edge"]').count(),0,'Edge is excluded from Home shortcuts');
     assert.equal(await page.locator('.sidebar').count(),0);
     assert.equal(await page.locator('#page-content .card').count(),0);
     assert.equal(await page.locator('.core-halo').count(),0);
@@ -114,6 +115,8 @@ const assert = require('node:assert/strict');
       assert.equal(await page.locator(`[data-app="${id}"] img`).count(),1);
       assert.equal(await page.locator(`[data-app="${id}"] img`).evaluate(img=>img.complete&&img.naturalWidth>0),true);
     }
+    assert.equal(await page.locator('[data-app="edge"]').count(),0,'Edge is excluded from the full Apps library');
+    assert.equal(await page.evaluate(()=>state.apps.some(app=>app.id==='edge')),false,'Edge is not in the server app catalog');
     assert.equal(await page.locator('[data-app="youtube"] .app-status').innerText(),'Open in Brave');
     let launchBody;
     await page.route('**/api/apps/launch',async route=>{launchBody=route.request().postDataJSON();await route.fulfill({json:{ok:true,message:'Shortcut checked'}})});
