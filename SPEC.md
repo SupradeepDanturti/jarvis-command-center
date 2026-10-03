@@ -13,7 +13,7 @@ Primary layout is landscape, with a responsive portrait layout. Support current 
 - FastAPI serves local HTML/CSS/JavaScript assets and authenticated REST + WebSocket APIs.
 - One shared sampler collects CPU utilization/per-core load/reported clock, RAM, disk capacity/read/write, aggregate network throughput/adapters/IPs, battery/AC status, hostname, OS, and uptime.
 - NVIDIA temperature, utilization, clock, memory, and power are read with a fixed `nvidia-smi` query if available. Other GPU vendors are reported unavailable until adapters are added.
-- Overview, Gaming, Hardware, Live graphs, Applications, and System pages share a single connection and sampler. Gaming emphasizes live utilization; FPS remains unavailable pending RTSS.
+- Overview, Gaming, Hardware, Live graphs, Applications, System, and Device access pages share a single connection and sampler. Gaming emphasizes live utilization; FPS remains unavailable pending RTSS. Device access provides a dedicated approval/revocation list, also available on System.
 - Registered apps launch by ID; running state matches configured process names. Default URI registrations depend on an installed Windows handler, so launch may fail with a visible error.
 - Windows media keys support play/pause, previous/next, mute, and volume steps. Delivery is acknowledged; actual playback state and numerical system volume are not inferred.
 - Graph ranges: 30 seconds, 1 minute, 5 minutes, 15 minutes, 1 hour. History is in-memory and starts when the server starts. No fabricated prehistory.
@@ -23,7 +23,7 @@ Primary layout is landscape, with a responsive portrait layout. Support current 
 
 ## Information architecture and future acceptance criteria
 
-The target comprises 12 pages. The six initial pages are implemented; remaining pages will appear when their integrations work.
+The target comprises 12 feature pages. The six initial feature pages and an additional Device access management page are implemented; remaining feature pages will appear when their integrations work.
 
 1. **Overview:** CPU/GPU/RAM overview, short graphs, resource capacity, quick launch, media keys. Later add temperatures, fan speeds, SSD temperature, and FPS when their sources are connected.
 2. **Gaming:** GPU and CPU clocks/power/temperatures/load, RAM/VRAM, FPS/frame time/1% lows. RTSS data must be associated with the active process; unsupported games show unavailable.

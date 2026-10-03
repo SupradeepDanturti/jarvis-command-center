@@ -2,10 +2,10 @@
 
 - 20 backend tests passed locally on Windows/Python 3.14, including connection-file refresh, approved-device authorization, revocation, credential persistence, certificate renewal and isolated certificate-download routes.
 - JavaScript syntax check and Python compilation passed.
-- Headless Microsoft Edge browser check passed: device pairing, live telemetry rendering, all six pages, graph range selection, dropped connection/reconnection, 1280×800 landscape, 800×1280 portrait, 412×915 narrow portrait, no horizontal overflow, logout revocation, and no page errors or CSP violations.
+- Headless Microsoft Edge browser check passed: device pairing, live telemetry rendering, all seven pages including Device access, graph range selection, dropped connection/reconnection, 1280×800 landscape, 800×1280 portrait, 412×915 narrow portrait, no horizontal overflow, logout revocation, and no page errors or CSP violations.
 - Screenshots were visually inspected locally; generated artifacts are excluded from Git.
 - Actual host detected NVIDIA GeForce RTX 4060 Laptop GPU, 20 logical CPU threads, approximately 16 GB RAM, and battery/AC information. Values are live, not fixtures.
-- Local server is reachable over trusted HTTPS on port 18761. Physical Redmi HTTPS certificate installation and approval are being completed by the user. Real application launches and media-key behavior still need an on-device check. Automated launch tests mock dispatch to avoid opening applications unexpectedly.
+- Local server is reachable over trusted HTTPS on port 18761. The user confirmed the physical Redmi was approved and its dashboard works after certificate setup. Real application launches and media-key behavior still need an on-device check. Automated launch tests mock dispatch to avoid opening applications unexpectedly.
 - Test tooling emits a Starlette warning recommending `httpx2` for a future test-client migration; tests currently pass with the pinned `httpx` dependency.
 
 ## Reproduce optional browser check

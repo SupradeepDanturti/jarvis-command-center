@@ -2,7 +2,7 @@
 
 A local touchscreen dashboard for a Dell G16, opened in a Redmi Pad Pro browser. The laptop runs the backend; the tablet displays telemetry and sends registered controls over Wi-Fi.
 
-**Current build:** six responsive pages, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, history graphs, HTTPS with approved remembered browsers, configured app launching, and Windows media keys. No cloud assets or frontend build step.
+**Current build:** seven responsive pages, including dedicated Device access, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, history graphs, HTTPS with approved remembered browsers, configured app launching, and Windows media keys. No cloud assets or frontend build step.
 
 Read [SPEC.md](SPEC.md) for the complete target, implementation decisions, security model, and roadmap.
 
@@ -28,7 +28,7 @@ For laptop-only use omit `-Lan`. Default port is **18761**, chosen to avoid comm
 2. Copy **G16 Dashboard CA.cer** from laptop Downloads to the tablet using USB, or download it from the background server's setup-only page at `http://LAPTOP_IP:18760`. If downloading, verify the installed certificate's SHA-256 fingerprint against the trusted laptop connection text file.
 3. In tablet Settings, search **CA certificate** and install the file as a CA certificate. Opening the downloaded file directly may show “Install CA certificates in Settings”; follow that instruction.
 4. Open the **HTTPS** Wi-Fi address, e.g. `https://192.168.1.100:18761`. Name the browser and request approval.
-5. On the laptop, open `https://localhost:18761`. First-time laptop access uses the setup code from **G16 Command Center.txt** on Desktop or in Downloads. In **System → Approved devices**, match the tablet request's fingerprint and approve it.
+5. On the laptop, open `https://localhost:18761/#devices`. First-time laptop access uses the setup code from **G16 Command Center.txt** on Desktop or in Downloads; tap **Set up this laptop**. In **Device access → Approved devices**, match the tablet request's fingerprint and approve it. The same list also appears on System.
 6. Tap Fullscreen for a dedicated dashboard view. Swipe horizontally on the dashboard to change pages.
 
 Windows may request firewall access; allow only your trusted local network for this server. If connection fails, verify the Wi-Fi address, port, firewall, and that your Wi-Fi does not isolate devices. No router port forwarding is needed. Approved browsers are remembered for 180 days across restarts, unless revoked or their cookies are cleared. New browsers always require laptop approval. See [SECURITY.md](SECURITY.md) for the full flow and limitations.
@@ -99,7 +99,7 @@ Graph history begins at startup, lasts at most one hour in memory, and resets on
 node --check frontend/app.js
 ```
 
-GitHub Actions runs the API/sensor tests and JavaScript syntax check on Windows. Physical Redmi pairing and host app/media behavior still need an on-device check.
+GitHub Actions runs the API/sensor tests and JavaScript syntax check on Windows. The user confirmed physical Redmi HTTPS pairing and dashboard access work. Host app/media behavior still needs an on-device check. See [VALIDATION.md](VALIDATION.md) for reproducible browser checks and [AGENTS.md](AGENTS.md) for project development guidance.
 
 ## Project layout
 

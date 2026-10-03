@@ -1,0 +1,14 @@
+---
+description: Local Windows dashboard workflow and documentation conventions
+alwaysApply: true
+---
+
+# Project workflow
+
+- Follow AGENTS.md and the setup/run/test instructions in README.md and VALIDATION.md.
+- Keep frontend assets local, touch controls usable, and unavailable readings honest. Do not introduce demo sensor values into the live app.
+- Use dashboard port 18761 and certificate setup port 18760. Preserve silent startup in the user's desktop session.
+- Avoid restarting the active server for static edits. Use scripts/restart-server.ps1 when a backend restart is necessary.
+- Test changed behavior and document actual verification; never claim an unperformed reboot or physical control test passed.
+- Keep user-facing how-tos aligned with the UI, particularly Device access for approving and revoking browsers.
+- Commit source, project rules, and documentation; exclude generated local state and secrets. Push completed work to the existing repository without rewriting history.

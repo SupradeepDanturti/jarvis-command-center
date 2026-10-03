@@ -9,13 +9,13 @@ The HTTPS dashboard serves telemetry and controls only to approved browsers. The
 3. Open the `https://` tablet address in **G16 Command Center.txt**. Certificate validation must succeed; do not bypass browser security warnings.
 4. Name the browser, then tap **Request approval**. Its fingerprint appears while it waits.
 5. On the laptop, open **https://localhost:18761**. For first-time laptop access, enter the setup/recovery code from the connection text file.
-6. In **System → Approved devices**, match the tablet's displayed name and fingerprint, then approve it.
+6. Open **Device access → Approved devices** (`https://localhost:18761/#devices`), match the tablet's displayed name and fingerprint, then approve it. This list is also available on System.
 
 The browser now reconnects without a code, including after laptop/server restarts. Approval lasts up to 180 days. Use the same browser/profile and address; clearing cookies, using a different browser, or changing the hostname/IP requires fresh approval. A router DHCP reservation can keep the Wi-Fi address stable.
 
 ## Remove a device
 
-Use **System → Approved devices → Revoke access** on the laptop at localhost. Revocation immediately denies new requests and closes its live WebSocket within roughly one second. Unpairing from the device revokes that browser too. Each browser has its own credential, so revoking one does not disconnect the others.
+Use **Device access → Approved devices → Revoke access** on the laptop at localhost. Revocation immediately denies new requests and closes its live WebSocket within roughly one second. Unpairing from the device revokes that browser too. Each browser has its own credential, so revoking one does not disconnect the others.
 
 ## Boundaries
 

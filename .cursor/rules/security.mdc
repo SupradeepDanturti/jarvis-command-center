@@ -1,0 +1,17 @@
+---
+description: Preserve local dashboard authentication and certificate boundaries
+alwaysApply: true
+---
+
+# Dashboard security
+
+- Remote telemetry and controls require HTTPS/WSS and an approved, unexpired browser credential.
+- Approval/revocation requires an authenticated owner and a direct loopback peer; keep proxy-header trust disabled.
+- A recovery code never grants remote approval. Preserve pending expiry, rate limits, and revocation enforcement on REST and WebSocket connections.
+- Keep credentials in HttpOnly, Secure, SameSite=Strict cookies. Store only credential hashes in SQLite; never put tokens in URLs or localStorage.
+- Port 18760 serves public certificate setup only. No credential, telemetry, control, or private-key endpoints may be added there.
+- Launch only registered application IDs without a shell; never accept arbitrary commands from the browser.
+- Keep private state ignored and ACL-protected. The CA signing key stays protected with user-scoped DPAPI; export only the public certificate.
+- Preserve the device registry and CA across normal updates. Trust replacement or device resets must be explicit.
+- For HTTP certificate downloads, require comparing the installed certificate fingerprint with the trusted laptop file; never recommend bypassing browser certificate errors.
+- See SECURITY.md for the complete model and limitations. Changes to these boundaries need meaningful authorization regression checks.

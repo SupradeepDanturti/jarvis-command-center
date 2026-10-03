@@ -26,7 +26,7 @@ const assert = require('node:assert/strict');
     assert.equal(await page.locator('[data-app]').count(),8);
     assert.equal(await page.evaluate(()=>document.querySelector('#page-content').scrollWidth<=document.querySelector('#page-content').clientWidth),true);
     await page.screenshot({path:path.join(artifacts,'dashboard-landscape.png'),fullPage:true});
-    for (const id of ['gaming','hardware','graphs','apps','system','home']) {
+    for (const id of ['gaming','hardware','graphs','apps','system','devices','home']) {
       await page.locator(`[data-page="${id}"]`).click();
       assert.equal(await page.locator(`[data-page="${id}"]`).getAttribute('aria-current'),'page');
     }
@@ -49,7 +49,7 @@ const assert = require('node:assert/strict');
     await page.locator('#pair-dialog').waitFor({state:'visible'});
     assert.equal(await page.evaluate(async()=> (await fetch('/api/apps')).status),401);
     assert.deepEqual(errors,[]);
-    console.log('Browser check passed: pairing, live telemetry, six pages, range selection, reconnection, responsive layouts, logout, and CSP.');
+    console.log('Browser check passed: pairing, live telemetry, seven pages, range selection, reconnection, responsive layouts, logout, and CSP.');
     await context.close();
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});

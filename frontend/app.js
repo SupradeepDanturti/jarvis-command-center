@@ -1,7 +1,7 @@
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state = {page:'home', data:null, history:[], apps:[], range:60, socket:null, retry:0, paired:false, stale:true, auth:null};
-const pages = {home:['Command center','Your laptop. Everything in view.'], gaming:['Gaming station','Stay in the game. Keep an eye on everything else.'], hardware:['Hardware monitor','A closer look at the machine behind the screen.'], graphs:['Live graphs','The full picture, one sample at a time.'], apps:['Applications','Your everyday apps. One touch away.'], system:['System & connection','Your laptop and your command surface. Connected.']};
+const pages = {home:['Command center','Your laptop. Everything in view.'], gaming:['Gaming station','Stay in the game. Keep an eye on everything else.'], hardware:['Hardware monitor','A closer look at the machine behind the screen.'], graphs:['Live graphs','The full picture, one sample at a time.'], apps:['Applications','Your everyday apps. One touch away.'], system:['System & connection','Your laptop and your command surface. Connected.'], devices:['Device access','Approve your browsers. Keep your laptop private.']};
 let reconnectTimer, toastTimer, lastSample = 0;
 const format = (v, digits=0) => v == null ? '—' : Number(v).toLocaleString(undefined,{maximumFractionDigits:digits});
 const gb = v => v == null ? '—' : format(v / 1024 ** 3,1);
@@ -10,8 +10,8 @@ const path = (obj, key) => key.split('.').reduce((v,k) => v?.[k],obj);
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').hidden=true,4000)}
 async function api(url, options={}){
   const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...options.headers}});
-  if(response.status===401){showPairing();throw new Error('Pair this device to continue.')}
   const body=await response.json();
+  if(response.status===401&&!['/api/pair','/api/device/request'].includes(url)){showPairing();throw new Error(typeof body.detail==='string'?body.detail:'This browser needs laptop approval.')}
   if(!response.ok)throw new Error(typeof body.detail==='string'?body.detail:'Please check the input and try again.');
   return body;
 }
@@ -40,7 +40,7 @@ function render(){
   document.querySelectorAll('.cpu-dot').forEach(el=>el.style.background='#bbf780');document.querySelectorAll('.gpu-dot').forEach(el=>el.style.background='#76dbe7');
   document.querySelectorAll('[data-app]').forEach(el=>{const app=state.apps.find(a=>a.id===el.dataset.app);el.style.setProperty('--icon',app.color)});
   update();
-  if(state.page==='system')renderDevices();
+  if(state.page==='system'||state.page==='devices')renderDevices();
 }
 function display(key,v){if(v==null)return 'Unavailable';if(key==='system.uptime')return `${format(v/3600,1)} hours`;if(key==='battery.charging')return v?'AC connected':'On battery';if(/network\.|storage\.(read|write)/.test(key))return `${mb(v)} MB/s`;if(/\.usage$|battery.percent/.test(key))return `${format(v)} %`;if(/\.temperature$/.test(key))return `${format(v)} °C`;if(/\.clock$/.test(key))return `${format(v)} MHz`;if(/\.power$/.test(key))return `${format(v)} W`;return String(v)}
 function series(key){const cutoff=Date.now()-state.range*1000;return state.history.filter(s=>Date.parse(s.timestamp)>=cutoff).map(s=>({time:Date.parse(s.timestamp),value:path(s,key)}))}
@@ -94,10 +94,26 @@ setInterval(()=>{if(state.paired&&document.visibilityState==='visible')refreshAp
 let approvalTimer;
 async function authStatus(){const response=await fetch('/api/auth');const auth=await response.json();if(!response.ok)throw new Error(auth.detail||'Connection unavailable.');state.auth=auth;return auth}
 async function enterDashboard(){clearTimeout(approvalTimer);await api('/api/device/activate',{method:'POST'});await authStatus();$('#pair-dialog').close();state.paired=true;await refreshApps();render();connect()}
-async function loadPairingMode(){clearTimeout(approvalTimer);try{const auth=await authStatus();const pending=auth.device?.status==='pending';$('#setup-code').hidden=!auth.local;$('#pair-code').required=auth.local;$('#device-name').value=$('#device-name').value||(auth.local?'Dell G16 browser':'Redmi Pad Pro');$('#device-name').disabled=pending;$('#pair-form button').hidden=pending;$('#pair-title').textContent=pending?'Waiting for your laptop.':auth.local?'Set up laptop access.':'Approve this browser.';$('#pair-description').textContent=pending?`On your laptop, open System → Approved devices. Approve “${auth.device.name}” only if its fingerprint matches ${auth.device.fingerprint}. This request expires in 10 minutes.`:auth.local?'Enter the setup code from G16 Command Center.txt on Desktop or in Downloads. This browser will be remembered.':'Name this browser and request approval. Your laptop must approve it before any readings or controls are available.';if(pending)approvalTimer=setTimeout(pollApproval,2000)}catch(e){$('#pair-error').textContent=e.message}}
+async function loadPairingMode(){
+  clearTimeout(approvalTimer);
+  try{
+    const auth=await authStatus();
+    const pending=auth.device?.status==='pending';
+    $('#setup-code').hidden=!auth.local;
+    $('#pair-code').required=auth.local;
+    $('#device-name').value=$('#device-name').value||(auth.local?'Dell G16 browser':'Redmi Pad Pro');
+    $('#device-name').disabled=pending;
+    const button=$('#pair-form button');
+    button.hidden=pending;
+    button.firstChild.textContent=auth.local?'Set up this laptop ':'Request approval ';
+    $('#pair-title').textContent=pending?'Waiting for your laptop.':auth.local?'Set up laptop access.':'Approve this browser.';
+    $('#pair-description').textContent=pending?`On your laptop, open Device access. Approve “${auth.device.name}” only if its fingerprint matches ${auth.device.fingerprint}. This request expires in 10 minutes.`:auth.local?'Enter the setup code from G16 Command Center.txt on Desktop or in Downloads. This browser will be remembered.':'Name this browser and request approval. Your laptop must approve it before any readings or controls are available.';
+    if(pending)approvalTimer=setTimeout(pollApproval,2000);
+  }catch(e){$('#pair-error').textContent=e.message}
+}
 async function pollApproval(){try{const auth=await authStatus();if(auth.device?.status==='approved'){await enterDashboard();return}if(auth.device?.status!=='pending'){await loadPairingMode();$('#pair-error').textContent='The request expired or was rejected. You can request approval again.';return}approvalTimer=setTimeout(pollApproval,2000)}catch{approvalTimer=setTimeout(pollApproval,4000)}}
 async function renderDevices(){if($('#approved-devices'))$('#approved-devices').remove();const panel=document.createElement('article');panel.className='card';panel.id='approved-devices';panel.innerHTML='<h2 class="section-title">Approved devices</h2><div class="device-list"></div>';$('#page-content').append(panel);const list=panel.querySelector('.device-list');if(!state.auth?.owner){list.textContent='Manage approved browsers on the laptop at https://localhost:18761. This browser is remembered for up to 180 days, unless you revoke it or clear its cookies.';return}try{const devices=await api('/api/devices');list.innerHTML=devices.map(d=>`<div class="device-entry"><strong>${escapeHtml(d.name)}${d.id===state.auth.device.id?' · this browser':''}</strong><p>${escapeHtml(d.status.toUpperCase())} · Fingerprint ${escapeHtml(d.fingerprint)} · ${escapeHtml(d.address)}<br>Added ${escapeHtml(new Date(d.created*1000).toLocaleString())}</p>${d.status==='pending'?`<button data-approve="${d.id}">Approve</button><button data-revoke="${d.id}">Reject</button>`:d.status==='approved'?`<button data-revoke="${d.id}">Revoke access</button>`:''}</div>`).join('')||'No devices yet.';const note=document.createElement('p');note.className='device-warning';note.textContent='For a new request, match the fingerprint displayed on the device before approving. Devices are remembered by this browser’s private cookie.';panel.append(note)}catch(e){list.textContent=e.message}}
 $('#page-content').addEventListener('click',async event=>{const button=event.target.closest('[data-approve],[data-revoke]');if(!button)return;const id=button.dataset.approve||button.dataset.revoke;const action=button.dataset.approve?'approve':'revoke';button.disabled=true;try{await api(`/api/devices/${id}/${action}`,{method:'POST'});toast(action==='approve'?'Browser approved.':'Browser access revoked.');if(id===state.auth?.device?.id){showPairing();return}await renderDevices()}catch(e){toast(e.message)}finally{button.disabled=false}});
-setInterval(()=>{if(state.page==='system'&&state.auth?.owner&&state.paired&&document.visibilityState==='visible')renderDevices()},5000);
+setInterval(()=>{if(['system','devices'].includes(state.page)&&state.auth?.owner&&state.paired&&document.visibilityState==='visible')renderDevices()},5000);
 async function init(){if(pages[location.hash.slice(1)])state.page=location.hash.slice(1);render();try{const auth=await authStatus();if(auth.device?.status!=='approved'){showPairing();return}await enterDashboard()}catch{showPairing()}}
 init();
