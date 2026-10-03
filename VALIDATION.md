@@ -12,6 +12,14 @@
 
 Install Playwright separately if needed, then run `node scripts/browser-smoke.cjs` while the local server is running. The script uses installed Edge in headless mode and reads the current ignored `.state/private/pairing-code.txt`. For a bundled Playwright package, set `G16_PLAYWRIGHT_PATH` to its package directory. Screenshots are written to ignored `artifacts/`. Run `node scripts/security-smoke.cjs` to validate LAN browser approval/revocation; set `G16_TABLET_URL` to the laptop's current HTTPS LAN address if it differs from the development machine.
 
+## Automatic screen keep-awake
+
+- The previous implementation required a button tap, forgot that intent on reload, and did not track browser release events. Approved pages now request a screen wake lock automatically, track its actual state, and reacquire when returning to the page or after an unexpected release. Explicit opt-out persists in this browser; hiding, leaving and unpairing release the lock.
+- `node scripts/wake-lock-smoke.cjs` passed controlled lifecycle checks: active/pending request reuse, visibility changes, browser release, retry delays capped at 30 seconds, repeated refusal without repeated toasts, manual recovery, persistent opt-out, late request completion after disabling, stale requests across hiding/returning, page exit/restore, unsupported browsers, and unpairing. These checks use controlled promises and events rather than waiting for physical tablet sleep.
+- The trusted Edge browser check acquired an actual native `WakeLockSentinel` automatically, verified it was unreleased, checked the visible Active status, confirmed off survives reload and on reacquires after reload, exercised Clock's keep-awake controls, and verified release/recovery on simulated hidden/visible events plus release on unpairing. The complete navigation/playback/reconnection check passed with no page errors or CSP violations. QA credentials were revoked; user approvals were preserved.
+- The touch layout check passed across nine viewport sizes with no reported layout issues or page errors. Modified JavaScript passed syntax checks and Git whitespace checks. Static frontend changes did not require a background-server restart or change certificate trust.
+- Physical Redmi idle behavior still needs confirmation after reloading the tablet. Browser/Android restrictions, including Battery saver, can refuse the API; Tablet settings now reports Blocked or Unavailable rather than claiming a lock succeeded. API behavior and restrictions: [Chrome screen wake-lock documentation](https://developer.chrome.com/docs/capabilities/web-apis/wake-lock).
+
 ## Tablet sizing corrections
 
 - The user's physical Redmi landscape photo showed the dock covering launcher shortcuts. Touch viewport checks reproduced overlap at 1280×720, 1024×600 and 960×600, and undersized navigation/launcher labels.

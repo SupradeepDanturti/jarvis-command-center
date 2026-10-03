@@ -103,7 +103,13 @@ Open **Clock** for the split-flap time display. Switch between 12-hour and 24-ho
 
 Open **Ambient** and choose **Event horizon** for golden orbiting dust and a starfield, **Neon drift** for a synthwave sun and flowing light rails, **Aurora** for luminous curtains over mountains and a lake, or **Black hole** for NASA's edge-on accretion disk visualization. All movies are silent and play locally without internet streaming. Pause/resume motion with the playback button; reduced-motion preferences start with motion paused. Hidden tabs pause the video. Scene selection, pause and clock format are remembered in this browser; no authentication secrets are stored with these preferences.
 
-Clock and Ambient already fill the display. Tap **Immersive view** to hide the dock and request browser fullscreen. **Back to display** or Escape restores the controls. **Keep awake** requests the browser's screen wake lock while visible; Android may release it when you switch apps or turn off the screen.
+Clock and Ambient already fill the display. Tap **Immersive view** to hide the dock and request browser fullscreen. **Back to display** or Escape restores the controls.
+
+**Keep-awake starts automatically on every approved screen**, including after reloading. It requests the browser's screen wake lock while the dashboard is visible, releases it when you leave, and requests it again when you return. Browser releases trigger retries with a delay of 2 seconds, increasing up to 30 seconds. It does not need a playing background or fullscreen.
+
+Check **More → System & controls → Tablet settings → Screen keep-awake**: **Active · screen stays on** means the browser actually granted the lock. **Turn keep-awake off** restores normal screen sleep and remembers that choice in this browser; tap **Keep screen awake** to enable it again. Clock/Ambient's **Screen awake** button also turns it off; **Keep awake** enables it. Unpairing releases the lock.
+
+If the status says **Blocked by browser**, check the tablet's Battery saver setting, then tap **Retry keep-awake**. Use the trusted HTTPS address in a browser with screen wake-lock support. Android or the browser can decline or release a request; this feature cannot override an unsupported browser, a manual screen lock, or an operating-system restriction. Reload the tablet once to load this update.
 
 Three original 1280×720, 16-second loops and their posters are included in the repository. To regenerate them with installed Edge and a separately available Playwright package, run `node scripts/render-ambient.cjs`; the script accepts `G16_PLAYWRIGHT_PATH` as described in VALIDATION.md and also extracts the NASA movie's poster if the local movie is present. The NASA movie itself is unmodified. Asset sources and credits are in [ASSETS.md](ASSETS.md).
 

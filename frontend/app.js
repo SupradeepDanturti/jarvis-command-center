@@ -16,7 +16,7 @@ async function api(url, options={}){
   if(!response.ok)throw new Error(typeof body.detail==='string'?body.detail:'Please check the input and try again.');
   return body;
 }
-function showPairing(){state.paired=false;clearTimeout(reconnectTimer);state.socket?.close();if(!$('#pair-dialog').open)$('#pair-dialog').showModal();updateSurfaceBackground();updateAmbient();setConnection(false,'APPROVAL REQUIRED');loadPairingMode()}
+function showPairing(){state.paired=false;clearTimeout(reconnectTimer);state.socket?.close();if(!$('#pair-dialog').open)$('#pair-dialog').showModal();syncScreenAwake();updateSurfaceBackground();updateAmbient();setConnection(false,'APPROVAL REQUIRED');loadPairingMode()}
 function setConnection(connected,label){state.stale=!connected;document.body.classList.toggle('stale',!connected);$('#connection').textContent=`● ${label}`;$('#connection').classList.toggle('offline',!connected);$('#offline-banner').hidden=connected||!state.paired}
 function metric(label,key,unit,accent,note){return `<article class="card accent-${accent}"><div class="card-top"><span class="label">${label}</span><span class="chip" data-note="${note}">LIVE</span></div><div class="value"><span data-metric="${key}">—</span><em>${unit}</em></div><div class="sub-value" data-sub="${key}">Waiting for sensor</div><svg class="spark" data-spark="${key}" viewBox="0 0 240 48" preserveAspectRatio="none" aria-label="${label} recent trend"></svg></article>`}
 function metrics(){return `<div class="grid metrics-grid">${metric('CPU LOAD','cpu.usage','%','green','cpu')}${metric('GPU LOAD','gpu.usage','%','cyan','gpu')}${metric('MEMORY','memory.percent','%','purple','memory')}${metric('GPU TEMPERATURE','gpu.temperature','°C','orange','temperature')}</div>`}
@@ -46,7 +46,7 @@ function render(){
   if(state.page==='games')content=gamesScreen();
   if(state.page==='clock')content=clockScreen();
   if(state.page==='ambient')content=ambientScreen();
-  if(state.page==='system')content=`<div class="grid detail-grid"><article class="card"><h2 class="section-title">Your laptop</h2>${row('Computer','system.hostname')}${row('Operating system','system.os')}${row('Uptime','system.uptime')}${row('Battery','battery.percent')}${row('Power connection','battery.charging')}<div id="addresses"></div></article>${media()}<article class="card"><h2 class="section-title">Integrations</h2>${row('Windows telemetry','integrations.windows')}${row('NVIDIA sensors','integrations.nvidia')}${row('HWiNFO sensors','integrations.hwinfo')}${row('FPS / RTSS','integrations.rtss')}${row('OBS Studio','integrations.obs')}</article><article class="card"><h2 class="section-title">Tablet settings</h2>${displaySettings()}${backgroundSettings()}<p class="section-note">Fullscreen works over Wi-Fi. Keep-awake requires HTTPS and browser support. Approved browsers are remembered for up to 180 days.</p><div class="page-actions"><button id="wake-lock">Keep screen awake</button><button id="disconnect">Unpair device</button></div><p class="section-note">Sleep, restart, shutdown, microphone control, OBS, games, and macros will be added in subsequent milestones.</p></article></div>`;
+  if(state.page==='system')content=`<div class="grid detail-grid"><article class="card"><h2 class="section-title">Your laptop</h2>${row('Computer','system.hostname')}${row('Operating system','system.os')}${row('Uptime','system.uptime')}${row('Battery','battery.percent')}${row('Power connection','battery.charging')}<div id="addresses"></div></article>${media()}<article class="card"><h2 class="section-title">Integrations</h2>${row('Windows telemetry','integrations.windows')}${row('NVIDIA sensors','integrations.nvidia')}${row('HWiNFO sensors','integrations.hwinfo')}${row('FPS / RTSS','integrations.rtss')}${row('OBS Studio','integrations.obs')}</article><article class="card"><h2 class="section-title">Tablet settings</h2>${displaySettings()}${backgroundSettings()}${wakeSettings()}<p class="section-note">Fullscreen works over Wi-Fi. Keep-awake requires HTTPS and browser support. Approved browsers are remembered for up to 180 days.</p><div class="page-actions"><button id="wake-lock">Keep screen awake</button><button id="wake-retry" hidden>Retry keep-awake</button><button id="disconnect">Unpair device</button></div><p class="section-note">Sleep, restart, shutdown, microphone control, OBS, games, and macros will be added in subsequent milestones.</p></article></div>`;
   $('#page-content').innerHTML=content;
   document.querySelectorAll('.nav').forEach(n=>{n.classList.toggle('active',n.dataset.page===state.page);n.setAttribute('aria-current',n.dataset.page===state.page?'page':'false')});
   $('#more-toggle').classList.toggle('active',['hardware','graphs','system','devices'].includes(state.page));
@@ -55,6 +55,7 @@ function render(){
   update();
   mountScreens();
   updateSurfaceBackground();
+  paintScreenAwake();
   if(state.page==='system'||state.page==='devices')renderDevices();
 }
 function display(key,v){if(v==null)return 'Unavailable';if(key==='system.uptime')return `${format(v/3600,1)} hours`;if(key==='battery.charging')return v?'AC connected':'On battery';if(/network\.|storage\.(read|write)/.test(key))return `${mb(v)} MB/s`;if(/\.usage$|battery.percent/.test(key))return `${format(v)} %`;if(/\.temperature$/.test(key))return `${format(v)} °C`;if(/\.clock$/.test(key))return `${format(v)} MHz`;if(/\.power$/.test(key))return `${format(v)} W`;return String(v)}
@@ -98,7 +99,7 @@ $('#page-content').addEventListener('click',async event=>{const button=event.tar
   if(button.dataset.go)goPage(button.dataset.go);
   if(button.hasAttribute('data-screen-focus')){setPresentation(true);try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen()}catch{}return}
   if(button.hasAttribute('data-screen-exit')){setPresentation(false);if(document.fullscreenElement)await document.exitFullscreen();return}
-  if(button.hasAttribute('data-screen-awake')){if(!('wakeLock' in navigator))throw new Error('Keep-awake is unavailable in this browser.');await requestWakeLock();toast('Screen stays awake while this page is visible.');return}
+  if(button.hasAttribute('data-screen-awake')){if(wakeStatus==='active')await setKeepAwake(false);else await setKeepAwake(true);return}
   if(button.dataset.clockFormat){screenPreferences.format=button.dataset.clockFormat;saveScreenPreferences();render();return}
   if(button.dataset.sceneSelect){screenPreferences.scene=button.dataset.sceneSelect;saveScreenPreferences();updateAmbient();return}
   if(button.hasAttribute('data-motion-toggle')){screenPreferences.motion=!screenPreferences.motion;saveScreenPreferences();updateAmbient();return}
@@ -107,11 +108,10 @@ $('#page-content').addEventListener('click',async event=>{const button=event.tar
   if(button.dataset.range){state.range=Number(button.dataset.range);render();await refreshHistory()}
   if(button.id==='disconnect'){await api('/api/logout',{method:'POST'});state.data=null;state.history=[];render();showPairing()}
   if(button.id==='copy-display-details'){await copyDisplayDetails();return}
-  if(button.id==='wake-lock'){if(!('wakeLock' in navigator))throw new Error('Keep-awake requires HTTPS and browser support.');await requestWakeLock();toast('Screen will stay awake while this page is visible.')}
+  if(button.id==='wake-lock'){await setKeepAwake(!keepAwake);return}
+  if(button.id==='wake-retry'){await retryScreenAwake();return}
 }catch(e){toast(e.message)}});
-let wakeLock,keepAwake=false;
-async function requestWakeLock(){wakeLock=await navigator.wakeLock.request('screen');keepAwake=true}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(keepAwake)requestWakeLock().catch(()=>{});if(state.paired&&state.socket?.readyState!==WebSocket.OPEN)connect()}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&state.paired&&state.socket?.readyState!==WebSocket.OPEN)connect()});
 $('#fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch{toast('Fullscreen is unavailable in this browser.')}});
 $('#pair-dialog').addEventListener('cancel',e=>e.preventDefault());
 $('#pair-form').addEventListener('submit',async event=>{event.preventDefault();const button=$('#pair-form button');button.disabled=true;$('#pair-error').textContent='';try{const local=state.auth?.local;const result=await api(local?'/api/pair':'/api/device/request',{method:'POST',body:JSON.stringify(local?{code:$('#pair-code').value.trim().toUpperCase(),name:$('#device-name').value.trim()}:{name:$('#device-name').value.trim()})});$('#pair-code').value='';if(result.device.status==='approved')await enterDashboard();else{state.auth.device=result.device;loadPairingMode()}}catch(e){$('#pair-error').textContent=e.message}finally{button.disabled=false}});
@@ -122,7 +122,7 @@ setInterval(()=>{$('#clock').textContent=new Date().toLocaleTimeString([],{hour:
 setInterval(()=>{if(state.paired&&document.visibilityState==='visible')refreshApps()},15000);
 let approvalTimer;
 async function authStatus(){const response=await fetch('/api/auth');const auth=await response.json();if(!response.ok)throw new Error(auth.detail||'Connection unavailable.');state.auth=auth;return auth}
-async function enterDashboard(){clearTimeout(approvalTimer);await api('/api/device/activate',{method:'POST'});await authStatus();$('#pair-dialog').close();state.paired=true;await refreshApps();render();connect();if(state.page==='games')refreshGames()}
+async function enterDashboard(){clearTimeout(approvalTimer);await api('/api/device/activate',{method:'POST'});await authStatus();$('#pair-dialog').close();state.paired=true;syncScreenAwake();await refreshApps();render();connect();if(state.page==='games')refreshGames()}
 async function loadPairingMode(){
   clearTimeout(approvalTimer);
   try{
