@@ -61,17 +61,31 @@ const assert = require('node:assert/strict');
           }).map(el => el.className || el.textContent.trim());
           const scene = document.querySelector('.desk-screen');
           let largeReadingFits = true;
+          let readingInsideCircle = true;
+          let readingProportion = 0;
+          let circleCrossers = [];
           const hero = document.querySelector('.hero-reading');
           if (hero) {
             const metric = hero.querySelector('[data-metric]');
             const current = metric.textContent;
             metric.textContent = '100';
-            largeReadingFits = hero.getBoundingClientRect().width <= document.querySelector('.core-halo').getBoundingClientRect().width - 8;
+            const halo = document.querySelector('.core-halo').getBoundingClientRect();
+            largeReadingFits = hero.getBoundingClientRect().width <= halo.width - 8;
+            const centerX = halo.left + halo.width / 2;
+            const centerY = halo.top + halo.height / 2;
+            const radius = halo.width / 2 - 6;
+            circleCrossers = [...document.querySelectorAll('.core-reading > :not(.core-halo)')].filter(el => {
+              const r = el.getBoundingClientRect();
+              return [[r.left,r.top],[r.right,r.top],[r.left,r.bottom],[r.right,r.bottom]]
+                .some(([x,y]) => Math.hypot(x-centerX,y-centerY) > radius);
+            }).map(el => el.className);
+            readingInsideCircle = circleCrossers.length === 0;
+            readingProportion = parseFloat(getComputedStyle(hero).fontSize) / halo.width;
             metric.textContent = current;
           }
           return {
             overflow: document.documentElement.scrollWidth > innerWidth + 1,
-            overlap, outside, largeReadingFits,
+            overlap, outside, largeReadingFits, readingInsideCircle, readingProportion, circleCrossers,
             fits: content.bottom <= dock.top - 8,
             sceneHeight: scene?.getBoundingClientRect().height,
             dockLabel: parseFloat(getComputedStyle(document.querySelector('.surface-dock small')).fontSize),
@@ -81,6 +95,8 @@ const assert = require('node:assert/strict');
         const label = `${width}×${height} ${id}`;
         check(!layout.overflow, `${label}: page overflow`);
         check(layout.largeReadingFits, `${label}: 100% reading does not fit inside the halo`);
+        check(layout.readingInsideCircle, `${label}: ${layout.circleCrossers.join(', ')} crosses the circle`);
+        check(layout.readingProportion <= .36, `${label}: processor reading is too large relative to circle`);
         if (height >= 600 || ['clock','ambient'].includes(id)) check(!layout.overlap.length, `${label}: dock covers ${layout.overlap.join(', ')}`);
         if (id !== 'games') check(!layout.outside.length, `${label}: content clipped ${layout.outside.join(', ')}`);
         check(layout.dockLabel >= 10, `${label}: dock labels too small (${layout.dockLabel}px)`);
@@ -96,7 +112,7 @@ const assert = require('node:assert/strict');
             await page.evaluate(() => window.scrollTo(0, 0));
           }
         }
-        if ([[1024,600],[800,1280]].some(([w,h]) => w === width && h === height)) {
+        if ([[1280,800],[1024,600],[800,1280]].some(([w,h]) => w === width && h === height)) {
           await page.screenshot({ path: path.join(artifacts, `tablet-${reportOnly ? 'before' : 'after'}-${width}-${id}.png`), fullPage: true, animations: 'disabled' });
         }
       }

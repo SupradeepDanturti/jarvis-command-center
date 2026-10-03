@@ -78,14 +78,33 @@ main {
 .surface-statement p { font-size: 14px; line-height: 1.5; }
 .surface-statement .surface-link { font-size: 13px; }
 .core-reading {
+  --core-diameter: min(33vw, 38dvh, 380px);
   width: 45%;
   min-width: 0;
-  height: clamp(190px, 38dvh, 380px);
+  height: var(--core-diameter);
   margin: 0;
 }
-.core-halo { width: min(33vw, 38dvh, 380px); height: auto; aspect-ratio: 1; }
-.hero-reading { font-size: clamp(100px, min(19vw, 21dvh), 235px); line-height: 1.15; }
-.hero-reading em { font-size: .2em; }
+.core-halo { width: var(--core-diameter); height: auto; aspect-ratio: 1; }
+/* Keep the complete reading inside the curved edge, not just its bounding square. */
+.core-reading .reading-label {
+  max-width: calc(var(--core-diameter) * .68);
+  font-size: 11px;
+  letter-spacing: .08em;
+  line-height: 1.4;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.hero-reading { font-size: calc(var(--core-diameter) * .34); line-height: 1.05; }
+.hero-reading em { font-size: .18em; }
+.core-reading .surface-trace {
+  width: calc(var(--core-diameter) * .5);
+  height: calc(var(--core-diameter) * .05);
+  margin: 4px 0 9px;
+}
+.core-reading .reading-detail {
+  max-width: calc(var(--core-diameter) * .68);
+  line-height: 1.4;
+}
 .surface-trace { margin: 0 0 10px; }
 .home-understory { flex: 0 0 auto; padding: 0; gap: 20px; }
 .surface-vitals { gap: clamp(25px, 5vw, 65px); }
@@ -189,9 +208,7 @@ main {
   .surface-statement h2 br { display: none; }
   .surface-statement h2 i { margin-left: .12em; }
   .surface-statement .surface-link { display: none; }
-  .core-reading { width: 100%; height: clamp(220px, 29dvh, 380px); }
-  .core-halo { width: min(54vw, 31dvh, 410px); }
-  .hero-reading { font-size: clamp(135px, min(27vw, 17dvh), 235px); }
+  .core-reading { --core-diameter: min(54vw, 31dvh, 410px); width: 100%; }
   .home-understory { margin-top: 10px; }
   .home-launch .apps-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
   .home-launch .app-tile { min-height: 80px; }
@@ -233,9 +250,7 @@ main {
   .surface-overline { font-size: 10px; letter-spacing: 1px; }
   .surface-statement h2 { font-size: 64px; }
   .surface-statement p { font-size: 13px; }
-  .core-reading { height: 235px; }
-  .core-halo { width: 260px; }
-  .hero-reading { font-size: 135px; }
+  .core-reading { --core-diameter: 260px; }
   .reading-label { font-size: 10px; }
   .home-understory { gap: 14px; flex-wrap: wrap; }
   .surface-vitals { gap: 24px; }
@@ -285,9 +300,10 @@ main {
   .home-understory { flex-wrap: wrap; }
   .surface-statement h2 { font-size: 58px; }
   .reading-label { font-size: 9px; letter-spacing: .7px; }
-  .core-reading { height: 200px; }
-  .core-halo { width: 205px; }
-  .hero-reading { font-size: 100px; }
+  .core-reading { --core-diameter: 205px; }
+  .core-reading .reading-label { font-size: 10px; letter-spacing: .04em; margin-bottom: 6px; }
+  .core-reading .reading-detail { font-size: 10px; max-width: calc(var(--core-diameter) * .62); }
+  .hero-reading { font-size: calc(var(--core-diameter) * .3); }
   .apps-grid.app-library { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .clock-dial { width: min(26vw, 38dvh); }
   .clock-digits { font-size: min(14vw, 24dvh); }
