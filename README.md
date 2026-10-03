@@ -8,6 +8,8 @@ Read [SPEC.md](SPEC.md) for the complete target, implementation decisions, secur
 
 The display uses a small floating dock: **Home, Live (performance), Games, Apps, Clock, Ambient**. **More** opens Hardware, Live graphs, System & controls, and Device access. Home shows one large live reading with compact vitals and launcher icons. Clock and Ambient fill the display; Games uses a sideways poster gallery. There is no permanent sidebar or overview card grid.
 
+Home has a local atmospheric contour background. **Clock** uses a classic split-flap face: hours and minutes flip when they change, with 12/24-hour modes and immersive view. Reduced-motion settings show immediate updates. **Ambient** offers richer Event horizon, Neon drift and Aurora movies, plus NASA's **Black hole** visualization. All four are included locally.
+
 Tablet layouts adjust to both width and the visible browser height, leaving space for the dock and Android safe areas. Landscape keeps the main composition and shortcuts above the dock; portrait centers the live reading and arranges shortcuts in two rows. Rotate normally or use Fullscreen; neither is required to make the layout fit. After an update, reload the tablet page to load the latest styles. Short phone windows and detailed settings can scroll.
 
 Approved browsers automatically report their current display size, visible area, orientation, pixel scale and fullscreen mode while this page is visible. On the laptop, **More → Device access** shows the latest size beside each reporting browser. Reports refresh on resizing/fullscreen changes and every 30 seconds; only the latest report is kept in memory for five minutes. For manual troubleshooting, the tablet’s **More → System & controls → Tablet settings** includes **Display size** and **Copy display details**. Reload once after installing this update to enable automatic reports.
@@ -93,13 +95,13 @@ The UI sends only the registered ID. Executables run without a shell; configured
 
 ## Clock and ambient screens
 
-Open **Clock** for the analog/digital time station. Switch between 12-hour and 24-hour time. It uses the viewing device's local time and timezone.
+Open **Clock** for the split-flap time display. Switch between 12-hour and 24-hour time. It uses the viewing device's local time and timezone.
 
-Open **Ambient** for three desk scenes: **Event horizon** (an original silent 16-second video loop), **Neon drift**, and **Aurora**. All artwork plays locally without internet streaming. Pause/resume motion with the playback button; reduced-motion preferences start with motion paused. Hidden tabs pause the video. The scene and clock format are remembered in this browser; no authentication secrets are stored with these preferences.
+Open **Ambient** and choose **Event horizon** for golden orbiting dust and a starfield, **Neon drift** for a synthwave sun and flowing light rails, **Aurora** for luminous curtains over mountains and a lake, or **Black hole** for NASA's edge-on accretion disk visualization. All movies are silent and play locally without internet streaming. Pause/resume motion with the playback button; reduced-motion preferences start with motion paused. Hidden tabs pause the video. Scene selection, pause and clock format are remembered in this browser; no authentication secrets are stored with these preferences.
 
 Clock and Ambient already fill the display. Tap **Immersive view** to hide the dock and request browser fullscreen. **Back to display** or Escape restores the controls. **Keep awake** requests the browser's screen wake lock while visible; Android may release it when you switch apps or turn off the screen.
 
-The original video is included in the repository. To regenerate it with installed Edge and a separately available Playwright package, run `node scripts/render-ambient.cjs`; the script accepts `G16_PLAYWRIGHT_PATH` as described in VALIDATION.md. Asset provenance is in [ASSETS.md](ASSETS.md).
+Three original 1280×720, 16-second loops and their posters are included in the repository. To regenerate them with installed Edge and a separately available Playwright package, run `node scripts/render-ambient.cjs`; the script accepts `G16_PLAYWRIGHT_PATH` as described in VALIDATION.md and also extracts the NASA movie's poster if the local movie is present. The NASA movie itself is unmodified. Asset sources and credits are in [ASSETS.md](ASSETS.md).
 
 ## Installed games
 

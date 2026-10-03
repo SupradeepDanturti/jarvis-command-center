@@ -15,7 +15,7 @@ Primary layout is landscape, with a responsive portrait layout. Support current 
 - NVIDIA temperature, utilization, clock, memory, and power are read with a fixed `nvidia-smi` query if available. Other GPU vendors are reported unavailable until adapters are added.
 - Overview, Gaming, Game library, Hardware, Live graphs, Applications, Clock, Ambient, System, and Device access pages share a single connection and sampler. Gaming emphasizes live utilization; FPS remains unavailable pending RTSS. Device access provides a dedicated approval/revocation list, also available on System.
 - Custom geometric G16 emblem, consistent glyphs, dark open compositions, ivory/sage typography, locally served app logos, and a floating touch dock. Home, Performance, Games, Apps, Clock, and Ambient are primary screens; Hardware, Live graphs, System, and Device access are in More. Brave and a fixed YouTube-in-Brave shortcut join the app defaults.
-- Clock offers analog/digital local time, date/timezone, 12/24-hour format, immersive view, and optional wake lock. Ambient offers an original local silent WebM loop plus two CSS scenes, pause/resume, reduced-motion support, and remembered visual preferences.
+- Clock offers split-flap local time, date/timezone, 12/24-hour format, immersive view, and optional wake lock. Ambient offers three original local silent WebM loops plus NASA's edge-on Black hole MP4, pause/resume, reduced-motion support, and remembered visual preferences.
 - Game library discovers installed Steam/Epic/GOG/Riot titles from launcher records, with filtering/search/refresh and ID-only launch dispatch. Local Steam artwork requires approved browser access. Portable/unsupported titles can use ignored laptop-side registrations. Running-game state remains future work.
 - Registered apps launch by ID; running state matches configured process names. Default URI registrations depend on an installed Windows handler, so launch may fail with a visible error.
 - Windows media keys support play/pause, previous/next, mute, and volume steps. Delivery is acknowledged; actual playback state and numerical system volume are not inferred.
@@ -93,6 +93,7 @@ Use trusted-local-network firewall access only. No automatic firewall changes, r
 - Do not re-create primary control DOM for every telemetry tick; preserve touch interactions and focus.
 - Missing telemetry never creates plausible fake values. Raw sensor source and disconnected integration state remain accessible.
 - Fullscreen and keep-awake failures display an explanation. Respect reduced-motion preferences.
+- Clock uses two split-flap panels for hours/minutes, synchronizes both halves after each change, and shows immediate updates on initial load, returning from a hidden page, or with reduced motion enabled. Home uses original static atmospheric artwork. Event horizon, Neon drift and Aurora are original rendered video loops so particle rendering does not run on the tablet. Black hole uses an unmodified, credited NASA local video. Scene switching preserves pause, uses a scene-specific still poster, and ignores superseded playback attempts.
 
 ## Milestones
 

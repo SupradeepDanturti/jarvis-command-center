@@ -1,0 +1,115 @@
+/* Local atmospheric artwork keeps Home open, with its existing readable layout. */
+body[data-view="home"] { isolation: isolate; background: #0c1114; }
+body[data-view="home"]::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url('/static/assets/home-atmosphere.svg') center / cover no-repeat;
+}
+
+/* Classic split-flap clock. Both halves share one numeral baseline. */
+.clock-screen {
+  --flip-width: min(34vw, 50dvh, 470px);
+  --flip-height: calc(var(--flip-width) * .82);
+  --flip-gap: clamp(10px, 1.8vw, 26px);
+  background: radial-gradient(ellipse at 50% 43%, #24282d80, transparent 70%), #090b0e;
+}
+.clock-screen .clock-composition { flex-direction: row; padding: 12px 0; }
+.clock-screen .digital-clock { width: 100%; text-align: center; }
+.clock-screen .clock-greeting { color: #929894; margin-bottom: 24px; }
+.clock-screen .flip-clock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--flip-gap);
+  font-size: inherit;
+  letter-spacing: normal;
+  white-space: normal;
+}
+.flip-tile {
+  position: relative;
+  flex: 0 0 var(--flip-width);
+  width: var(--flip-width);
+  height: var(--flip-height);
+  perspective: 1200px;
+  border-radius: 16px;
+  box-shadow: 0 20px 45px #0006, 0 2px 2px #0009;
+}
+.flip-value { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.flip-face {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  backface-visibility: hidden;
+  background: #23272b;
+  box-shadow: inset 0 1px #ffffff09;
+}
+.flip-top, .flip-leaf-top { top: 0; border-radius: 16px 16px 0 0; background: linear-gradient(#262a2f, #1d2024); }
+.flip-bottom, .flip-leaf-bottom { bottom: 0; border-radius: 0 0 16px 16px; background: linear-gradient(#202428, #292d32); }
+.flip-numeral {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: var(--flip-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: calc(var(--flip-width) * .66);
+  line-height: 1;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.055em;
+  padding-right: .055em;
+  color: #f2f0e9;
+}
+.flip-top .flip-numeral, .flip-leaf-top .flip-numeral { top: 0; }
+.flip-bottom .flip-numeral, .flip-leaf-bottom .flip-numeral { bottom: 0; }
+.flip-leaf-top, .flip-leaf-bottom { display: none; z-index: 3; }
+.flip-leaf-top { transform-origin: center bottom; }
+.flip-leaf-bottom { transform-origin: center top; transform: rotateX(90deg); }
+.flipping .flip-leaf-top { display: block; animation: flip-fold .28s ease-in forwards; }
+.flipping .flip-leaf-bottom { display: block; animation: flip-reveal .28s .28s ease-out forwards; }
+.flip-hinge { position: absolute; z-index: 4; left: 0; top: calc(50% - 1px); width: 100%; height: 2px; background: #060708; box-shadow: 0 1px #ffffff05; }
+.flip-hinge::before, .flip-hinge::after { content: ''; position: absolute; top: -5px; width: 4px; height: 12px; border-radius: 2px; background: linear-gradient(#797d80, #41464a, #73777a); }
+.flip-hinge::before { left: -2px; }
+.flip-hinge::after { right: -2px; }
+.flip-clock .clock-colon { position: relative; display: flex; flex-direction: column; gap: 24px; padding: 0; width: 8px; flex: 0 0 8px; font-size: 0; }
+.flip-clock .clock-colon::before, .flip-clock .clock-colon::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #59605a; }
+.clock-screen .clock-meta { width: min(100%, calc(var(--flip-width) * 2 + var(--flip-gap) * 2 + 8px)); margin: 26px auto 0; color: #9aa292; font-size: 14px; }
+.clock-screen .clock-seconds { color: #8d9588; }
+.clock-screen .clock-seconds b { color: #b4c29f; }
+@keyframes flip-fold { to { transform: rotateX(-90deg); filter: brightness(.55); } }
+@keyframes flip-reveal { from { filter: brightness(.6); } to { transform: rotateX(0); filter: brightness(1); } }
+@media (max-width: 540px) {
+  .flip-tile { border-radius: 10px; }
+  .flip-top, .flip-leaf-top { border-radius: 10px 10px 0 0; }
+  .flip-bottom, .flip-leaf-bottom { border-radius: 0 0 10px 10px; }
+  .clock-screen .clock-meta { font-size: 11px; gap: 10px; }
+  .flip-clock .clock-colon { gap: 16px; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .clock-screen { --flip-width: min(32vw, 31dvh); }
+  .clock-screen .clock-greeting { margin-bottom: 8px; font-size: 12px; }
+  .clock-screen .clock-meta { margin-top: 10px; font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flipping .flip-leaf-top, .flipping .flip-leaf-bottom { display: none; }
+}
+
+/* Every ambient scene is a local movie, with a still poster when paused. */
+.ambient-screen[data-scene] #ambient-video { display: block; }
+.ambient-screen[data-scene=blackhole] { background: #000; }
+.ambient-screen[data-scene=blackhole] #ambient-video { object-fit: contain; }
+.ambient-screen[data-scene=blackhole] .ambient-vignette { background: linear-gradient(#0002, transparent 40%, #0005); }
+.ambient-caption .scene-credit { margin-top: 12px; max-width: 380px; font-size: 11px; line-height: 1.5; color: #aab2b2; }
+.scene-controls { flex-wrap: wrap; gap: 12px; }
+@media (max-width: 540px) {
+  .ambient-caption p { max-width: 290px; }
+  .ambient-caption .scene-credit { max-width: 270px; font-size: 10px; }
+  .scene-controls { gap: 6px 12px; max-width: 270px; }
+}

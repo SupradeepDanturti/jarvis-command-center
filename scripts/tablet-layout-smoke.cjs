@@ -39,14 +39,13 @@ const assert = require('node:assert/strict');
     for (const [width, height] of [[1280,800],[1280,720],[1024,600],[960,600],[800,1280],[768,1024],[600,960],[412,915],[640,400]]) {
       await page.setViewportSize({ width, height });
       await waitForReport(width, height, 'Normal browser');
-      for (const id of ['home','gaming','apps','games','clock','ambient']) {
+      for (const entry of ['home','gaming','apps','games','clock','ambient','ambient:grid','ambient:aurora','ambient:blackhole']) {
+        const [id,variant]=entry.split(':');
         await screen(id);
+        if(id==='ambient')await page.locator(`[data-scene-select="${variant||'horizon'}"]`).click();
         if (id === 'games') await page.waitForFunction(() => state.gameLibrary !== null);
         // Exercise wide numerals even when the current CPU load/time is narrow.
-        if (id === 'clock') await page.locator('.clock-digits').evaluate(el => {
-          el.querySelector('[data-clock-hours]').textContent = '23';
-          el.querySelector('[data-clock-minutes]').textContent = '58';
-        });
+        if (id === 'clock') await page.evaluate(() => updateClock(new Date(2026,9,3,23,58,0),false));
         const layout = await page.evaluate(() => {
           const dock = document.querySelector('.surface-dock').getBoundingClientRect();
           const content = document.querySelector('#page-content').getBoundingClientRect();
@@ -92,7 +91,7 @@ const assert = require('node:assert/strict');
             appLabel: document.querySelector('.app-name') ? parseFloat(getComputedStyle(document.querySelector('.app-name')).fontSize) : null,
           };
         });
-        const label = `${width}×${height} ${id}`;
+        const label = `${width}×${height} ${entry}`;
         check(!layout.overflow, `${label}: page overflow`);
         check(layout.largeReadingFits, `${label}: 100% reading does not fit inside the halo`);
         check(layout.readingInsideCircle, `${label}: ${layout.circleCrossers.join(', ')} crosses the circle`);
@@ -113,7 +112,7 @@ const assert = require('node:assert/strict');
           }
         }
         if ([[1280,800],[1024,600],[800,1280]].some(([w,h]) => w === width && h === height)) {
-          await page.screenshot({ path: path.join(artifacts, `tablet-${reportOnly ? 'before' : 'after'}-${width}-${id}.png`), fullPage: true, animations: 'disabled' });
+          await page.screenshot({ path: path.join(artifacts, `tablet-${reportOnly ? 'before' : 'after'}-${width}-${entry.replace(':','-')}.png`), fullPage: true, animations: 'disabled' });
         }
       }
     }

@@ -25,6 +25,14 @@ Install Playwright separately if needed, then run `node scripts/browser-smoke.cj
 
 ## Visual screens and installed games
 
+### Flip clock, Home atmosphere and expanded Ambient collection
+
+- JavaScript syntax checks passed for the modified frontend and browser/rendering scripts. This update changes static assets and documentation only; the working background server was not restarted.
+- Trusted Edge browser checks passed for the two-panel flip clock: simultaneous hour/minute rollover at midnight, synchronized settled halves, 12-hour midnight/noon labels, reduced-motion updates and immersive view.
+- All four local movies decoded and played in Edge. Checks seek near each movie's end and observe an actual loop boundary, verify silent inline playback and valid still posters, preserve pause while changing scenes, restore the selected scene and pause after reload, and exercise rapid scene switching. The NASA scene shows its source credit. There were no page errors or CSP violations.
+- Touch layout checks passed for six primary screens and all four Ambient choices across nine viewport sizes, including the physical Redmi's reported 1280×800 and short 640×400 windows. The enlarged collection controls and NASA credit fit without dock overlap or horizontal clipping. Automated checks preserve the user's devices and revoke only their QA credentials.
+- Clock, Home and the expanded Ambient artwork screenshots were inspected locally. The user confirmed the preceding CPU circle/number correction on the physical Redmi. The new flip clock, background and movies still need a tablet reload and physical smoothness/appearance confirmation.
+
 - The desk-display redesign passed real Edge checks with no sidebar or overview cards, a visible floating dock, Home fitting above the dock at 1280×800, all ten screens reachable (including the More menu), full-width Clock/Ambient, and no horizontal page overflow at 800×1280 or 412×915. Games uses its own horizontally scrolling poster rail; swiping it does not switch screens.
 
 - Landscape, immersive-clock, ambient, game-library, and mobile screenshots were inspected. All artwork and brand logos are local; Steam covers are read from the existing authenticated laptop cache.
