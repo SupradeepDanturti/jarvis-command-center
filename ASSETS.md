@@ -1,7 +1,7 @@
 # Local artwork and logo sources
 
 - `frontend/assets/g16-mark.svg`, `frontend/favicon.svg`, and `frontend/icons.js`: original G16 project emblem and interface glyphs.
-- `frontend/assets/home-atmosphere.svg`: original layered gradients and flowing contours, rendered as a static Home background.
+- `frontend/assets/home-atmosphere.svg`: original layered gradients and flowing contours, used as the shared backdrop fallback beneath the local movies.
 - `frontend/experience.css` and the split-flap helpers in `frontend/screens.js`: original classic flip-clock implementation, with no third-party clock package or Apple/Fliqlo asset copied.
 - `frontend/ambient-art.js`: original deterministic artwork for Event horizon (starfield, nebula, golden dust and a bent accretion disk), Neon drift (synthwave sun, mountains, perspective grid and light trails), and Aurora (luminous curtains, alpine silhouettes and lake ripples). `scripts/render-ambient.cjs` renders these offline to the included 1280×720, silent 16-second `event-horizon.webm`, `neon-drift.webm`, `aurora.webm` loops and JPEG posters; the tablet only decodes the movies. These are stylized artwork, not scientific simulations.
 - `frontend/assets/nasa-black-hole.mp4`: unmodified NASA edge-on looping visualization, 1920×1080. Credit: **NASA’s Goddard Space Flight Center/Jeremy Schnittman**. [Source and individual credit](https://svs.gsfc.nasa.gov/13326/), [original MP4](https://svs.gsfc.nasa.gov/vis/a010000/a013300/a013326/BH_AccretionDisk_Sim_Stationary_1080.mp4), downloaded 2026-10-03. SHA-256: `87dcf121886ce7431230d5ac51bf9af382373ada82b154b40fdd50ff15ff735a`. `nasa-black-hole.jpg` is a frame extracted for the local still poster. NASA's [media usage guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/) allow personal informational web pages with source acknowledgement; the scene displays the individual credit and does not imply NASA endorsement. The project license does not assert ownership of NASA's media.
@@ -9,5 +9,7 @@
 - Game artwork is read from the laptop's existing Steam cache through authenticated routes. These images and installation records are not copied into the repository. Other games use original fallback covers.
 
 All dashboard assets are served locally. No CDN, external font, video stream, or third-party tracking request is needed to view the dashboard.
+
+`frontend/background.js` and the backdrop rules in `frontend/experience.css` reuse these same four movies behind the other screens. Dark overlays preserve text readability; the original Home SVG remains a fallback. No new third-party media was added for page backgrounds.
 
 For more visual ideas, browse [Fliqlo](https://fliqlo.com/screensaver/) for classic clock styling, [Wallpaper Engine’s official Workshop](https://steamcommunity.com/workshop/browse/?appid=431960&section=home) for ambient compositions, and [NASA’s Scientific Visualization Studio](https://svs.gsfc.nasa.gov/13326/) for space visualizations. No external service is needed to display the included scenes.

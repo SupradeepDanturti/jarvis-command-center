@@ -35,7 +35,43 @@ const assert = require('node:assert/strict');
     for (const id of ['gaming','games','hardware','graphs','apps','clock','ambient','system','devices','home']) {
       await screen(id);
       assert.equal(await page.locator(`[data-page="${id}"]`).getAttribute('aria-current'),'page');
+      assert.equal(await page.locator('#surface-background').count(),1,'Navigation must reuse a single background player');
+      if(id==='ambient'){
+        assert.equal(await page.locator('.surface-backdrop').isVisible(),false);
+        assert.equal(await page.locator('#surface-background').evaluate(video=>video.paused),true);
+      }else{
+        const expected={gaming:'grid',games:'blackhole',hardware:'horizon',graphs:'grid',apps:'aurora',clock:'horizon',system:'aurora',devices:'aurora',home:'horizon'};
+        assert.equal(await page.locator('#surface-background').getAttribute('data-scene'),expected[id]);
+        await page.waitForFunction(()=>document.querySelector('#surface-background').currentTime>.1);
+        assert.equal(await page.locator('.surface-backdrop').evaluate(el=>getComputedStyle(el).pointerEvents==='none'&&Number(getComputedStyle(el).zIndex)<0),true,'Backdrop must stay behind touch controls');
+        assert.equal(await page.locator('#surface-background').evaluate(v=>v.muted&&v.loop&&v.playsInline),true);
+      }
     }
+    await screen('system');
+    await page.locator('#background-scene').selectOption('blackhole');
+    await page.locator('#background-motion').click();
+    await page.reload();
+    await page.waitForFunction(()=>state.paired&&document.querySelector('#background-scene'));
+    assert.equal(await page.locator('#background-scene').inputValue(),'blackhole');
+    await screen('home');
+    assert.equal(await page.locator('#surface-background').getAttribute('data-scene'),'blackhole');
+    assert.equal(await page.locator('#surface-background').evaluate(v=>v.paused),true,'Background pause survives reload and navigation');
+    await screen('system');
+    await page.locator('#background-motion').click();
+    await page.locator('#background-scene').selectOption('auto');
+    await screen('home');
+    await page.waitForFunction(()=>!document.querySelector('#surface-background').paused);
+    await page.emulateMedia({reducedMotion:'reduce'});
+    await page.waitForFunction(()=>document.querySelector('#surface-background').paused);
+    await page.emulateMedia({reducedMotion:'no-preference'});
+    await page.waitForFunction(()=>!document.querySelector('#surface-background').paused);
+    await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});document.dispatchEvent(new Event('visibilitychange'))});
+    assert.equal(await page.locator('#surface-background').evaluate(v=>v.paused),true,'Hidden pages pause backgrounds');
+    await page.evaluate(()=>{delete document.visibilityState;document.dispatchEvent(new Event('visibilitychange'))});
+    await page.waitForFunction(()=>!document.querySelector('#surface-background').paused);
+    await page.evaluate(()=>{for(const id of ['apps','home','gaming','hardware','home'])goPage(id)});
+    await page.waitForFunction(()=>document.querySelector('#surface-background').currentTime>.1);
+    await page.screenshot({path:path.join(artifacts,'moving-background-home.png'),fullPage:true});
     await screen('apps');
     for(const id of ['steam','discord','brave','youtube']){
       assert.equal(await page.locator(`[data-app="${id}"] img`).count(),1);

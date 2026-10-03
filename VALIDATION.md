@@ -25,6 +25,12 @@ Install Playwright separately if needed, then run `node scripts/browser-smoke.cj
 
 ## Visual screens and installed games
 
+### Moving backgrounds across pages
+
+- The trusted Edge browser check passed with local moving backgrounds on all nine ordinary screens, including Clock, and the dedicated scene on Ambient. It verifies the expected default scene per page, one shared backdrop player, negative stacking order and no pointer interception, muted inline looping, the scene override and pause surviving reload/navigation, reduced-motion pause/resume, simulated hidden/visible document events, and rapid page changes. Ambient hides and pauses the shared backdrop. No page errors or CSP violations were reported.
+- The touch layout check passed across its nine viewport sizes and all Ambient choices after adding the new background settings. Updated 1280×800 Home/performance screenshots were visually inspected for contrast and readable controls. Physical Redmi playback performance still needs confirmation after reload; these checks use desktop Edge touch viewports.
+- JavaScript syntax and Git whitespace checks passed. Static frontend files were updated without restarting the background server or changing approvals/CA trust. Background artwork reuses the previously bundled movies; no additional media or backend endpoint was introduced.
+
 ### Flip clock, Home atmosphere and expanded Ambient collection
 
 - JavaScript syntax checks passed for the modified frontend and browser/rendering scripts. This update changes static assets and documentation only; the working background server was not restarted.

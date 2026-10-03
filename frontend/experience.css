@@ -1,20 +1,28 @@
-/* Local atmospheric artwork keeps Home open, with its existing readable layout. */
-body[data-view="home"] { isolation: isolate; background: #0c1114; }
-body[data-view="home"]::before {
-  content: '';
+/* Cinematic local backdrops stay behind the complete touch interface. */
+body { isolation: isolate; background: #080b11; }
+.surface-backdrop {
   position: fixed;
   inset: 0;
   z-index: -1;
+  overflow: hidden;
   pointer-events: none;
-  background: url('/static/assets/home-atmosphere.svg') center / cover no-repeat;
+  background: #080b11 url('/static/assets/home-atmosphere.svg') center / cover no-repeat;
 }
+.surface-backdrop video { width: 100%; height: 100%; object-fit: cover; opacity: .65; }
+.backdrop-wash { position: absolute; inset: 0; background: linear-gradient(90deg, #060a10a6, #060a1033 55%, #060a1080), linear-gradient(#060a1055, transparent 45%, #060a10b3); }
+body:is([data-view=hardware],[data-view=graphs],[data-view=system],[data-view=devices]) .surface-backdrop video { opacity: .42; }
+body[data-view=clock] .surface-backdrop video { opacity: .3; }
+.background-setting { flex-wrap: wrap; }
+.background-setting label { color: #9ba58f; }
+.background-setting select { max-width: 100%; min-height: 44px; padding: 0 12px; border: 1px solid #ffffff25; border-radius: 5px; background: #11191fea; color: #e8edf5; font-size: 13px; }
+.background-setting select:focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
 
 /* Classic split-flap clock. Both halves share one numeral baseline. */
 .clock-screen {
   --flip-width: min(34vw, 50dvh, 470px);
   --flip-height: calc(var(--flip-width) * .82);
   --flip-gap: clamp(10px, 1.8vw, 26px);
-  background: radial-gradient(ellipse at 50% 43%, #24282d80, transparent 70%), #090b0e;
+  background: radial-gradient(ellipse at 50% 43%, #24282d55, transparent 70%), #090b0e66;
 }
 .clock-screen .clock-composition { flex-direction: row; padding: 12px 0; }
 .clock-screen .digital-clock { width: 100%; text-align: center; }

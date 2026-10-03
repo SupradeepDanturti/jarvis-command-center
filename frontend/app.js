@@ -16,7 +16,7 @@ async function api(url, options={}){
   if(!response.ok)throw new Error(typeof body.detail==='string'?body.detail:'Please check the input and try again.');
   return body;
 }
-function showPairing(){state.paired=false;clearTimeout(reconnectTimer);state.socket?.close();if(!$('#pair-dialog').open)$('#pair-dialog').showModal();setConnection(false,'APPROVAL REQUIRED');loadPairingMode()}
+function showPairing(){state.paired=false;clearTimeout(reconnectTimer);state.socket?.close();if(!$('#pair-dialog').open)$('#pair-dialog').showModal();updateSurfaceBackground();updateAmbient();setConnection(false,'APPROVAL REQUIRED');loadPairingMode()}
 function setConnection(connected,label){state.stale=!connected;document.body.classList.toggle('stale',!connected);$('#connection').textContent=`● ${label}`;$('#connection').classList.toggle('offline',!connected);$('#offline-banner').hidden=connected||!state.paired}
 function metric(label,key,unit,accent,note){return `<article class="card accent-${accent}"><div class="card-top"><span class="label">${label}</span><span class="chip" data-note="${note}">LIVE</span></div><div class="value"><span data-metric="${key}">—</span><em>${unit}</em></div><div class="sub-value" data-sub="${key}">Waiting for sensor</div><svg class="spark" data-spark="${key}" viewBox="0 0 240 48" preserveAspectRatio="none" aria-label="${label} recent trend"></svg></article>`}
 function metrics(){return `<div class="grid metrics-grid">${metric('CPU LOAD','cpu.usage','%','green','cpu')}${metric('GPU LOAD','gpu.usage','%','cyan','gpu')}${metric('MEMORY','memory.percent','%','purple','memory')}${metric('GPU TEMPERATURE','gpu.temperature','°C','orange','temperature')}</div>`}
@@ -34,7 +34,7 @@ function performanceSurface(){return `<div class="performance-surface"><div clas
 function row(label,key){return `<div class="detail-row"><span>${label}</span><strong data-detail="${key}">—</strong></div>`}
 function render(){
   document.body.dataset.view=state.page;
-  document.querySelectorAll('video').forEach(video=>video.pause());
+  document.querySelectorAll('#page-content video').forEach(video=>video.pause());
   const [title,description]=pages[state.page];$('#page-title').innerHTML=`${title}<span>.</span>`;$('#page-description').textContent=description;
   let content='';
   if(state.page==='home')content=surfaceHome();
@@ -45,7 +45,7 @@ function render(){
   if(state.page==='games')content=gamesScreen();
   if(state.page==='clock')content=clockScreen();
   if(state.page==='ambient')content=ambientScreen();
-  if(state.page==='system')content=`<div class="grid detail-grid"><article class="card"><h2 class="section-title">Your laptop</h2>${row('Computer','system.hostname')}${row('Operating system','system.os')}${row('Uptime','system.uptime')}${row('Battery','battery.percent')}${row('Power connection','battery.charging')}<div id="addresses"></div></article>${media()}<article class="card"><h2 class="section-title">Integrations</h2>${row('Windows telemetry','integrations.windows')}${row('NVIDIA sensors','integrations.nvidia')}${row('HWiNFO sensors','integrations.hwinfo')}${row('FPS / RTSS','integrations.rtss')}${row('OBS Studio','integrations.obs')}</article><article class="card"><h2 class="section-title">Tablet settings</h2>${displaySettings()}<p class="section-note">Fullscreen works over Wi-Fi. Keep-awake requires HTTPS and browser support. Approved browsers are remembered for up to 180 days.</p><div class="page-actions"><button id="wake-lock">Keep screen awake</button><button id="disconnect">Unpair device</button></div><p class="section-note">Sleep, restart, shutdown, microphone control, OBS, games, and macros will be added in subsequent milestones.</p></article></div>`;
+  if(state.page==='system')content=`<div class="grid detail-grid"><article class="card"><h2 class="section-title">Your laptop</h2>${row('Computer','system.hostname')}${row('Operating system','system.os')}${row('Uptime','system.uptime')}${row('Battery','battery.percent')}${row('Power connection','battery.charging')}<div id="addresses"></div></article>${media()}<article class="card"><h2 class="section-title">Integrations</h2>${row('Windows telemetry','integrations.windows')}${row('NVIDIA sensors','integrations.nvidia')}${row('HWiNFO sensors','integrations.hwinfo')}${row('FPS / RTSS','integrations.rtss')}${row('OBS Studio','integrations.obs')}</article><article class="card"><h2 class="section-title">Tablet settings</h2>${displaySettings()}${backgroundSettings()}<p class="section-note">Fullscreen works over Wi-Fi. Keep-awake requires HTTPS and browser support. Approved browsers are remembered for up to 180 days.</p><div class="page-actions"><button id="wake-lock">Keep screen awake</button><button id="disconnect">Unpair device</button></div><p class="section-note">Sleep, restart, shutdown, microphone control, OBS, games, and macros will be added in subsequent milestones.</p></article></div>`;
   $('#page-content').innerHTML=content;
   document.querySelectorAll('.nav').forEach(n=>{n.classList.toggle('active',n.dataset.page===state.page);n.setAttribute('aria-current',n.dataset.page===state.page?'page':'false')});
   $('#more-toggle').classList.toggle('active',['hardware','graphs','system','devices'].includes(state.page));
@@ -53,6 +53,7 @@ function render(){
   document.querySelectorAll('[data-app]').forEach(el=>{const app=state.apps.find(a=>a.id===el.dataset.app);el.style.setProperty('--icon',app.color)});
   update();
   mountScreens();
+  updateSurfaceBackground();
   if(state.page==='system'||state.page==='devices')renderDevices();
 }
 function display(key,v){if(v==null)return 'Unavailable';if(key==='system.uptime')return `${format(v/3600,1)} hours`;if(key==='battery.charging')return v?'AC connected':'On battery';if(/network\.|storage\.(read|write)/.test(key))return `${mb(v)} MB/s`;if(/\.usage$|battery.percent/.test(key))return `${format(v)} %`;if(/\.temperature$/.test(key))return `${format(v)} °C`;if(/\.clock$/.test(key))return `${format(v)} MHz`;if(/\.power$/.test(key))return `${format(v)} W`;return String(v)}
