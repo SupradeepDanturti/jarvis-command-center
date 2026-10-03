@@ -2,33 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0b0e14"><meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#080b11"><meta name="color-scheme" content="dark">
   <title>G16 · Command Center</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/style.css"><script src="/static/app.js" defer></script>
+  <link rel="stylesheet" href="/static/style.css"><link rel="stylesheet" href="/static/theme.css"><script src="/static/icons.js" defer></script><script src="/static/screens.js" defer></script><script src="/static/games.js" defer></script><script src="/static/app.js" defer></script>
 </head>
 <body>
   <aside class="sidebar">
-    <a href="#home" class="brand" aria-label="Command center home"><span class="brand-mark">G<span>16</span></span><small>COMMAND CENTER</small></a>
+    <a href="#home" class="brand" aria-label="Command center home"><img src="/static/assets/g16-mark.svg" width="44" height="44" alt=""><div><span class="brand-mark">G16<span> /</span></span><small>COMMAND CENTER</small></div></a>
+    <div class="nav-label">CONTROL DECK <span>01—10</span></div>
     <nav aria-label="Dashboard pages">
-      <button class="nav active" data-page="home"><span>▦</span>Overview</button>
-      <button class="nav" data-page="gaming"><span>◇</span>Gaming</button>
-      <button class="nav" data-page="hardware"><span>▤</span>Hardware</button>
-      <button class="nav" data-page="graphs"><span>⌁</span>Live graphs</button>
-      <button class="nav" data-page="apps"><span>⊞</span>Applications</button>
-      <button class="nav" data-page="system"><span>⚙</span>System</button>
-      <button class="nav" data-page="devices"><span>♧</span>Device access</button>
+      <button class="nav active" data-page="home" aria-label="Overview"><span data-icon="home"></span>Overview</button>
+      <button class="nav" data-page="gaming" aria-label="Gaming"><span data-icon="gaming"></span>Gaming</button>
+      <button class="nav" data-page="games" aria-label="Game library"><span data-icon="gaming"></span>Game library</button>
+      <button class="nav" data-page="hardware" aria-label="Hardware"><span data-icon="hardware"></span>Hardware</button>
+      <button class="nav" data-page="graphs" aria-label="Live graphs"><span data-icon="graphs"></span>Live graphs</button>
+      <button class="nav" data-page="apps" aria-label="Applications"><span data-icon="apps"></span>Applications</button>
+      <button class="nav" data-page="clock" aria-label="Clock"><span data-icon="clock"></span>Clock</button>
+      <button class="nav" data-page="ambient" aria-label="Ambient"><span data-icon="ambient"></span>Ambient</button>
+      <button class="nav" data-page="system" aria-label="System"><span data-icon="system"></span>System</button>
+      <button class="nav" data-page="devices" aria-label="Device access"><span data-icon="devices"></span>Device access</button>
     </nav>
-    <div class="sidebar-bottom"><span class="device-icon">▱</span><strong>Redmi Pad Pro</strong><small>Your touch command surface</small><button id="fullscreen" class="subtle">⛶ &nbsp; Fullscreen</button></div>
+    <div class="sidebar-bottom"><div class="surface-label"><span class="online-dot"></span> PAIRED SURFACE</div><strong>Redmi Pad Pro</strong><small>One machine. Total control.</small><button id="fullscreen" class="subtle"><span data-icon="fullscreen"></span> Fullscreen</button></div>
   </aside>
   <main>
-    <header><div><div class="eyebrow">LOCAL NETWORK / PERSONAL CONTROL</div><h1 id="page-title">Command center<span>.</span></h1><p id="page-description">Your laptop. Everything in view.</p></div><div class="header-right"><span id="connection" class="status">● PAIR DEVICE</span><time id="clock"></time></div></header>
+    <header><div><div class="eyebrow">G16 / PERSONAL COMMAND SYSTEM</div><h1 id="page-title">Command center<span>.</span></h1><p id="page-description">Your laptop. Everything in view.</p></div><div class="header-right"><span id="connection" class="status">● PAIR DEVICE</span><time id="clock"></time></div></header>
     <div class="machine-strip"><div><span class="online-dot"></span><strong id="hostname">DELL G16</strong><span class="separator">/</span><span id="system-summary">Waiting for connection</span></div><span id="sample-age">LIVE TELEMETRY</span></div>
     <div id="offline-banner" class="notice" hidden>Connection interrupted. Reconnecting automatically; readings below are stale.</div>
     <section id="page-content" aria-label="Dashboard"></section>
-    <footer><span><i class="online-dot"></i> LOCAL FIRST <span class="separator">/</span> v0.1 FOUNDATION</span><span id="footer-ip">Secure device pairing</span></footer>
+    <footer><span><i class="online-dot"></i> DESIGNED FOR YOUR DESK <span class="separator">/</span> G16 CC · 02</span><span id="footer-ip">Secure device pairing</span></footer>
   </main>
-  <dialog id="pair-dialog"><form id="pair-form"><div class="dialog-mark">G16</div><div class="eyebrow">PRIVATE DEVICE ACCESS</div><h2 id="pair-title">Approve this browser.</h2><p id="pair-description">Checking your device…</p><label for="device-name">DEVICE NAME</label><input id="device-name" name="device" maxlength="60" autocomplete="off" placeholder="Redmi Pad Pro" required><div id="setup-code"><label for="pair-code">LAPTOP SETUP CODE</label><input id="pair-code" name="code" minlength="8" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="A1B2C3D4"></div><button class="primary" type="submit">Request approval <span>→</span></button><p id="pair-error" role="alert"></p><small id="pair-note">Only approved browsers can see or control your laptop.</small></form></dialog>
+  <dialog id="pair-dialog"><form id="pair-form"><div class="dialog-mark"><img src="/static/assets/g16-mark.svg" width="44" height="44" alt="">G16</div><div class="eyebrow">PRIVATE DEVICE ACCESS</div><h2 id="pair-title">Approve this browser.</h2><p id="pair-description">Checking your device…</p><label for="device-name">DEVICE NAME</label><input id="device-name" name="device" maxlength="60" autocomplete="off" placeholder="Redmi Pad Pro" required><div id="setup-code"><label for="pair-code">LAPTOP SETUP CODE</label><input id="pair-code" name="code" minlength="8" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="A1B2C3D4"></div><button class="primary" type="submit">Request approval <span>→</span></button><p id="pair-error" role="alert"></p><small id="pair-note">Only approved browsers can see or control your laptop.</small></form></dialog>
   <div id="toast" role="status" hidden></div>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # G16 Command Center — implementation specification
 
-Version 0.2 • 2026-10-03 • Dell G16 host + Redmi Pad Pro touch surface
+Version 0.3 • 2026-10-03 • Dell G16 host + Redmi Pad Pro touch surface
 
 ## Product contract
 
@@ -13,7 +13,10 @@ Primary layout is landscape, with a responsive portrait layout. Support current 
 - FastAPI serves local HTML/CSS/JavaScript assets and authenticated REST + WebSocket APIs.
 - One shared sampler collects CPU utilization/per-core load/reported clock, RAM, disk capacity/read/write, aggregate network throughput/adapters/IPs, battery/AC status, hostname, OS, and uptime.
 - NVIDIA temperature, utilization, clock, memory, and power are read with a fixed `nvidia-smi` query if available. Other GPU vendors are reported unavailable until adapters are added.
-- Overview, Gaming, Hardware, Live graphs, Applications, System, and Device access pages share a single connection and sampler. Gaming emphasizes live utilization; FPS remains unavailable pending RTSS. Device access provides a dedicated approval/revocation list, also available on System.
+- Overview, Gaming, Game library, Hardware, Live graphs, Applications, Clock, Ambient, System, and Device access pages share a single connection and sampler. Gaming emphasizes live utilization; FPS remains unavailable pending RTSS. Device access provides a dedicated approval/revocation list, also available on System.
+- Custom geometric G16 emblem and consistent interface glyphs, graphite panels, green/cyan accents, locally served app logos, and touch navigation. Brave and a fixed YouTube-in-Brave shortcut join the app defaults.
+- Clock offers analog/digital local time, date/timezone, 12/24-hour format, immersive view, and optional wake lock. Ambient offers an original local silent WebM loop plus two CSS scenes, pause/resume, reduced-motion support, and remembered visual preferences.
+- Game library discovers installed Steam/Epic/GOG/Riot titles from launcher records, with filtering/search/refresh and ID-only launch dispatch. Local Steam artwork requires approved browser access. Portable/unsupported titles can use ignored laptop-side registrations. Running-game state remains future work.
 - Registered apps launch by ID; running state matches configured process names. Default URI registrations depend on an installed Windows handler, so launch may fail with a visible error.
 - Windows media keys support play/pause, previous/next, mute, and volume steps. Delivery is acknowledged; actual playback state and numerical system volume are not inferred.
 - Graph ranges: 30 seconds, 1 minute, 5 minutes, 15 minutes, 1 hour. History is in-memory and starts when the server starts. No fabricated prehistory.
@@ -23,7 +26,7 @@ Primary layout is landscape, with a responsive portrait layout. Support current 
 
 ## Information architecture and future acceptance criteria
 
-The target comprises 12 feature pages. The six initial feature pages and an additional Device access management page are implemented; remaining feature pages will appear when their integrations work.
+The target comprises 12 feature pages. Seven feature pages plus Clock, Ambient, and Device access are implemented (ten tabs). Remaining feature pages will appear when their integrations work.
 
 1. **Overview:** CPU/GPU/RAM overview, short graphs, resource capacity, quick launch, media keys. Later add temperatures, fan speeds, SSD temperature, and FPS when their sources are connected.
 2. **Gaming:** GPU and CPU clocks/power/temperatures/load, RAM/VRAM, FPS/frame time/1% lows. RTSS data must be associated with the active process; unsupported games show unavailable.
@@ -44,7 +47,7 @@ The target comprises 12 feature pages. The six initial feature pages and an addi
 
 - Backend: Python 3.14, FastAPI, Uvicorn, psutil. A thread collects potentially blocking sensor readings so HTTP/WebSocket handlers remain responsive.
 - Frontend: dependency-free modules in plain JavaScript and CSS; all assets are served by the laptop. A frontend framework can be introduced if custom widget composition warrants it.
-- Configuration: `config/apps.json` defaults; ignored `config/apps.local.json` override for machine-specific app paths. Future games/macros/settings follow the same local override pattern.
+- Configuration: `config/apps.json` defaults; ignored `config/apps.local.json` override for machine-specific app paths. Games are discovered from local launcher metadata with optional ignored `config/games.local.json` additions. Macros/settings will follow the same local override pattern.
 - Auth state: random startup recovery code in console and ignored `.state/private/pairing-code.txt`; approved device credentials are stored only as hashes in `.state/private/devices.sqlite3`. Secure HttpOnly cookies authenticate approved browsers for up to 180 days, surviving server restart. Recovery codes change on restart. Remote code possession alone never grants approval; device management requires an owner credential and a direct loopback connection.
 - Sample schema: UTC ISO timestamp, source, CPU, optional GPU, memory, drives/disk rates, network, optional battery, system, integration status. Missing values are `null`; the UI shows an em dash or unavailable label.
 - Initial sample/push interval: approximately 1 second. NVIDIA query every 2 seconds; app process refresh every 15 seconds. Sample overhead may extend the interval. Next stage separates fast 500 ms load readings, medium 1 s metrics, and slow 5–10 s static metadata.

@@ -37,10 +37,25 @@ class AppRegistry:
                  "available": self.available(app)} for app in self.apps]
 
     @staticmethod
+    def resolve_executable(target):
+        resolved = shutil.which(target)
+        if resolved:
+            return resolved
+        if target.lower() == 'brave.exe':
+            # Trusted alias; never resolve a client-supplied path or URL.
+            for folder in ('PROGRAMFILES', 'PROGRAMFILES(X86)', 'LOCALAPPDATA'):
+                base = os.environ.get(folder)
+                if base:
+                    candidate = Path(base) / 'BraveSoftware/Brave-Browser/Application/brave.exe'
+                    if candidate.is_file():
+                        return str(candidate)
+        return target
+
+    @staticmethod
     def available(app):
         target = app["target"]
         # A registered URI's handler is checked by Windows at launch time.
-        return target.startswith(URI_PREFIXES) or Path(target).is_file() or shutil.which(target) is not None
+        return target.startswith(URI_PREFIXES) or Path(AppRegistry.resolve_executable(target)).is_file()
 
     def launch(self, app_id: str):
         app = next((app for app in self.apps if app["id"] == app_id), None)
@@ -53,7 +68,7 @@ class AppRegistry:
             if target.startswith(URI_PREFIXES):
                 os.startfile(target)
             else:
-                executable = shutil.which(target) or target
+                executable = self.resolve_executable(target)
                 if not Path(executable).is_file():
                     raise FileNotFoundError
                 subprocess.Popen([executable, *app.get("args", [])],

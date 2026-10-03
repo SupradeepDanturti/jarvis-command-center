@@ -2,7 +2,7 @@
 
 A local touchscreen dashboard for a Dell G16, opened in a Redmi Pad Pro browser. The laptop runs the backend; the tablet displays telemetry and sends registered controls over Wi-Fi.
 
-**Current build:** seven responsive pages, including dedicated Device access, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, history graphs, HTTPS with approved remembered browsers, configured app launching, and Windows media keys. No cloud assets or frontend build step.
+**Current build:** ten responsive pages with a custom G16 identity, a clock, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, and Windows media keys. No cloud assets or frontend build step.
 
 Read [SPEC.md](SPEC.md) for the complete target, implementation decisions, security model, and roadmap.
 
@@ -64,6 +64,8 @@ The server starts when you sign into your account, after Windows boots. It does 
 
 ## Configure applications
 
+The default launcher includes Steam, Discord, Spotify, Brave, YouTube, OBS, Edge, Files, Settings, and Terminal. Brand logos are stored locally. Brave is detected in standard machine/user installation locations. **YouTube opens on the laptop in Brave**, with a fixed URL argument; it does not play on the tablet or use your default browser. Website tiles show “Open in Brave” rather than pretending to know which browser tab is open.
+
 Copy `config/apps.json` to `config/apps.local.json` and edit it **on the laptop**. Restart the backend to reload. The local override is excluded from Git.
 
 ```json
@@ -83,11 +85,37 @@ Copy `config/apps.json` to `config/apps.local.json` and edit it **on the laptop*
 
 The UI sends only the registered ID. Executables run without a shell; configured arguments are separate array items. Do not register a shell or interpreter as an unrestricted command gateway. URI handlers are allowed only for the predefined Steam, Discord, Spotify, Edge and Settings schemes. Installation of a URI handler is verified by Windows when launched; the UI reports failures. Running status uses configured process names, so it is an indicator rather than a full process ownership model.
 
+## Clock and ambient screens
+
+Open **Clock** for the analog/digital time station. Switch between 12-hour and 24-hour time. It uses the viewing device's local time and timezone.
+
+Open **Ambient** for three desk scenes: **Event horizon** (an original silent 16-second video loop), **Neon drift**, and **Aurora**. All artwork plays locally without internet streaming. Pause/resume motion with the playback button; reduced-motion preferences start with motion paused. Hidden tabs pause the video. The scene and clock format are remembered in this browser; no authentication secrets are stored with these preferences.
+
+On either screen, tap **Immersive view** to hide the dashboard frame and request browser fullscreen. **Back to dashboard** or Escape restores the controls. **Keep awake** requests the browser's screen wake lock while visible; Android may release it when you switch apps or turn off the screen.
+
+The original video is included in the repository. To regenerate it with installed Edge and a separately available Playwright package, run `node scripts/render-ambient.cjs`; the script accepts `G16_PLAYWRIGHT_PATH` as described in VALIDATION.md. Asset provenance is in [ASSETS.md](ASSETS.md).
+
+## Installed games
+
+**Game library** detects installed games from all registered Steam libraries, Epic installation manifests, GOG registry entries, and Riot installation metadata. It excludes Steam redistributables, Unreal Engine/plugins, incomplete installations, and missing installation paths. Locally cached Steam artwork is displayed when available; other games get a branded fallback cover. Game artwork remains on the laptop and is served only to approved browsers.
+
+Search by title, filter by launcher, and tap **Play on laptop**. Steam and Epic launch through their registered launcher protocols; Riot uses its client with fixed product/patchline arguments; GOG launches its registered executable. The tablet sends only the detected game ID. Game processes and gameplay status are not yet tracked.
+
+Opening the tab checks the library, with a one-minute discovery cache. **Refresh library** rescans immediately after you install or remove a game. Portable games and launchers without a supported local record need a trusted laptop registration in ignored `config/games.local.json`:
+
+```json
+[
+  {"name":"My game","target":"D:\\Games\\MyGame\\Game.exe","args":[]}
+]
+```
+
+Only existing executable files are accepted; do not register shells or interpreters. These local registrations supplement automatic discovery. No launcher account login or online ownership scan is performed.
+
 ## Sensor availability
 
 - **psutil:** CPU utilization, per-core load, reported clock, RAM, drives, aggregate disk/network rates, battery/AC, uptime.
 - **NVIDIA:** temperature, GPU utilization/clock, VRAM and power when `nvidia-smi` is on PATH. Unsupported fields show unavailable.
-- **Later:** HWiNFO detailed CPU/SSD temperatures, fans and additional sensors; RTSS FPS/frame times; OBS control; full media metadata; games; macros and power controls.
+- **Later:** HWiNFO detailed CPU/SSD temperatures, fans and additional sensors; RTSS FPS/frame times; OBS control; full media metadata; game process status; macros and power controls.
 
 Graph history begins at startup, lasts at most one hour in memory, and resets on restart. Missing sensors show `—` or unavailable. The app does not use demo readings. Network throughput is traffic across adapters, not an internet speed test.
 

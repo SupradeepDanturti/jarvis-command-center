@@ -24,6 +24,8 @@ Use **Device access → Approved devices → Revoke access** on the laptop at lo
 - Pending requests expire after ten minutes and are limited per address and globally. Unknown/expired/revoked credentials are denied.
 - A random 256-bit browser credential is stored in an HttpOnly, SameSite=Strict, Secure cookie over HTTPS. The SQLite registry stores only its SHA-256 hash, device metadata, and approval status. Credentials are not URL parameters or localStorage values.
 - SQLite here stores device access only. Server logs remain rotating files, and telemetry history remains in memory.
+- The game catalog, local game artwork, library refresh, and game launch require approved browser authentication. Refresh/launch also enforce same-origin requests. Launch requests contain only a detected ID; paths, URLs, arguments, and artwork paths come from trusted laptop records. Steam/Epic URI identifiers are generated/encoded by the server; other games use executable argument arrays without a shell.
+- Ambient media and app logos are public static assets without credentials or personal game artwork. Scene/time-format preferences use localStorage; authentication credentials remain exclusively in HttpOnly cookies.
 - This recognizes browser credentials, not immutable physical hardware. A copied/stolen browser profile can impersonate it. Keep the laptop/tablet locked and revoke a device if lost.
 - Passkeys are not implemented in this release. WebAuthn needs a supported HTTPS origin and stable domain. Synced passkeys can also be available on multiple devices; they do not inherently enforce a physical-device allowlist.
 - Bluetooth transport is not implemented. Pairing Bluetooth by itself does not authenticate HTTP or WebSocket requests.

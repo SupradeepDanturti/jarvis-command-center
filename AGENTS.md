@@ -7,7 +7,7 @@ This is a local Windows FastAPI dashboard for a Dell G16 and Redmi Pad Pro. Read
 - Use port 18761 for the dashboard and 18760 for public certificate setup. Do not use common development port 8000.
 - Keep .state/, secrets, private keys, recovery codes, database files, logs, and config/apps.local.json out of Git. Preserve existing approvals and CA trust when updating.
 - Do not restart the working dashboard for static frontend or documentation edits. For necessary backend restarts, use scripts/restart-server.ps1, which waits for the previous process to release its mutex.
-- Run appropriate checks before committing: `.venv\Scripts\python.exe -m pytest -q` for backend changes, `node --check frontend/app.js` for frontend changes, and the browser checks in VALIDATION.md when pairing/navigation changes.
+- Run appropriate checks before committing: `.venv\Scripts\python.exe -m pytest -q` for backend changes, `node --check` for changed frontend/scripts JavaScript files, and the browser checks in VALIDATION.md when pairing/navigation/screens change.
 - Windows test temp directories can have stale ACLs. If needed, use a new, nonexistent ignored `.state/` directory with pytest `--basetemp`; never delete unrelated paths to repair tests.
 - Browser checks use fresh QA profiles and revoke their own credentials. Never revoke the user's devices or bypass certificate validation to make tests pass.
 - Update the relevant how-tos and validation notes with behavior changes. Distinguish automated checks, user-confirmed tablet behavior, and untested physical controls.

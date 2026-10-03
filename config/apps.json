@@ -2,6 +2,8 @@
   {"id":"steam","name":"Steam","category":"Gaming","icon":"S","color":"#69b5f5","target":"steam://open/main","process":"steam.exe"},
   {"id":"discord","name":"Discord","category":"Social","icon":"D","color":"#9892ff","target":"discord://-/channels/@me","process":"Discord.exe"},
   {"id":"spotify","name":"Spotify","category":"Media","icon":"♫","color":"#7ce6a4","target":"spotify:","process":"Spotify.exe"},
+  {"id":"brave","name":"Brave","category":"Browser","icon":"brave","color":"#FB542B","target":"brave.exe","process":"brave.exe"},
+  {"id":"youtube","name":"YouTube","category":"Media","icon":"youtube","color":"#FF0033","target":"brave.exe","args":["https://www.youtube.com/"],"process":"brave.exe","kind":"website","browser":"Brave"},
   {"id":"obs","name":"OBS Studio","category":"Creative","icon":"◉","color":"#dfe4ee","target":"C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe","process":"obs64.exe"},
   {"id":"edge","name":"Edge","category":"Browser","icon":"e","color":"#60d3cf","target":"microsoft-edge:","process":"msedge.exe"},
   {"id":"files","name":"Files","category":"Windows","icon":"▰","color":"#ffd281","target":"explorer.exe","process":"explorer.exe"},

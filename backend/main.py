@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .controllers import AppRegistry, media_action
 from .devices import COOKIE, DEVICE_TTL, PENDING_TTL, DeviceStore
+from .games import GameLibrary
 from .security import Pairing, require_origin, same_origin
 from .telemetry import Telemetry
 
@@ -41,6 +42,7 @@ def create_app(pairing_code=None, device_db=None):
     devices = DeviceStore(device_db or (':memory:' if pairing_code else state_dir / 'devices.sqlite3'))
     telemetry = Telemetry()
     registry = AppRegistry()
+    games = GameLibrary()
 
     @asynccontextmanager
     async def lifespan(app):
@@ -58,6 +60,7 @@ def create_app(pairing_code=None, device_db=None):
     app.state.pairing = pairing
     app.state.telemetry = telemetry
     app.state.registry = registry
+    app.state.games = games
     app.state.devices = devices
 
     def local(request):
@@ -185,6 +188,22 @@ def create_app(pairing_code=None, device_db=None):
     @app.post("/api/media/{action}", dependencies=[Depends(authenticate), Depends(require_origin)])
     def media(action: str):
         return media_action(action)
+
+    @app.get('/api/games', dependencies=[Depends(authenticate)])
+    def game_catalog():
+        return app.state.games.catalog()
+
+    @app.post('/api/games/refresh', dependencies=[Depends(authenticate), Depends(require_origin)])
+    def refresh_games():
+        return app.state.games.catalog(force=True)
+
+    @app.post('/api/games/launch', dependencies=[Depends(authenticate), Depends(require_origin)])
+    def launch_game(body: LaunchRequest):
+        return app.state.games.launch(body.id)
+
+    @app.get('/api/games/{game_id}/artwork', dependencies=[Depends(authenticate)])
+    def game_artwork(game_id: str):
+        return FileResponse(app.state.games.artwork(game_id))
 
     @app.websocket("/ws")
     async def websocket(ws: WebSocket):
