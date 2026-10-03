@@ -18,6 +18,7 @@ Primary layout is landscape, with a responsive portrait layout. Support current 
 - Windows media keys support play/pause, previous/next, mute, and volume steps. Delivery is acknowledged; actual playback state and numerical system volume are not inferred.
 - Graph ranges: 30 seconds, 1 minute, 5 minutes, 15 minutes, 1 hour. History is in-memory and starts when the server starts. No fabricated prehistory.
 - Pairing, session expiry, same-origin controls, reconnection, stale indicators, fullscreen, optional screen wake lock, swipe navigation, and touch-responsive layouts.
+- Optional silent startup at Windows user sign-in on dedicated port 18761, with current connection instructions exported to Desktop and Downloads and refreshed after network changes.
 
 ## Information architecture and future acceptance criteria
 
@@ -67,12 +68,12 @@ REST mutations require an Origin matching the request authority. No CORS wildcar
 
 1. Laptop starts server; terminal displays pairing code.
 2. Tablet and laptop join the same private Wi-Fi.
-3. Start with `scripts/start.ps1 -Lan`; use the laptop's Wi-Fi IPv4 URL on port 8000.
+3. Start with `scripts/start.ps1 -Lan`; use the laptop's Wi-Fi IPv4 URL on port 18761.
 4. Tablet enters startup code; cookie authenticates subsequent REST and WebSocket requests.
 5. UI shows live connection only after receiving a current sample. Disconnection marks readings stale immediately; an open socket without recent samples is marked stale after five seconds.
 6. Reconnection uses exponential backoff with jitter up to approximately ten seconds. Android foregrounding retries a closed connection. Session rejection reopens pairing.
 
-Use private-network firewall access only. No automatic firewall changes, router forwarding, startup task installation, or remote internet exposure. Plain HTTP is an initial trusted-LAN transport; anyone able to inspect traffic can observe pairing/session data. HTTPS is the later transport milestone and also enables browser screen wake lock. Fullscreen requires a touch gesture; automatic tablet wake/kiosk behavior depends on Android/browser settings and is not guaranteed by a website.
+Use private-network firewall access only. No automatic firewall changes, router forwarding, or remote internet exposure. An optional user-installed scheduled task starts the server silently at Windows sign-in via `scripts/install-startup.ps1`; it uses the interactive user account, runs on battery, ignores duplicate instances, and retries failures. This is available in the foundation following the user's startup request. Plain HTTP is an initial trusted-LAN transport; anyone able to inspect traffic can observe pairing/session data. HTTPS is the later transport milestone and also enables browser screen wake lock. Fullscreen requires a touch gesture; automatic tablet wake/kiosk behavior depends on Android/browser settings and is not guaranteed by a website.
 
 ## UI constraints
 
@@ -96,7 +97,7 @@ Use private-network firewall access only. No automatic firewall changes, router 
 
 **M5 — Macros and personalization:** registered action sequences, widget/page layout persistence, theme controls, portrait polish, durable history/export if needed.
 
-**M6 — Dedicated tablet operation:** local HTTPS provisioning, revocable per-device sessions, optional Windows startup setup and Android kiosk guidance. Measure performance on the actual Redmi Pad Pro.
+**M6 — Dedicated tablet operation:** local HTTPS provisioning, revocable per-device sessions, startup lifecycle polish and Android kiosk guidance. Measure performance on the actual Redmi Pad Pro.
 
 ## Verification and release gates
 

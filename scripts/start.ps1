@@ -1,4 +1,4 @@
-param([switch]$Lan, [int]$Port = 8000)
+param([switch]$Lan, [ValidateRange(1024, 65535)][int]$Port = 18761)
 $ErrorActionPreference = 'Stop'
 $projectPath = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $projectPath

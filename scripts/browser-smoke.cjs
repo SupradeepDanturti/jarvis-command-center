@@ -15,7 +15,7 @@ const assert = require('node:assert/strict');
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error' && /Content Security Policy|Refused/i.test(message.text())) errors.push(message.text()); });
-    await page.goto('http://localhost:8000');
+    await page.goto(process.env.G16_BASE_URL || 'http://localhost:18761');
     await page.locator('#pair-dialog').waitFor({state:'visible'});
     await page.locator('#pair-code').fill(fs.readFileSync(path.join(root,'.state/pairing-code.txt'),'utf8').trim());
     await page.locator('#pair-form button').click();
