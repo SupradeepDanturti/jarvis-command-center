@@ -1,7 +1,7 @@
 const $ = (selector) => document.querySelector(selector);
 const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state = {page:'home', data:null, history:[], apps:[], games:[], gameLibrary:null, gameFilter:'all',gameSearch:'',range:60, socket:null, retry:0, paired:false, stale:true, auth:null, playback:null};
-const pages = {home:['Command center','Your PC, at your service, sir.'], gaming:['Gaming station','I’ll watch the readings while you play, sir.'], games:['Game library','Your installed games await, sir.'],hardware:['Hardware monitor','The readings your PC can provide, sir.'], graphs:['Live graphs','Your system readings, over time.'], apps:['Applications','Your applications, ready at a touch.'], clock:['Time station','The time is yours, sir.'],ambient:['Ambient collection','A change of scenery, sir?'],system:['System & connection','Your PC and display preferences, sir.'], devices:['Device access','Only the browsers you approve, sir.'], rest:['Rest & alarms','Shall I prepare the desk for rest, sir?'], media:['Now playing','Your music, on your PC, sir.'],widgets:['Optional widgets','A view of the world, sir.'],voice:['Jarvis','At your service, sir.']};
+const pages = {connections:['Connections','Your services, within reach.'],personalization:['Personalization','A few details, tailored to you.'],agenda:['Today','Your day, at a glance.'],home:['Command center','Your PC, at your service, sir.'], gaming:['Gaming station','I’ll watch the readings while you play, sir.'], games:['Game library','Your installed games await, sir.'],hardware:['Hardware monitor','The readings your PC can provide, sir.'], graphs:['Live graphs','Your system readings, over time.'], apps:['Applications','Your applications, ready at a touch.'], clock:['Time station','The time is yours, sir.'],ambient:['Ambient collection','A change of scenery, sir?'],system:['System & connection','Your PC and display preferences, sir.'], devices:['Device access','Only the browsers you approve, sir.'], rest:['Rest & alarms','Shall I prepare the desk for rest, sir?'], media:['Now playing','Your music, on your PC, sir.'],widgets:['Optional widgets','A view of the world, sir.'],voice:['Jarvis','At your service, sir.']};
 $('#jarvis-overlay').innerHTML=jarvisHome();
 document.querySelectorAll('[data-icon]').forEach(el=>el.innerHTML=glyph(el.dataset.icon));
 let reconnectTimer, toastTimer, lastSample = 0, lastPacketAt = 0;
@@ -18,7 +18,7 @@ async function api(url, options={}){
   if(!response.ok)throw new Error(typeof body.detail==='string'?body.detail:'Please check that entry and try again, sir.');
   return body;
 }
-function showPairing(){stopWidgets(true);resetAppSettings();clearRest();cancelMediaInteraction();focusState=null;mediaReceipt=0;activityState=null;lastPacketAt=0;state.paired=false;resetJarvisVisuals();mediaControls.stop();clearTimeout(reconnectTimer);state.socket?.close();if(!$('#pair-dialog').open)$('#pair-dialog').showModal();syncScreenAwake();updateSurfaceBackground();updateAmbient();setConnection(false,'APPROVAL REQUIRED');loadPairingMode()}
+function showPairing(){resetAssistant();stopWidgets(true);resetAppSettings();clearRest();cancelMediaInteraction();focusState=null;mediaReceipt=0;activityState=null;lastPacketAt=0;state.paired=false;resetJarvisVisuals();mediaControls.stop();clearTimeout(reconnectTimer);state.socket?.close();if(!$('#pair-dialog').open)$('#pair-dialog').showModal();syncScreenAwake();updateSurfaceBackground();updateAmbient();setConnection(false,'APPROVAL REQUIRED');loadPairingMode()}
 function setConnection(connected,label){state.stale=!connected;paintJarvisHome();if(!connected){resetVoiceNavigation();mediaControls.stop();cancelMediaInteraction();state.playback=null;paintMediaPlayback(null);paintNowPlaying();paintFocus()}document.body.classList.toggle('stale',!connected);$('#connection').textContent=`● ${label}`;$('#connection').classList.toggle('offline',!connected);$('#offline-banner').hidden=connected||!state.paired;paintRest()}
 function updateMediaPlayback(playback,livePacket=false){if(!playback||!state.paired||state.stale&&!livePacket||state.socket?.readyState!==WebSocket.OPEN)return;if(state.playback?.sampledAt>playback.sampledAt)return;state.playback=playback;mediaReceipt=performance.now();paintMediaPlayback(playback);paintNowPlaying()}
 const mediaControls=createMediaControls({root:$('#page-content'),canSend:()=>state.paired&&!state.stale&&state.socket?.readyState===WebSocket.OPEN&&document.visibilityState==='visible',send:action=>api(`/api/media/${action}`,{method:'POST',signal:AbortSignal.timeout(2500)}),reportError:error=>toast(error.name==='TimeoutError'?'Sound control timed out. Try again.':error.message),onAction:action=>{if(action==='play-pause')setTimeout(async()=>{if(!state.paired||state.socket?.readyState!==WebSocket.OPEN)return;try{updateMediaPlayback(await api('/api/media/state'))}catch{}},250)}});
@@ -56,6 +56,7 @@ function render(){
   if(state.page==='apps')content=`<div class="apps-surface"><span class="surface-overline">YOUR APPLICATIONS, SIR</span><h2>Shall we <i>begin?</i></h2>${appTiles(true)}<p class="apps-caption">Choose an application. I’ll open it on your PC, sir.</p></div>`;
   if(state.page==='media')content=nowPlayingScreen();
   if(state.page==='voice')content=voiceScreen();
+  if(assistantPages.includes(state.page))content=assistantScreen();
   if(state.page==='games')content=gamesScreen();
   if(state.page==='clock')content=clockScreen();
   if(state.page==='widgets')content=widgetScreen();
@@ -68,7 +69,7 @@ function render(){
   paintMediaPlayback(state.playback);paintNowPlaying();paintFocus();paintRest();
   if(state.page==='hardware')loadThermalSetup();
   document.querySelectorAll('.nav').forEach(n=>{n.classList.toggle('active',n.dataset.page===state.page);n.setAttribute('aria-current',n.dataset.page===state.page?'page':'false')});
-  $('#more-toggle').classList.toggle('active',['hardware','graphs','system','devices','voice','media','rest','widgets'].includes(state.page));
+  $('#more-toggle').classList.toggle('active',['hardware','graphs','system','devices','voice','media','rest','widgets',...assistantPages].includes(state.page));
   document.querySelectorAll('.cpu-dot').forEach(el=>el.style.background='#bbf780');document.querySelectorAll('.gpu-dot').forEach(el=>el.style.background='#76dbe7');
   document.querySelectorAll('[data-app]').forEach(el=>{const app=state.apps.find(a=>a.id===el.dataset.app);el.style.setProperty('--icon',app.color)});
   update();
@@ -80,6 +81,7 @@ function render(){
   paintVoice();refreshVoice();
   if(['voice','system'].includes(state.page))loadVoiceInputs();
   if(state.page==='voice')loadVoiceHistory();
+  mountAssistant();
 }
 function display(key,v){if(v==null)return 'Unavailable';if(key==='system.uptime')return `${format(v/3600,1)} hours`;if(key==='battery.charging')return v?'AC connected':'On battery';if(/network\.|storage\.(read|write)/.test(key))return `${mb(v)} MB/s`;if(/\.usage$|battery.percent/.test(key))return `${format(v)} %`;if(/\.temperature$/.test(key))return `${format(v)} °C`;if(/\.clock$/.test(key))return `${format(v)} MHz`;if(/\.power$/.test(key))return `${format(v)} W`;return String(v)}
 function series(key){const cutoff=Date.now()-state.range*1000;return state.history.filter(s=>Date.parse(s.timestamp)>=cutoff).map(s=>({time:Date.parse(s.timestamp),value:path(s,key)}))}

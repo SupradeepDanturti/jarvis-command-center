@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from backend.voice import VoiceService
-from backend.voice_actions import execute_tool, rest_entry_requested, rest_wake_requested, voice_tools
+from backend.agent.voice_actions import execute_tool, rest_entry_requested, rest_wake_requested, voice_tools
 from backend.voice_worker import request_rest_entry, request_rest_wake, worker_main
 from backend.alarms import RestAlarms
 from backend.display_power import DisplayPower

@@ -7,7 +7,7 @@ import pytest
 
 @pytest.fixture
 def jarvis_sdk_transport(monkeypatch):
-    import backend.voice_agent as voice_agent
+    import backend.agent.voice_agent as voice_agent
     from openai.types.responses import Response
     from httpx2 import URL
 

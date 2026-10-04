@@ -1,5 +1,15 @@
 # Foundation validation — 2026-10-03
 
+## Personal assistant foundation · 2026-10-04
+
+- Automated backend suite: **388 passed** with a new ignored pytest temp directory. The existing `.pytest_cache` ACL warning remains non-fatal. The working backend was reloaded through the prescribed restart helper, leaving both account access and voice listening off.
+
+- The existing voice runner, tool definitions and persona files were relocated together into `backend/agent/`; disabled dashboard startup still does not import the optional Agents SDK. A new owner-only service implements installed-app Google OAuth and deterministic primary-calendar briefings with editable address/style/IANA-timezone preferences. This is a foundation slice, not full Gmail/Sheets/Health, delegated agents or background responsibilities.
+- Google tests mock provider transport and cover DPAPI ciphertext/reload, endpoint metadata rejection, PKCE, loopback binding, state/host/duplicate/absolute-URL rejection, replay/expiry/decline/partial grants, verified identity, account switching, refresh/read budgets, corrupt storage, no provider history, timezone/DST/recurrence/all-day bounds, HTTPS/owner/origin/forwarded-header denial and redacted input errors. Stop, lock, disconnect, client replacement and owner revocation suppress late results. One test uses a real ephemeral loopback receiver and verifies closure/no code logging.
+- Fresh-profile trusted Edge assistant QA passes for client import and external sign-in tab (both fully mocked), enable/stop, editable/forget preferences, escaped event titles, agenda display, no personal browser-storage copies, stale-response suppression, unpair clearing and landscape/portrait/narrow layouts. It revokes only its own credential; no real Google grants/tokens or provider writes are exercised.
+- Existing trusted Edge dashboard, Jarvis and voice-navigation checks pass with their mocked physical/voice controls. No page/CSP errors; desktop/tablet approvals and CA trust are preserved. Screenshots were visually checked. JavaScript syntax checks pass for the changed frontend and QA script.
+- Real Google consent and a live Calendar read remain untested: the owner has no Google Cloud Desktop client yet, and setup instructions are in Connections and `spec/ASSISTANT_FOUNDATION.md`. No new physical-tablet, microphone, Windows lock transition or desktop-control acceptance is claimed. No schedules/jobs were started. Google Health onboarding/desktop compatibility remains gated.
+
 ## Personalized assistant feasibility plan · 2026-10-04
 
 - Official Google documentation was checked for Calendar/Gmail/Sheets scopes, desktop OAuth/PKCE and its lack of incremental authorization, personal-use verification and Testing-token expiry, and Google Health setup, profile linkage, data-type operations and current new-project onboarding restrictions. Official Meta Muse and OpenAI dots documentation informed the personalization/responsibility direction. Dated source links and unresolved compatibility gates are recorded in `spec/PERSONAL_ASSISTANT_PLAN.md`.

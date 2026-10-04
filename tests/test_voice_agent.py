@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from backend.voice_actions import respond, voice_tools
+from backend.agent.voice_actions import respond, voice_tools
 
 pytestmark = pytest.mark.usefixtures('jarvis_sdk_transport')
 
@@ -70,7 +70,7 @@ def test_disable_between_parallel_calls_prevents_later_dispatch_and_reply():
 
 
 def test_sdk_run_has_no_tracing_or_sensitive_data_and_is_bounded():
-    import backend.voice_agent as agent
+    import backend.agent.voice_agent as agent
     client = Mock()
     client.responses.create.return_value = output(text='Ready.')
     native_run = agent.Runner.run
@@ -91,7 +91,7 @@ def test_sdk_run_has_no_tracing_or_sensitive_data_and_is_bounded():
 def test_followup_failure_reports_real_dispatch_results_without_retry(tmp_path):
     from backend.controllers import AppRegistry
     from backend.voice import VoiceService
-    from backend.voice_actions import execute_tool
+    from backend.agent.voice_actions import execute_tool
 
     client = Mock()
     registry = AppRegistry()
@@ -112,7 +112,7 @@ def test_followup_failure_reports_real_dispatch_results_without_retry(tmp_path):
 
 def test_reply_failure_preserves_blocked_navigation_after_successful_open(tmp_path):
     from backend.voice import VoiceService
-    from backend.voice_actions import execute_tool
+    from backend.agent.voice_actions import execute_tool
 
     executable = tmp_path / 'brave.exe'
     executable.write_bytes(b'fixture only')
@@ -132,7 +132,7 @@ def test_reply_failure_preserves_blocked_navigation_after_successful_open(tmp_pa
 
 
 def test_unknown_tools_and_extra_arguments_never_grant_access():
-    from backend.voice_actions import execute_tool
+    from backend.agent.voice_actions import execute_tool
     client = Mock()
     dispatch = lambda name, args: execute_tool(name, args, Mock(), Mock())
     client.responses.create.side_effect = [output(call('launch_app', {'id': 'steam', 'command': 'whoami'}, 'bad')),
@@ -143,7 +143,7 @@ def test_unknown_tools_and_extra_arguments_never_grant_access():
 def test_disabled_dashboard_never_imports_the_optional_agents_sdk():
     subprocess.run([sys.executable, '-c',
         "import sys; import backend.main; assert 'agents' not in sys.modules; "
-        "assert 'backend.voice_agent' not in sys.modules"], check=True)
+        "assert 'backend.agent.voice_agent' not in sys.modules"], check=True)
 
 
 def test_late_parent_result_cannot_be_misattributed_to_the_next_tool():

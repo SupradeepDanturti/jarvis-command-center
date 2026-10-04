@@ -4,8 +4,8 @@ from pathlib import Path
 import re
 from urllib.parse import urlsplit
 
-from .controllers import MEDIA_KEYS, media_action, open_website
-from .ambient import ambient_options, load_ambient_scenes
+from ..controllers import MEDIA_KEYS, media_action, open_website
+from ..ambient import ambient_options, load_ambient_scenes
 
 VOICE_MODEL = 'gpt-6-luna'
 PROMPT_PATH = Path(__file__).with_name('jarvis_prompt.txt')

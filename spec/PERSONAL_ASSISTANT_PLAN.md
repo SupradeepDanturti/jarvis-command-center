@@ -1,6 +1,6 @@
 # Personal Jarvis: connected, personalized and proactive
 
-Planning record · 2026-10-04 · Runtime implementation pending
+Planning record · 2026-10-04 · Initial connection/profile/primary-calendar foundation implemented; broader milestones remain planned. See [the foundation record](ASSISTANT_FOUNDATION.md).
 
 ## Direction and user decisions
 

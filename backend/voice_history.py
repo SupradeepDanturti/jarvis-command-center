@@ -5,7 +5,7 @@ import sqlite3
 import threading
 import time
 
-from .voice_actions import safe_sources
+from .agent.voice_actions import safe_sources
 
 
 class VoiceHistory:

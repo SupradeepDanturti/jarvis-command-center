@@ -8,7 +8,7 @@ import re
 import secrets
 import time
 import wave
-from .voice_actions import respond, rest_entry_requested, rest_wake_requested
+from .agent.voice_actions import respond, rest_entry_requested, rest_wake_requested
 from .voice_wake import WAKE_MODEL, WAKE_PHRASE, WAKE_THRESHOLD
 
 

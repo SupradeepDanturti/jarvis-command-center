@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from .security import require_origin
 from .tls import dpapi
-from .voice_actions import execute_tool, voice_tools, rest_entry_requested, rest_wake_requested, VOICE_SCREENS
+from .agent.voice_actions import execute_tool, voice_tools, rest_entry_requested, rest_wake_requested, VOICE_SCREENS
 from .voice_history import VoiceHistory
 from .voice_alerts import HardwareAlerts
 from .voice_wake import WAKE_MODEL, WAKE_PHRASE

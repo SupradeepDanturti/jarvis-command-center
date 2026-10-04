@@ -8,6 +8,9 @@ from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -26,6 +29,8 @@ from .telemetry import Telemetry
 from .voice import VoiceService, voice_router
 from .widgets import WidgetFeeds
 from .ambient import ambient_script
+from .agent.service import AssistantService
+from .agent.routes import assistant_router
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -138,6 +143,7 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     display_reports = DisplayReports()
     media_monitor = MediaMonitor()
     voice = VoiceService(voice_dir or (state_dir / 'voice' if not pairing_code else None), registry, telemetry)
+    assistant = AssistantService(voice.history, voice.directory)
     focus = FocusTimer(focus_path or (None if pairing_code else state_dir / 'focus.json'), notify=voice.remind)
     activity = ActivityMonitor(games)
     widgets = WidgetFeeds()
@@ -157,6 +163,7 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
         rest_task = asyncio.create_task(rest.run())
         print(f"\nG16 Command Center | Laptop setup code: {code}\nApproved browsers are remembered for 180 days, including across restarts.\n", flush=True)
         yield
+        assistant.close()
         await widgets.close()
         rest_task.cancel()
         with suppress(asyncio.CancelledError):
@@ -176,6 +183,13 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
             await activity_task
 
     app = FastAPI(title="G16 Command Center", lifespan=lifespan, docs_url=None, redoc_url=None)
+
+    @app.exception_handler(RequestValidationError)
+    async def private_validation(request, error):
+        if request.url.path.startswith('/api/assistant/'):
+            # FastAPI's default validation detail includes the submitted input.
+            return JSONResponse({'detail': 'Check the assistant entry and try again.'}, status_code=422)
+        return await request_validation_exception_handler(request, error)
     app.state.pairing = pairing
     app.state.telemetry = telemetry
     app.state.registry = registry
@@ -184,6 +198,7 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     app.state.display_reports = display_reports
     app.state.media = media_monitor
     app.state.voice = voice
+    app.state.assistant = assistant
     app.state.focus = focus
     app.state.activity = activity
     app.state.rest = rest
@@ -214,6 +229,7 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
         return device
 
     app.include_router(voice_router(voice, authenticate, owner))
+    app.include_router(assistant_router(assistant, owner, authenticate))
 
     @app.post('/api/widgets/locations')
     async def widget_locations(body: WidgetSearch, request: Request, device=Depends(authenticate)):

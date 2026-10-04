@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from backend.main import create_app
 from backend.voice import VoiceService
-from backend.voice_actions import VOICE_SCREENS, execute_tool, respond, voice_tools
+from backend.agent.voice_actions import VOICE_SCREENS, execute_tool, respond, voice_tools
 
 pytestmark = pytest.mark.usefixtures('jarvis_sdk_transport')
 
@@ -17,7 +17,7 @@ def test_prompt_is_loaded_from_file_each_turn_and_time_is_substituted(tmp_path):
     prompt = tmp_path / 'prompt.txt'
     client = Mock()
     client.responses.create.return_value = SimpleNamespace(output=[], output_text='Ready.')
-    with patch('backend.voice_actions.PROMPT_PATH', prompt):
+    with patch('backend.agent.voice_actions.PROMPT_PATH', prompt):
         for text in ['<role>First voice</role>\nLocal date/time: {now}',
                      '<role>Updated voice</role>\nLocal date/time: {now}']:
             prompt.write_text(text, encoding='utf-8')
@@ -29,7 +29,7 @@ def test_prompt_is_loaded_from_file_each_turn_and_time_is_substituted(tmp_path):
 
 
 def test_real_prompt_retains_tagged_style_and_security():
-    from backend.voice_actions import PROMPT_PATH
+    from backend.agent.voice_actions import PROMPT_PATH
     prompt = PROMPT_PATH.read_text(encoding='utf-8')
     for tag in ['role', 'style', 'actions', 'screens', 'search', 'security', 'examples']:
         assert f'<{tag}>' in prompt and f'</{tag}>' in prompt

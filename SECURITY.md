@@ -31,6 +31,14 @@ Use **More → Device access → Approved devices → Revoke access** on the lap
 - Passkeys are not implemented in this release. WebAuthn needs a supported HTTPS origin and stable domain. Synced passkeys can also be available on multiple devices; they do not inherently enforce a physical-device allowlist.
 - Bluetooth transport is not implemented. Pairing Bluetooth by itself does not authenticate HTTP or WebSocket requests.
 
+## Personal assistant access
+
+All `/api/assistant/*` routes require HTTPS plus an approved owner credential and a direct-loopback peer. Ordinary approved displays cannot read account identity, profile or calendar data, including by spoofing forwarded-client headers. Mutations and the on-demand calendar read require same-origin requests. Input-validation failures omit submitted data, including client JSON. Owner revocation is rechecked before delivering a calendar response and while consent is pending.
+
+Google installed-client values and refresh tokens are DPAPI-encrypted in ignored `.state/private/voice/google.dpapi`, under the existing private-state ACL; access tokens stay in memory. OAuth uses an external browser, PKCE, single-use state and a five-minute receiver bound to `127.0.0.1` on an ephemeral port, independent from dashboard/setup listeners. The receiver has no dashboard endpoints and logs no request paths/codes. Provider requests use fixed HTTPS Google endpoints with redirects/proxy inheritance disabled. No credentials enter the model, browser storage, status responses or Git.
+
+The account-access switch is off on startup and separate from microphone listening. Stop/disconnect, account changes, lock and owner revocation invalidate pending access/results. The owner-only editable briefing profile is one bounded row in the existing private voice SQLite file; forgetting preferences and clearing conversations are separate operations. Calendar payloads are transient and do not enter voice history, shared telemetry or a cloud model. Local disconnect removes local tokens; revoking the provider's grant remains an explicit Google-account action. See [the foundation record](spec/ASSISTANT_FOUNDATION.md) for setup, scope limits and unperformed live-account acceptance.
+
 ## Laptop voice access
 
 Jarvis starts disabled and acquires the laptop microphone only after an approved browser enables it. Approved browsers can read its saved conversation history and change the capture input, explicit speaker output, follow-up setting or alerts switch. Only a direct-loopback owner can delete history; deletion stops the worker and clears its conversation context. Stereo Mix/loopback inputs are excluded. Closing the browser leaves the worker running; turning it off releases the microphone and inference process. Windows lock pauses listening and prevents action dispatch; a server restart starts it off.
