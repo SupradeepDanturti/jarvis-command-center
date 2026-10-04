@@ -131,6 +131,27 @@ Opening Games checks the library, with a one-minute discovery cache. **Refresh**
 
 Only existing executable files are accepted; do not register shells or interpreters. These local registrations supplement automatic discovery. No launcher account login or online ownership scan is performed.
 
+## Jarvis voice on the laptop
+
+Open **More → Jarvis** on the approved laptop browser. Paste your OpenAI API key into the password field and choose **Save key**. Do not paste it into chat, source files, or Git. Windows encrypts it for the current user in the existing private-state directory; saving does not validate billing or model access.
+
+Choose a **Laptop microphone**, **Preview voice**, then **Turn on Jarvis**. The same microphone dropdown is also in **More → System & controls**, with an **Open Jarvis** shortcut. Selection persists across restarts. Tap the refresh arrow after connecting a webcam/headset. Stereo Mix is excluded; the integrated webcam's nearby microphone is Windows' Microphone Array. Headset/USB inputs are listed when Windows exposes a compatible capture device. The user's Logitech is **Microphone (Logi Webcam C920e)**.
+
+Say “Hey Jarvis, open YouTube,” “open Discord,” “turn the volume down,” or “how much memory am I using?” Wake detection and the synthetic Jarvis-style voice run locally on the CPU. Only the short command clip/text is sent to OpenAI. Registered app launches, media controls and hardware status are supported; no arbitrary shell, URLs, shutdown or smart-home control.
+
+OpenAI uses **GPT Transcribe** (`gpt-transcribe`) for speech recognition and **GPT-6 Luna** (`gpt-6-luna`, reasoning effort `none`) for command interpretation and replies. Piper generates the final voice locally.
+
+Closing the webpage keeps Jarvis running. **Turn off Jarvis** releases the microphone and models. Listening pauses while Windows is locked and while processing/speaking. A server restart always starts with Jarvis off. Any approved browser can toggle it; only an approved direct-localhost owner can save or remove the key. OpenAI API billing is separate from ChatGPT subscriptions.
+
+Optional setup on a new laptop:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-voice.txt
+.\.venv\Scripts\python.exe scripts/install-voice.py
+```
+
+The installer downloads only the ONNX runtime voice/wake models into ignored private state and verifies pinned checksums. It does not install another assistant's UI. See [JARVIS_SPEC.md](JARVIS_SPEC.md) and the **Setup & supported commands** link on the Jarvis screen.
+
 ## Sensor availability
 
 - **psutil:** CPU utilization, per-core load, reported clock, RAM, drives, aggregate disk/network rates, battery/AC, uptime.

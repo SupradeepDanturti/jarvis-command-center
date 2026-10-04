@@ -31,6 +31,16 @@ Use **More → Device access → Approved devices → Revoke access** on the lap
 - Passkeys are not implemented in this release. WebAuthn needs a supported HTTPS origin and stable domain. Synced passkeys can also be available on multiple devices; they do not inherently enforce a physical-device allowlist.
 - Bluetooth transport is not implemented. Pairing Bluetooth by itself does not authenticate HTTP or WebSocket requests.
 
+## Laptop voice access
+
+Jarvis starts disabled and acquires the laptop microphone only after an approved browser enables it. Approved browsers can view its bounded in-memory latest request/reply and change the capture input. Stereo Mix/loopback inputs are excluded. Closing the browser leaves the worker running; turning it off releases the microphone and inference process. Windows lock pauses listening and prevents action dispatch; a server restart starts it off.
+
+Only a direct-loopback owner can save/delete the OpenAI API key. It is encrypted with user-scoped Windows DPAPI beneath the existing ACL-protected private state, never returned by an API, and never stored in JavaScript/localStorage. The password field clears after submission. API exceptions are reduced to generic messages; recordings/transcripts/keys are not logged. The key is passed to the child through Windows process initialization memory, never as a shell argument or environment variable. OpenAI requests use the fixed official HTTPS API endpoint.
+
+Local wake detection is not speaker authentication. After activation, a short clip is uploaded for transcription, followed by command text for interpretation. Audio remains in memory and is discarded; only the most recent text exchange is kept in memory until disable. Model-selected actions undergo exact argument validation against existing trusted app/media registrations. No arbitrary executable/path/URL/argument/shell interface is provided. Action dispatch is refused after worker cancellation or Windows lock; completed actions are never retried because a reply request fails.
+
+Optional runtime models are downloaded from fixed publisher URLs, checked against pinned SHA-256 hashes, and stored in private ignored state. Existing dashboard pairing, TLS and setup-only HTTP boundaries are unchanged. See [JARVIS_SPEC.md](JARVIS_SPEC.md) for component licenses and remaining physical validation.
+
 ## Local certificate and private files
 
 `scripts/setup-https.ps1` creates a private local CA and server certificate, installs the public CA into the current Windows user's trust store, and exports only the public `.cer` file to Desktop/Downloads. Android trust requires the one-time installation above. The certificate identifies localhost and the laptop's current network addresses.

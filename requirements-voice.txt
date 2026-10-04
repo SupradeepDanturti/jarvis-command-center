@@ -1,0 +1,5 @@
+# Optional CPU-only voice components. No Torch, CUDA, or local language model.
+openai==3.24.0
+piper-tts==1.8.0
+openwakeword==0.6.0
+sounddevice==0.5.6

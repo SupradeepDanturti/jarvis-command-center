@@ -11,7 +11,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pip install -r requirements-dev.txt -r requirements-voice.txt
       - run: python -m pytest -q
       - run: |
           Get-ChildItem frontend/*.js, scripts/*.cjs | ForEach-Object {

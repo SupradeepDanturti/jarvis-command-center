@@ -10,6 +10,8 @@
 
 All dashboard assets are served locally. No CDN, external font, video stream, or third-party tracking request is needed to view the dashboard.
 
+Jarvis optionally downloads five runtime model/config files into ignored private state via `scripts/install-voice.py`, with pinned checksums. Sources: [jgkawell Jarvis medium](https://huggingface.co/jgkawell/jarvis/tree/main/en/en_GB/jarvis/medium) (MIT model), [openWakeWord v0.5.1 release](https://github.com/dscripka/openWakeWord/releases/tag/v0.5.1) (pretrained models CC BY-NC-SA 4.0). Piper is a GPL-3.0 dependency; openWakeWord code is Apache-2.0. No third-party assistant UI/code is copied. Runtime speech is synthetic; see [JARVIS_SPEC.md](JARVIS_SPEC.md).
+
 `frontend/background.js` and the backdrop rules in `frontend/experience.css` reuse these same four movies behind the other screens. Dark overlays preserve text readability; the original Home SVG remains a fallback. No new third-party media was added for page backgrounds.
 
 For more visual ideas, browse [Fliqlo](https://fliqlo.com/screensaver/) for classic clock styling, [Wallpaper Engine’s official Workshop](https://steamcommunity.com/workshop/browse/?appid=431960&section=home) for ambient compositions, and [NASA’s Scientific Visualization Studio](https://svs.gsfc.nasa.gov/13326/) for space visualizations. No external service is needed to display the included scenes.

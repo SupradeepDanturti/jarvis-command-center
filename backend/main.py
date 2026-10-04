@@ -18,6 +18,7 @@ from .games import GameLibrary
 from .media import MediaMonitor
 from .security import Pairing, require_origin, same_origin
 from .telemetry import Telemetry
+from .voice import VoiceService, voice_router
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -49,7 +50,7 @@ class DisplayRequest(BaseModel):
     orientation: Literal['Landscape', 'Portrait']
 
 
-def create_app(pairing_code=None, device_db=None):
+def create_app(pairing_code=None, device_db=None, voice_dir=None):
     state_dir = ROOT / '.state/private'
     code = pairing_code or secrets.token_hex(4).upper()
     pairing = Pairing(code)
@@ -59,6 +60,7 @@ def create_app(pairing_code=None, device_db=None):
     games = GameLibrary()
     display_reports = DisplayReports()
     media_monitor = MediaMonitor()
+    voice = VoiceService(voice_dir or (state_dir / 'voice' if not pairing_code else None), registry, telemetry)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -69,6 +71,7 @@ def create_app(pairing_code=None, device_db=None):
         media_task = asyncio.create_task(media_monitor.run())
         print(f"\nG16 Command Center | Laptop setup code: {code}\nApproved browsers are remembered for 180 days, including across restarts.\n", flush=True)
         yield
+        await asyncio.to_thread(voice.stop)
         task.cancel()
         media_task.cancel()
         with suppress(asyncio.CancelledError):
@@ -84,6 +87,7 @@ def create_app(pairing_code=None, device_db=None):
     app.state.devices = devices
     app.state.display_reports = display_reports
     app.state.media = media_monitor
+    app.state.voice = voice
 
     def local(request):
         return request.client is not None and request.client.host in {'127.0.0.1', '::1'}
@@ -108,6 +112,8 @@ def create_app(pairing_code=None, device_db=None):
         if not local(request) or device['role'] != 'owner':
             raise HTTPException(403, 'Manage devices from the approved laptop browser at localhost.')
         return device
+
+    app.include_router(voice_router(voice, authenticate, owner))
 
     @app.middleware("http")
     async def headers(request, call_next):
