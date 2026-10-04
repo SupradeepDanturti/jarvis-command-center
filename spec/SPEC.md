@@ -22,7 +22,7 @@ Primary layout is landscape, with a responsive portrait layout. Support current 
 - Graph ranges: 30 seconds, 1 minute, 5 minutes, 15 minutes, 1 hour. History is in-memory and starts when the server starts. No fabricated prehistory.
 - Pairing, session expiry, same-origin controls, reconnection, stale indicators, fullscreen, automatic screen wake lock, swipe navigation, and touch-responsive layouts.
 - Optional silent startup at Windows user sign-in on dedicated port 18761, with current connection instructions exported to Desktop and Downloads and refreshed after network changes.
-- HTTPS, laptop-approved browsers remembered for 180 days across restarts, revocation, a persistent local device registry, and a setup-only public certificate download on port 18760. See SECURITY.md for enrollment and trust boundaries.
+- HTTPS, laptop-approved browsers remembered for 180 days across restarts, revocation, a persistent local device registry, and a setup-only public certificate download on port 18760. See ../SECURITY.md for enrollment and trust boundaries.
 
 ## Information architecture and future acceptance criteria
 

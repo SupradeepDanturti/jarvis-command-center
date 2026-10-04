@@ -4,9 +4,9 @@ A local touchscreen dashboard for a Dell G16, opened in a Redmi Pad Pro browser.
 
 **Current build:** twelve responsive pages with a custom G16 identity, a clock, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, and Windows media keys. No cloud assets or frontend build step.
 
-Read [SPEC.md](SPEC.md) for the complete target, implementation decisions, security model, and roadmap.
+Read [the dashboard specification](spec/SPEC.md) for the complete target, implementation decisions, security model, and roadmap. All specifications and design plans are indexed in [spec/](spec/README.md).
 
-**Desk experience:** **More → Now playing** shows the Windows-selected Spotify/Brave session's artwork, title and artist, with session-specific playback controls and progress/seeking when supported. **Clock → Focus timer** adds a shared laptop countdown. **More → System & controls → Tablet settings** holds opt-in night dimming, slow rotation, context switching and timer settings. **Hardware** has optional read-only HWiNFO sensor mapping; real extra readings remain unavailable until the owner enables and verifies the provider. See [SETUP.md](SETUP.md#now-playing-focus-and-automatic-display) and the original [experience plan](EXPERIENCE_PLAN.md).
+**Desk experience:** **More → Now playing** shows the Windows-selected Spotify/Brave session's artwork, title and artist, with session-specific playback controls and progress/seeking when supported. **Clock → Focus timer** adds a shared laptop countdown. **More → System & controls → Tablet settings** holds opt-in night dimming, slow rotation, context switching and timer settings. **Hardware** has optional read-only HWiNFO sensor mapping; real extra readings remain unavailable until the owner enables and verifies the provider. See [SETUP.md](SETUP.md#now-playing-focus-and-automatic-display) and the original [experience plan](spec/EXPERIENCE_PLAN.md).
 
 **Installation and how-to:** follow [SETUP.md](SETUP.md) for the complete Windows, HTTPS, background startup, Redmi pairing, everyday use, Jarvis, update, and troubleshooting walkthrough. Already installed? Go directly to [the update steps](SETUP.md#update-an-existing-installation).
 
@@ -164,7 +164,7 @@ Optional setup on a new laptop:
 .\.venv\Scripts\python.exe scripts/install-voice.py
 ```
 
-The installer downloads only the ONNX runtime voice/wake models into ignored private state and verifies pinned checksums. It does not install another assistant's UI. See [JARVIS_SPEC.md](JARVIS_SPEC.md) and the **Setup & supported commands** link on the Jarvis screen.
+The installer downloads only the ONNX runtime voice/wake models into ignored private state and verifies pinned checksums. It does not install another assistant's UI. See [JARVIS_SPEC.md](spec/JARVIS_SPEC.md) and the **Setup & supported commands** link on the Jarvis screen.
 
 ## Sensor availability
 

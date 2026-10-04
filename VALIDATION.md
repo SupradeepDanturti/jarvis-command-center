@@ -1,5 +1,10 @@
 # Foundation validation — 2026-10-03
 
+## Specification organization · 2026-10-04
+
+- Moved dashboard, Jarvis, Android and desk-experience specifications/plans into `spec/`, added an index, and updated documentation links and AGENTS.md references. Installation, security and validation guides remain at the repository root.
+- Local Markdown link targets and Git whitespace checks pass. This documentation-only change does not restart the dashboard or require runtime tests.
+
 ## Desk experience implementation · 2026-10-04
 
 - All 102 backend tests passed on Windows/Python 3.14 with a new ignored `.state/` basetemp. Coverage includes current-session/track validation, tick conversion, denied seeking, late metadata events, bounded corrupt/non-raster artwork, a native in-memory WinRT stream, timer conflicts/restart/clock changes/completion, local speech without wake/STT/cloud/history, cancellation, bounded HWiNFO parsing/mapping/freshness and owner-only configuration. `pip check` and syntax checks for all changed JavaScript passed.
@@ -14,7 +19,7 @@ Reproduce with the existing `G16_PLAYWRIGHT_PATH` setting and trusted server on 
 
 ## Desk experience planning
 
-- `EXPERIENCE_PLAN.md` is a proposed build plan for Now playing, Focus, optional display automation and deeper sensors. Existing media/navigation/telemetry/Jarvis code and project boundaries were inspected; no runtime feature was added or enabled.
+- `spec/EXPERIENCE_PLAN.md` is a proposed build plan for Now playing, Focus, optional display automation and deeper sensors. Existing media/navigation/telemetry/Jarvis code and project boundaries were inspected; no runtime feature was added or enabled.
 - Read-only Windows inventory identified Dell G16 7630 and Intel Core i7-13650HX. Checked uninstall records, processes and common HWiNFO folders did not identify the proposed sensor tooling; portable installs elsewhere remain possible. CPU/fan/SSD/throttling sensor availability remains unverified.
 - Official Windows media documentation and the HWiNFO license matrix were reviewed for metadata/control capabilities and shared-memory limitations. The plan's future test/physical acceptance lists are requirements, not completed checks.
 - This documentation-only change does not require backend/browser tests or a server restart. Documentation links, scope labeling and whitespace are checked before delivery; existing approvals and CA state are untouched.

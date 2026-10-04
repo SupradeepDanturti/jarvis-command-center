@@ -141,7 +141,7 @@ This app uses `gpt-transcribe` for recognition and `gpt-6-luna` for interpretati
 
 Home shows the Iron Man activity overlay during listening, processing, speech, follow-up, and warnings. Closing the webpage leaves Jarvis running. **Turn off Jarvis** releases its microphone and models. Windows lock pauses listening. A server restart always starts Jarvis **off**; turn it back on after updating/restarting.
 
-See [JARVIS_SPEC.md](JARVIS_SPEC.md) or **Setup & supported commands** on Jarvis for details.
+See [JARVIS_SPEC.md](spec/JARVIS_SPEC.md) or **Setup & supported commands** on Jarvis for details.
 
 ## Update an existing installation
 

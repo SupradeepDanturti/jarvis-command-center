@@ -43,7 +43,7 @@ Native Responses web search is available for current/uncertain information or ex
 
 Spoken hardware warnings are opt-in with the Jarvis service, controlled by the Alerts on/off switch, and operate only on fresh local CPU/RAM/GPU readings. Three high readings are required; a global one-hour cooldown is saved in private ignored `voice/alerts.json`. Warnings use local Piper without cloud calls and are excluded from conversation context. Disabling alerts signals the worker to cancel pending/current warning playback; stop/lock checks also apply between output chunks. Speaker selection accepts only a real enumerated speaker ID, never a browser-supplied device index/path; no default/headphone fallback is used. Home activity/replies are shown only with approved, fresh voice status and live connectivity and are cleared on unpairing.
 
-Optional runtime models are downloaded from fixed publisher URLs, checked against pinned SHA-256 hashes, and stored in private ignored state. Existing dashboard pairing, TLS and setup-only HTTP boundaries are unchanged. See [JARVIS_SPEC.md](JARVIS_SPEC.md) for component licenses and remaining physical validation.
+Optional runtime models are downloaded from fixed publisher URLs, checked against pinned SHA-256 hashes, and stored in private ignored state. Existing dashboard pairing, TLS and setup-only HTTP boundaries are unchanged. See [JARVIS_SPEC.md](spec/JARVIS_SPEC.md) for component licenses and remaining physical validation.
 
 ## Local certificate and private files
 
