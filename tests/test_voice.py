@@ -101,7 +101,7 @@ def test_model_cannot_escape_action_allowlist(name, args):
 def test_voice_tools_and_valid_registered_action():
     apps = registry()
     tools = voice_tools(apps)
-    assert tools[0]['name'] == 'list_apps'
+    assert any(tool.get('name') == 'list_apps' for tool in tools)
     assert next(tool for tool in tools if tool.get('name') == 'launch_app')['parameters']['properties']['id']['type'] == 'string'
     assert 'target' not in str(tools)
     assert execute_tool('launch_app', {'id': 'youtube'}, apps, Mock())['ok']

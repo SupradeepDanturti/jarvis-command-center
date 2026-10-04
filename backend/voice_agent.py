@@ -47,9 +47,11 @@ async def _run_turn(client, instructions, text, tools, dispatch, allowed, histor
     # SDK function tasks can coexist, but our single parent pipe and physical controls remain serialized.
     pipe_lock = asyncio.Lock()
     completed, slots, results, sources = {}, set(), [], []
+    intro_text = None
 
     def wrap(spec):
         async def invoke(context, raw):
+            nonlocal intro_text
             async with pipe_lock:
                 if not allowed():
                     raise VoiceCancelled()
@@ -76,7 +78,7 @@ async def _run_turn(client, instructions, text, tools, dispatch, allowed, histor
                 key = (spec['name'], json.dumps(arguments, sort_keys=True))
                 if key in completed:
                     return completed[key]  # Never repeat even a timed-out or failed physical request.
-                slot = ('physical' if spec['name'] in {'launch_app', 'media_control', 'open_website'} else
+                slot = ('physical' if spec['name'] in {'launch_app', 'media_control', 'open_website', 'play_intro'} else
                         'screen' if spec['name'] in {'show_screen', 'show_ambient'} else
                         'scenes' if spec['name'] == 'list_ambient_scenes' else
                         'apps' if spec['name'] == 'list_apps' else 'read')
@@ -90,6 +92,8 @@ async def _run_turn(client, instructions, text, tools, dispatch, allowed, histor
                     completed[key] = result
                 except Exception:
                     result = completed[key]
+                if spec['name'] == 'play_intro' and result.get('ok') and isinstance(result.get('message'), str):
+                    intro_text = result['message']
                 # Discovery is context, not a completed PC action to announce again on reply failure.
                 if spec['name'] not in {'list_apps', 'list_ambient_scenes'}:
                     results.append(result)
@@ -107,12 +111,14 @@ async def _run_turn(client, instructions, text, tools, dispatch, allowed, histor
                           tools=sdk_tools, model_settings=settings)
             result = await Runner.run(agent, [*(history or [])[-12:], {'role': 'user', 'content': text[:1000]}],
                                       max_turns=4, run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False))
-            return spoken_reply(str(result.final_output or 'Please repeat that, sir.')) if allowed() else ''
+            return (intro_text if intro_text is not None else spoken_reply(str(result.final_output or 'Please repeat that, sir.'))) if allowed() else ''
     except VoiceCancelled:
         return ''
     except Exception:
         if not allowed():
             return ''
+        if intro_text is not None:
+            return intro_text
         if not results:
             raise
         # Completed actions stand; report their actual results when the agent's follow-up fails.

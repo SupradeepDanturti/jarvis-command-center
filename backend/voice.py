@@ -401,7 +401,7 @@ class VoiceService:
                                 else:
                                     result = execute_tool(event.get('name'), event.get('arguments'), self.registry,
                                                           self.telemetry, navigate=self._show_screen)
-                            except (ValueError, TypeError, HTTPException):
+                            except (OSError, ValueError, TypeError, HTTPException):
                                 result = {'ok': False, 'message': 'This action could not be carried out.'}
                         pipe.send({'type': 'result', 'id': event.get('id'), 'result': result})
                         self.last_action = {'name': event.get('name'), 'arguments': event.get('arguments'),

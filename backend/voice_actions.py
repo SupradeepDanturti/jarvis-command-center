@@ -9,6 +9,7 @@ from .ambient import ambient_options, load_ambient_scenes
 
 VOICE_MODEL = 'gpt-6-luna'
 PROMPT_PATH = Path(__file__).with_name('jarvis_prompt.txt')
+INTRO_PATH = Path(__file__).with_name('jarvis_intro.txt')
 
 # Display destinations only. These IDs never grant access to the controls on a page.
 VOICE_SCREENS = {
@@ -39,9 +40,27 @@ def rest_wake_requested(text):
     return _rest_command(text) in {'wake up', 'please wake up', 'wake up please'}
 
 
+def intro_requested(text):
+    return _rest_command(text) in {'introduce yourself', 'please introduce yourself', 'introduce yourself please',
+                                  'play your introduction', 'play the introduction', 'play introduction',
+                                  'play your intro', 'play the intro', 'play intro'}
+
+
+def introduction():
+    if INTRO_PATH.stat().st_size > 4096:
+        raise ValueError('The introduction is too long.')
+    text = ' '.join(INTRO_PATH.read_text(encoding='utf-8').split())
+    if not text or len(text) > 500 or any(ord(character) < 32 or ord(character) == 127 for character in text):
+        raise ValueError('The introduction must contain between one and five hundred spoken characters.')
+    return text
+
+
 def voice_tools(registry):
     # The worker discovers the live parent inventory, rather than freezing selected shortcuts at startup.
     tools = [
+        {'type': 'function', 'name': 'play_intro',
+         'description': 'Play the saved Jarvis introduction on an explicit request to hear his introduction. Takes no text, file, URL or voice arguments. The returned introduction is spoken exactly.',
+         'strict': True, 'parameters': {'type': 'object', 'properties': {}, 'required': [], 'additionalProperties': False}},
         {'type': 'function', 'name': 'list_apps',
          'description': 'Discover all currently available installed laptop apps and saved shortcuts, including apps not selected for the Apps screen. Returns IDs and names only. Call before choosing an app to open.',
          'strict': True, 'parameters': {'type': 'object', 'properties': {}, 'required': [], 'additionalProperties': False}},
@@ -137,6 +156,8 @@ def execute_tool(name, arguments, registry, telemetry, navigate=None):
     # Treat model output as untrusted, even with strict API schemas.
     if not isinstance(arguments, dict):
         raise ValueError('Invalid action arguments.')
+    if name == 'play_intro' and not arguments:
+        return {'ok': True, 'message': introduction()}
     if name == 'open_website' and set(arguments) == {'url'}:
         return open_website(arguments['url'])
     if name == 'list_apps' and not arguments:
@@ -182,6 +203,11 @@ def execute_tool(name, arguments, registry, telemetry, navigate=None):
 
 def respond(client, text, tools, dispatch, allowed=lambda: True, history=None, cite=lambda sources: None):
     """Load the trusted local prompt; the optional SDK stays inside the voice worker."""
+    if intro_requested(text):
+        if not allowed():
+            return ''
+        result = dispatch('play_intro', {})
+        return str(result.get('message') or 'The introduction could not be played.') if allowed() else ''
     instructions = PROMPT_PATH.read_text(encoding='utf-8').replace('{now}', datetime.now().astimezone().isoformat())
     from .voice_agent import run_turn
     return run_turn(client, instructions, text, scene_voice_tools(tools), dispatch, allowed, history, cite)
