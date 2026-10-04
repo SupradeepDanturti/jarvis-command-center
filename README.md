@@ -6,7 +6,9 @@ A local touchscreen dashboard for a Dell G16, opened in a Redmi Pad Pro browser.
 
 Read [SPEC.md](SPEC.md) for the complete target, implementation decisions, security model, and roadmap.
 
-The display uses a small floating dock: **Home, Live (performance), Games, Apps, Clock, Ambient**. **More** opens Hardware, Live graphs, System & controls, and Device access. Home gives the black-hole artwork the center, with a compact heading, one horizontal CPU/vitals/media strip, and launcher icons. Clock and Ambient fill the display; Games uses a sideways poster gallery. There is no permanent sidebar or overview card grid.
+**Installation and how-to:** follow [SETUP.md](SETUP.md) for the complete Windows, HTTPS, background startup, Redmi pairing, everyday use, Jarvis, update, and troubleshooting walkthrough. Already installed? Go directly to [the update steps](SETUP.md#update-an-existing-installation).
+
+The display uses a small floating dock: **Home, Live (performance), Games, Apps, Clock, Ambient**. **More** opens Hardware, Live graphs, System & controls, Device access, and Jarvis. Home gives the black-hole artwork the center, with a compact heading, one horizontal CPU/vitals/media strip, and launcher icons. Clock and Ambient fill the display; Games uses a sideways poster gallery. There is no permanent sidebar or overview card grid.
 
 Home's sound controls include previous/play-pause/next and **volume down, mute/unmute, volume up**. They control sound on the laptop through Windows media keys; every button remains available in narrow layouts. **Hold volume down/up** to adjust continuously: one step immediately, then repeat after 400 ms until released. A tap keeps Windows' normal volume step (typically two percentage points). Repeats stop when you release, slide off the button, change pages, hide the browser, lose connection, or a command fails; requests do not pile up behind a slow connection. A continuous hold is bounded to ten seconds; lift and hold again if needed.
 
@@ -21,6 +23,8 @@ Tablet layouts adjust to both width and the visible browser height, leaving spac
 Approved browsers automatically report their current display size, visible area, orientation, pixel scale and fullscreen mode while this page is visible. On the laptop, **More → Device access** shows the latest size beside each reporting browser. Reports refresh on resizing/fullscreen changes and every 30 seconds; only the latest report is kept in memory for five minutes. For manual troubleshooting, the tablet’s **More → System & controls → Tablet settings** includes **Display size** and **Copy display details**. Reload once after installing this update to enable automatic reports.
 
 ## Run on Windows
+
+For a new installation, use the ordered [installation guide](SETUP.md). The short commands below are for a temporary terminal run; the background task described later also publishes connection files and serves tablet certificate setup.
 
 ```powershell
 cd D:\TabletDashboard

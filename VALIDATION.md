@@ -1,5 +1,12 @@
 # Foundation validation — 2026-10-03
 
+## Installation and how-to guide
+
+- `SETUP.md` provides an ordered fresh-install flow and separate existing-install update steps. Commands and labels were checked against the HTTPS, startup, restart, certificate export, pairing, connection-file and voice implementations.
+- The guide distinguishes background startup from temporary terminal runs, sign-in from boot, laptop owner access from the Wi-Fi address, and preserved private state from a fresh installation. It documents the current microphone/speaker controls, follow-up history, hourly alerts and Jarvis being off after restart.
+- The in-app Jarvis help is updated to the same order. Documentation changes do not require restarting the working server. Fresh installation on another laptop and its tablet certificate menus have not been exercised by this documentation update.
+- Referenced guide links/helpers and PowerShell example syntax are checked without executing installation commands. Trusted HTTPS browser checks cover the help page at 1280×800, 1280×600 and 412×915, including guide/return links and no horizontal overflow or page errors. No device pairing or settings changes are made by this check.
+
 ## Iron Man Jarvis HUD, dedicated speakers and hardware alerts
 
 - 70 backend checks pass, including concrete speaker selection independent of headphone/default routing, selected-output PCM playback and cancellation, speaker/alerts origin/auth validation and persistence, combined exact thresholds, stale/invalid/duplicate sample rejection, global one-hour cooldown across policy reload/restart, idle/unlocked/enabled generation guards, system-alert history separation and spontaneous/cancelled warning playback without wake/STT/LLM calls.
