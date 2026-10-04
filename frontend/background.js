@@ -12,7 +12,7 @@ function backgroundSettings(){
 }
 function updateSurfaceBackground(){
   const layer=document.querySelector('.surface-backdrop'),video=document.querySelector('#surface-background');
-  const dedicated=state.page==='ambient';layer.hidden=dedicated;
+  const dedicated=state.page==='ambient'||state.page==='rest'||!!restState?.rest;layer.hidden=dedicated;
   if(dedicated){video.pause();return}
   const id=state.page==='home'?'blackhole':backgroundPreferences.scene==='auto'?(pageBackgrounds[state.page]||'aurora'):backgroundPreferences.scene;
   const scene=ambientScenes[id];

@@ -48,6 +48,7 @@ def test_voice_starts_off_missing_setup_does_not_record_and_input_restricted(tmp
     with TestClient(app, base_url='https://testserver', client=('127.0.0.1', 4000)) as client:
         client.post('/api/pair', json={'code': 'ABCD1234'}, headers=ORIGIN)
         assert client.get('/api/voice/status').json()['phase'] == 'off'
+        assert client.get('/api/voice/status').json()['wakePhrase'] == 'Jarvis'
         assert client.post('/api/voice/enabled', json={'enabled': 'true'}, headers=ORIGIN).status_code == 422
         assert client.post('/api/voice/enabled', json={'enabled': True}, headers=ORIGIN).status_code == 409
         assert app.state.voice.process is None

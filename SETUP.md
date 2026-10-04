@@ -133,7 +133,9 @@ Audio selection is also in **More → System & controls**. Turn Jarvis off befor
 
 ### Conversation, alerts, and history
 
-Try **“Hey Jarvis, open YouTube,” “open Steam,” “how much memory am I using?”**, or **“search NASA for a recent mission update.”** After a reply, speak again within **15 seconds** without repeating the wake phrase. Follow-up listening offers Off, 15, or 30 seconds. Silence or a closing phrase such as “thank you” returns it to wake listening.
+Try **“Jarvis, open YouTube,” “open Steam,” “how much memory am I using?”**, or **“search NASA for a recent mission update.”** After a reply, speak again within **15 seconds** without repeating the wake phrase. Follow-up listening offers Off, 15, or 30 seconds. Silence or a closing phrase such as “thank you” returns it to wake listening.
+
+Say **Jarvis**, pause briefly, then give the command. The dedicated local model also accepts **Hey Jarvis**. Rapid name-plus-command speech can be missed; your room, microphone and pronunciation still affect recognition.
 
 This app uses `gpt-transcribe` for recognition and `gpt-6-luna` for interpretation/replies. Wake detection and Piper speech run locally. Command audio and conversation context go to OpenAI; web search returns clickable sources. Audio is not saved. The latest **500 text exchanges** persist privately; the latest six conversation exchanges provide context. Only the localhost owner can **Clear history**, which also stops Jarvis.
 
@@ -165,6 +167,8 @@ After backend/dependency changes:
 ```powershell
 .\scripts\restart-server.ps1
 ```
+
+For an installed Jarvis, this update adds the Jarvis wake model. Before restarting, run `.\.venv\Scripts\python.exe scripts/install-voice.py` to install its checksum-verified model and license. This preserves the saved key, voice preferences, history and device approvals.
 
 For frontend/documentation-only updates, reload the browser without restarting the server. Reload both laptop/tablet pages after updating; re-enable Jarvis after a server restart. Normal updates preserve approvals, certificates, encrypted key, preferences, and conversation history.
 
@@ -260,6 +264,23 @@ After updating dependencies and restarting through `scripts/restart-server.ps1`,
 Artwork keeps its original proportions and uses a local backdrop. The dashboard serves the image supplied by Windows without a remote artwork lookup. Some Brave YouTube sessions provide only a 150 × 83 thumbnail and no duration: a better page layout cannot recover missing image detail, and the seek bar stays hidden. This is a player limitation. Spotify should expose its own session while playing; a background Spotify window alone does not select it. If details remain unavailable, verify the player appears in Windows media controls and reload after the backend update.
 
 **Clock → Focus timer**, or the Home shortcut, opens the large laptop-owned countdown. Start, pause/resume, skip and reset it from any approved browser. Defaults are 25-minute focus, 5-minute short break and 15-minute long break after four completed focus phases. Each phase waits for you to start the next. Reloading preserves the timer; overdue recovery after a server restart is silent. A system-clock change pauses for review. Durations and optional completion speech are under **More → System & controls → Tablet settings → Focus timer**. Pause before changing durations. Announcements require Jarvis already enabled, idle and the laptop unlocked; they never turn listening on or use a cloud request.
+
+## Rest mode and alarm
+
+Open **More → Rest & alarms**, **Clock → Rest & alarms**, or `/#rest`. Keep the laptop plugged in and signed in, with the dashboard server running. Rest turns supported **external desk monitors** off through DDC/CI while keeping Windows and the server awake. Enable DDC/CI in each monitor's own menu if needed. Unsupported monitors show an error; the dashboard never falls back to Windows system sleep. Windows Sleep, lid-close sleep policy and low-battery shutdown still take precedence. For an already-closed lid, keep the existing desk configuration that lets Windows run with the lid closed.
+
+1. Choose **Set alarm**, select the date/time and complete **It's time to…**, for example `wake up` or `join your meeting`. Time uses this device's timezone. One shared alarm is kept on the laptop; saving replaces the previous alarm and prevents ordinary idle sleep while armed.
+2. Choose **Jarvis spoken announcement** if the optional voice is installed. It uses the selected Jarvis speaker and says “Sir, it's time to wake up,” preceded by a chime. **Test Jarvis alarm** previews a fixed phrase for up to ten seconds. Neither needs an API key or internet, opens a microphone or enables listening. Preview and alarm firing stop conversational Jarvis to avoid overlapping audio; turn listening back on explicitly afterward. Rest entry keeps an already-enabled Jarvis session running.
+3. Tap **Enter Rest mode** and accept the confirmation. **Checking desk monitors through your dock…** may take several seconds; this step is read-only, and the off command follows only after it succeeds. The tablet shows a dim clock and next alarm; backgrounds and screen rotation pause. **Brighten controls** brightens the page for 15 seconds. Android hardware brightness is unchanged, and browser **Screen awake** can keep the tablet display on.
+4. Use **Wake laptop displays** to exit early. At the alarm time, the laptop requests monitor On and visible connected dashboards show **Snooze 5 min** / **Dismiss**. Voice can play with Windows locked and conversational Jarvis off. It repeats every 30 seconds and stops after ten minutes. **Cancel alarm** removes an armed alarm; snoozing does not automatically re-enter Rest.
+
+First try a two-minute alarm while at the desk. Confirm the monitors go off, the tablet remains connected with the lid closed, the alarm sounds and the monitors return. If a monitor cannot be restored through DDC/CI, use its power button. A process crash or cable change can lose its temporary handle. Manual Windows sleep prevents the laptop server/alarm from running; this feature cannot wake an actually sleeping system remotely.
+
+With **Jarvis on** and Windows unlocked, say **“Jarvis, enter rest mode.”** Jarvis first says “I'll enter Rest mode, sir,” checks the monitors and enters the same shared Rest mode. It keeps its models loaded and resumes wake listening, including after button entry. Say **“Jarvis, wake up”** to restore the monitors and the tablet's previous page; Jarvis then says “Displays awake, sir” and continues listening. Both commands preserve your alarm. Say **Jarvis**, pause briefly, then say the command. The dedicated local Jarvis model also recognizes the older Hey Jarvis phrase. Optional “please,” wake-phrase punctuation and a trailing “Jarvis” are accepted in recognized command text. Failed requests explain why in **Jarvis → History**. Off, Windows lock, worker replacement or expiry cancel pending actions. Windows lock pauses listening; voice wake does not unlock Windows or resume an actually sleeping laptop. A server restart leaves Jarvis off until you enable it again. Normal command transcription still needs your configured API key and internet.
+
+Reloads retain the laptop alarm; future alarms also survive server restarts. Overdue/ringing recovery is silent and shows **Missed**. Clock changes show **Paused** for review. Review and save a new time after either state. The private file is `.state/private/alarms.json`; normal updates preserve it. See [REST_ALARM_SPEC.md](spec/REST_ALARM_SPEC.md) for detailed behavior.
+
+If Rest shows **Not found**, the browser loaded new static files against an older backend: update the checkout, run `scripts/restart-server.ps1`, and reload. This feature includes backend changes and needs that restart; static-only edits do not.
 
 **Tablet settings → Display behavior** holds independent, initially off switches for night dimming, slow screen rotation, playing-media switching and recognized-game switching. Default night hours are 22:00–07:00 in this viewing device's timezone; dimming affects page artwork/readings, while Android retains hardware-brightness control. Brighten temporarily lasts 15 minutes. Rotation defaults to Home/Clock/Ambient every 120 seconds; choose at least two screens. Touch holds your view for two minutes, and More/settings/dialogs, immersive view, a running/paused Focus view, a hidden tab or stale connection suppress navigation. Games take priority over background music. **Stay on this screen** pins the view until **Resume automatic display**. Settings are remembered per browser.
 

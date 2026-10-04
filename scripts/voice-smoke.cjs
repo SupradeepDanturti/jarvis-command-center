@@ -7,6 +7,17 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   const context=await browser.newContext({viewport:{width:1280,height:800}}),page=await context.newPage();
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>{window.qaCsp=[];document.addEventListener('securitypolicyviolation',e=>qaCsp.push(e.violatedDirective))});
+  // Isolate this UI check from the owner's shared Rest screen without waking monitors.
+  const idleRest={instance:'f'.repeat(24),revision:0,serverTime:Date.now(),rest:false,displayAvailable:true,keepingAwake:false,alarm:null,message:'',audio:{ready:false,phase:'off',message:''}};
+  await page.route('**/api/alarms',route=>{
+    assert.equal(route.request().method(),'GET');return route.fulfill({json:idleRest});
+  });
+  await page.addInitScript(data=>{
+    const Native=window.WebSocket;
+    window.WebSocket=class extends Native{
+      set onmessage(receive){super.onmessage=event=>{const packet=JSON.parse(event.data);packet.rest={...data,serverTime:packet.serverTime};receive({data:JSON.stringify(packet)})}}
+    };
+  },idleRest);
   const current={phase:'off',message:'Microphone off.',busy:false,enabled:false,keyConfigured:false,modelsInstalled:true,dependenciesInstalled:true,ready:false,lastHeard:'',lastReply:'',inputId:'webcam',outputId:null,alertsEnabled:true,followupSeconds:15,history:[]};
   const history=[{id:1,created:Date.now()/1000,heard:'Open that app.',reply:'Which app would you like, sir?',action:null,sources:[]},{id:2,created:Date.now()/1000,heard:'Steam.',reply:'Opening Steam, sir.',action:{name:'launch_app',arguments:{id:'steam'},ok:true,message:'Opening Steam'},sources:[]},{id:3,created:Date.now()/1000,heard:'Search NASA.',reply:'Here is the update, sir.',action:null,sources:[{url:'https://www.nasa.gov/example',title:'NASA <script>source</script>'},{url:'javascript:alert(1)',title:'Bad source'}]}];
   current.history=history;
@@ -41,6 +52,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     const nativeStatus=await readNative('status');
     assert.equal(nativeStatus.status,200);
     const native=nativeStatus.body;
+    assert.equal(native.wakePhrase,'Jarvis');
+    assert.match(await page.locator('.voice-intro').innerText(),/Say “Jarvis”, pause, then ask/);
     assert.equal(typeof native.keyConfigured,'boolean');
     assert.equal(Object.hasOwn(native,'key'),false);
     const nativeInputs=await readNative('inputs');

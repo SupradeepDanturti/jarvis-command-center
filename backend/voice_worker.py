@@ -7,8 +7,8 @@ import os
 import re
 import time
 import wave
-
-from .voice_actions import respond
+from .voice_actions import respond, rest_entry_requested, rest_wake_requested
+from .voice_wake import WAKE_MODEL, WAKE_PHRASE, WAKE_THRESHOLD
 
 
 def desktop_unlocked():
@@ -75,6 +75,53 @@ def collect_utterance(stream, allowed, pre_roll=(), wait_seconds=3, on_speech=la
         if silent_frames >= 10 or len(recording) >= 125:
             return b''.join(recording[:125])
     return None
+
+
+def request_rest_entry(pipe, stop, text, speak, allowed, control=lambda message: None):
+    return request_rest_action(pipe, stop, text, speak, allowed, control, waking=False)
+
+
+def request_rest_wake(pipe, stop, text, speak, allowed, control=lambda message: None):
+    return request_rest_action(pipe, stop, text, speak, allowed, control, waking=True)
+
+
+def request_rest_action(pipe, stop, text, speak, allowed, control, waking):
+    """Capture is closed; fixed power request bypasses conversational model tools."""
+    matches = rest_wake_requested if waking else rest_entry_requested
+    if not matches(text) or not allowed():
+        return False
+    if not waking:
+        speak("I'll enter Rest mode, sir.")
+    if not allowed():
+        return False
+    pipe.send({'type': 'status', 'phase': 'thinking', 'message':
+               'Waking desk monitors.' if waking else 'Checking desk monitors for Rest mode.'})
+    pipe.send({'type': 'rest-wake' if waking else 'rest-entry', 'heard': text})
+    deadline = time.monotonic()+30
+    while not stop.is_set() and time.monotonic() < deadline:
+        if not desktop_unlocked():
+            pipe.send({'type': 'rest-cancel'})
+            return False
+        if pipe.poll(.1):
+            message = pipe.recv()
+            if message.get('type') == 'rest-result':
+                if message.get('ok') is True:
+                    if waking and allowed():
+                        speak('Displays awake, sir.')
+                    return True
+                if allowed():
+                    reply = ("I couldn't wake the displays, sir. " if waking else "I couldn't enter Rest mode, sir. ") + str(message.get('message', 'Try the dashboard.'))[:200]
+                    pipe.send({'type': 'exchange', 'heard': text, 'reply': reply})
+                    speak(reply)
+                return False
+            control(message)
+    if not stop.is_set():
+        pipe.send({'type': 'rest-cancel'})
+        if allowed():
+            reply = 'The display request timed out, sir. Please try the dashboard.'
+            pipe.send({'type': 'exchange', 'heard': text, 'reply': reply})
+            speak(reply)
+    return False
 
 
 def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id=None,
@@ -144,7 +191,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                 play_on_speaker(audio, output_device, can_speak)
 
         if preview:
-            speak('Good evening, sir. All systems are ready. Just say Hey Jarvis, and tell me what you need.')
+            speak('Good evening, sir. All systems are ready. Just say Jarvis, pause briefly, and tell me what you need.')
             status('off', 'Voice preview finished. Microphone off.')
             return
 
@@ -153,7 +200,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
         input_device = resolve_input(input_id)
         from openai import OpenAI
         from openwakeword.model import Model
-        wake = Model(wakeword_models=[str(directory / 'hey_jarvis_v0.1.onnx')], inference_framework='onnx',
+        wake = Model(wakeword_models=[str(directory / WAKE_MODEL)], inference_framework='onnx',
                      melspec_model_path=str(directory / 'melspectrogram.onnx'),
                      embedding_model_path=str(directory / 'embedding_model.onnx'))
         client = OpenAI(api_key=key, base_url='https://api.openai.com/v1', timeout=15, max_retries=0)
@@ -212,7 +259,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                 command = None
                 status('followup' if followup else 'listening',
                        f'Your turn · listening for a reply for {followup_seconds} seconds.' if followup else
-                       'Listening for Hey Jarvis · ' + input_device['name'])
+                       'Listening for ' + WAKE_PHRASE + ' · ' + input_device['name'])
                 with sd.RawInputStream(device=input_device['index'], samplerate=16000, blocksize=1280, channels=1, dtype='int16') as stream:
                     if followup:
                         command = collect_utterance(stream, allowed, wait_seconds=followup_seconds,
@@ -226,7 +273,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                         chunk = bytes(audio)
                         frames.append(chunk)
                         score = wake.predict(np.frombuffer(chunk, dtype=np.int16))
-                        if max(score.values(), default=0) < 0.6:
+                        if max(score.values(), default=0) < WAKE_THRESHOLD:
                             continue
                         status('recording', 'Listening to your command.')
                         command = collect_utterance(stream, allowed, pre_roll=frames)
@@ -242,10 +289,18 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                 try:
                     with pcm_wav(command) as audio:
                         transcript = client.audio.transcriptions.create(model='gpt-transcribe', file=audio,
-                            prompt='Laptop assistant command or conversational reply. App names: Steam, Discord, Spotify, Brave, YouTube, OBS.')
+                            prompt='Laptop assistant command or conversational reply. App names: Steam, Discord, Spotify, Brave, YouTube, OBS. Rest commands: enter rest mode; wake up.')
                     command = None
                     text = transcript.text.strip()[:1000]
                     if not text or not allowed():
+                        continue
+                    if rest_entry_requested(text):
+                        request_rest_entry(pipe, stop, text, speak, allowed, control)
+                        stop.wait(.5)
+                        continue
+                    if rest_wake_requested(text):
+                        request_rest_wake(pipe, stop, text, speak, allowed, control)
+                        stop.wait(.5)
                         continue
                     status('thinking', 'Working on your request.')
                     normalized = text.lower().strip().rstrip('.!?,')

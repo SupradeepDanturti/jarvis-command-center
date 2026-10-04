@@ -11,6 +11,24 @@ from .controllers import MEDIA_KEYS, media_action
 VOICE_MODEL = 'gpt-6-luna'
 
 
+def _rest_command(text):
+    """Normalize only punctuation around Jarvis, never quoted/model instructions."""
+    if not isinstance(text, str) or len(text) > 1000:
+        return ''
+    command = re.sub(r'\s+', ' ', text.lower()).strip().rstrip('.!?,')
+    command = re.sub(r'^(?:hey[,.!?:\s]+)?jarvis[,.!?:\s]+', '', command).strip()
+    command = re.sub(r'[,\s]+jarvis$', '', command).strip()
+    return command
+
+
+def rest_entry_requested(text):
+    return _rest_command(text) in {'enter rest mode', 'please enter rest mode', 'enter rest mode please'}
+
+
+def rest_wake_requested(text):
+    return _rest_command(text) in {'wake up', 'please wake up', 'wake up please'}
+
+
 def voice_tools(registry):
     apps = [app for app in registry.catalog() if app['available']]
     tools = []

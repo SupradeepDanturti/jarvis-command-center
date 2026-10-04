@@ -45,7 +45,7 @@ function tickDisplayBehavior(date=new Date()){
   document.body.classList.toggle('night-dim',dim);document.documentElement.style.setProperty('--night-level',String(prefs.level/100));
   const fresh=deskControlsReady();
   const target=displayBehavior.tick({page:state.page,ready:fresh&&!state.stale,interacting:deskPointer||!!mediaDrag||!!mediaPending||!!focusPending,
-    menu:!document.querySelector('#more-menu').hidden||!!document.querySelector('dialog[open]'),presentation,
+    menu:!!restState?.rest||!document.querySelector('#more-menu').hidden||!!document.querySelector('dialog[open]'),presentation,
     focus:focusView&&state.page==='clock'&&['running','paused'].includes(focusState?.status),
     game:fresh&&performance.now()-activityReceipt<5000?activityState?.game:null,
     playing:fresh&&performance.now()-mediaReceipt<5000&&state.playback?.status==='playing',sessionId:state.playback?.sessionId});
