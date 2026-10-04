@@ -6,6 +6,8 @@ A local touchscreen dashboard for a Dell G16, opened in a Redmi Pad Pro browser.
 
 Read [SPEC.md](SPEC.md) for the complete target, implementation decisions, security model, and roadmap.
 
+**Next features (planned):** [Desk experience plan](EXPERIENCE_PLAN.md) defines Now playing, a focus timer with optional Jarvis reminders, opt-in night dimming/rotation/context switching, and verified deeper thermal sensors. It records the proposed defaults, build order, dependencies and acceptance checks; these additions are not implemented yet.
+
 **Installation and how-to:** follow [SETUP.md](SETUP.md) for the complete Windows, HTTPS, background startup, Redmi pairing, everyday use, Jarvis, update, and troubleshooting walkthrough. Already installed? Go directly to [the update steps](SETUP.md#update-an-existing-installation).
 
 The display uses a small floating dock: **Home, Live (performance), Games, Apps, Clock, Ambient**. **More** opens Hardware, Live graphs, System & controls, Device access, and Jarvis. Home gives the black-hole artwork the center, with a compact heading, one horizontal CPU/vitals/media strip, and launcher icons. Clock and Ambient fill the display; Games uses a sideways poster gallery. There is no permanent sidebar or overview card grid.
