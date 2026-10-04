@@ -48,7 +48,7 @@ def test_brave_is_fixed_and_url_is_one_shell_free_argument(tmp_path):
     resolve.assert_called_once_with('brave.exe')
     popen.assert_called_once_with([str(executable), '--new-tab', 'https://example.com/news?q=hello%20world#today'],
                                  cwd=str(tmp_path), shell=False)
-    assert result == {'ok': True, 'message': 'Opening example.com in Brave.'}
+    assert result == {'ok': True, 'message': 'example.com opened in Brave.'}
 
 
 @pytest.mark.parametrize('arguments', [{'url': 'https://example.com', 'args': ['--anything']},
@@ -78,32 +78,32 @@ def test_missing_brave_and_launch_errors_do_not_fallback_or_expose_urls(tmp_path
 def test_sdk_website_shares_physical_budget_and_deduplicates_across_steps(jarvis_sdk_transport):
     call = lambda name, args, identity: SimpleNamespace(type='function_call', name=name, arguments=json.dumps(args), call_id=identity)
     output = lambda *items, text='': SimpleNamespace(output=list(items), output_text=text)
-    client, dispatch = Mock(), Mock(return_value={'ok': True, 'message': 'Opening example.com in Brave.'})
+    client, dispatch = Mock(), Mock(return_value={'ok': True, 'message': 'example.com opened in Brave.'})
     client.responses.create.side_effect = [output(call('open_website', {'url': 'https://example.com'}, 'first'),
         call('media_control', {'action': 'volume-up'}, 'other-physical')),
         output(call('open_website', {'url': 'https://example.com'}, 'repeat'), call('open_website', {'url': 'https://another.example'}, 'second')),
-        output(text='Opening example.com in Brave.')]
-    assert respond(client, 'Open example.com and another website.', voice_tools(Mock()), dispatch) == 'Opening example.com in Brave.'
+        output(text='example.com opened in Brave.')]
+    assert respond(client, 'Open example.com and another website.', voice_tools(Mock()), dispatch) == 'example.com opened in Brave.'
     dispatch.assert_called_once_with('open_website', {'url': 'https://example.com'})
     schema = next(tool for tool in client.responses.create.call_args_list[0].kwargs['tools'] if tool.get('name') == 'open_website')
     assert schema['parameters']['required'] == ['url'] and schema['parameters']['additionalProperties'] is False
 
 
 def test_sdk_reply_failure_never_reopens_the_website(jarvis_sdk_transport):
-    client, dispatch = Mock(), Mock(return_value={'ok': True, 'message': 'Opening example.com in Brave.'})
+    client, dispatch = Mock(), Mock(return_value={'ok': True, 'message': 'example.com opened in Brave.'})
     client.responses.create.side_effect = [SimpleNamespace(output_text='', output=[SimpleNamespace(type='function_call',
         name='open_website', arguments='{"url":"https://example.com"}', call_id='website')]), RuntimeError()]
-    assert respond(client, 'Open example.com.', voice_tools(Mock()), dispatch) == 'Opening example.com in Brave.'
+    assert respond(client, 'Open example.com.', voice_tools(Mock()), dispatch) == 'example.com opened in Brave.'
     dispatch.assert_called_once()
 
 
 def test_native_search_can_find_a_requested_site_then_open_it_with_citations(jarvis_sdk_transport):
     annotation = SimpleNamespace(type='url_citation', url='https://example.com/', title='Official site')
-    client, dispatch, cite = Mock(), Mock(return_value={'ok': True, 'message': 'Opening example.com in Brave.'}), Mock()
+    client, dispatch, cite = Mock(), Mock(return_value={'ok': True, 'message': 'example.com opened in Brave.'}), Mock()
     client.responses.create.side_effect = [SimpleNamespace(output_text='The official site is example.com.', output=[
         SimpleNamespace(type='web_search_call'), SimpleNamespace(type='message', content=[SimpleNamespace(annotations=[annotation])]),
         SimpleNamespace(type='function_call', name='open_website', arguments='{"url":"https://example.com/"}', call_id='website')]),
-        SimpleNamespace(output_text='Opening example.com in Brave.', output=[])]
+        SimpleNamespace(output_text='example.com opened in Brave.', output=[])]
     assert respond(client, 'Find the official Example website and open it.', voice_tools(Mock()), dispatch, cite=cite)
     dispatch.assert_called_once_with('open_website', {'url': 'https://example.com/'})
     cite.assert_called_once_with([{'url': 'https://example.com/', 'title': 'Official site'}])
@@ -125,7 +125,7 @@ def test_parent_website_opening_requires_live_unlocked_enabled_worker(generation
     pipe.poll.side_effect = lambda *args: bool(events)
     pipe.recv.side_effect = lambda: events.pop(0)
     with patch('backend.voice_worker.desktop_unlocked', return_value=unlocked), \
-         patch('backend.voice_actions.open_website', return_value={'ok': True, 'message': 'Opening example.com in Brave.'}) as opened:
+         patch('backend.voice_actions.open_website', return_value={'ok': True, 'message': 'example.com opened in Brave.'}) as opened:
         service._monitor(1, process, pipe)
     if generation == 1 and unlocked and not stopped:
         opened.assert_called_once_with('https://example.com')

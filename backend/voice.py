@@ -112,7 +112,7 @@ class VoiceService:
         self.navigation = {'id': secrets.token_hex(12), 'screen': screen, 'expiresAt': time.time() * 1000 + 10000}
         if scene is not None:
             self.navigation['scene'] = scene
-        return {'ok': True, 'message': f'Requested {label} on active dashboard screens.',
+        return {'ok': True, 'message': f'{label} selected.',
                 'delivery': 'Visible connected browsers only; disabled widgets open their settings.'}
 
     def set_followup(self, seconds):

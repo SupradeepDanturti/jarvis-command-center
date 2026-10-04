@@ -62,7 +62,7 @@ def open_website(url):
         subprocess.Popen([executable, '--new-tab', target], cwd=str(Path(executable).parent), shell=False)
     except OSError:
         raise HTTPException(409, 'The website could not be opened. Check that Brave is installed.') from None
-    return {'ok': True, 'message': f'Opening {hostname} in Brave.'}
+    return {'ok': True, 'message': f'{hostname} opened in Brave.'}
 
 
 class AppRegistry:
@@ -249,7 +249,7 @@ class AppRegistry:
                                  cwd=str(Path(executable).parent), shell=False)
         except OSError:
             raise HTTPException(409, f"{app['name']} could not be opened. Check its installation and local configuration.")
-        return {"ok": True, "message": f"Opening {app['name']}"}
+        return {"ok": True, "message": f"{app['name']} opened."}
 
 
 def media_action(action: str):

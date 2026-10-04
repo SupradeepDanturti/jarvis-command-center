@@ -88,14 +88,47 @@ def test_sdk_run_has_no_tracing_or_sensitive_data_and_is_bounded():
     assert agent.os.environ['OPENAI_AGENTS_DONT_LOG_TOOL_DATA'] == '1'
 
 
-def test_followup_failure_reports_all_completed_tools_without_retry():
+def test_followup_failure_reports_real_dispatch_results_without_retry(tmp_path):
+    from backend.controllers import AppRegistry
+    from backend.voice import VoiceService
+    from backend.voice_actions import execute_tool
+
     client = Mock()
-    dispatch = Mock(side_effect=[APP_LIST, {'ok': True, 'message': 'Steam opened.'},
-                                {'ok': True, 'message': 'Games requested.'}])
+    registry = AppRegistry()
+    executable = tmp_path / 'steam.exe'
+    executable.write_bytes(b'fixture only')
+    registry.apps = [{'id': 'steam', 'name': 'Steam', 'target': str(executable), 'args': []}]
+    service = VoiceService(None, registry, Mock())
+    dispatch = Mock(side_effect=lambda name, args: execute_tool(name, args, registry, Mock(), navigate=service._show_screen))
     client.responses.create.side_effect = [discovery(), output(call('launch_app', {'id': 'steam'}, 'app'),
-                                                  call('show_screen', {'screen': 'games'}, 'screen')), RuntimeError()]
-    assert respond(client, 'Open Steam and show games.', specs(), dispatch) == 'Steam opened. Games requested.'
+        call('show_screen', {'screen': 'games'}, 'screen')), output(call('launch_app', {'id': 'steam'}, 'repeat')), RuntimeError()]
+    with patch.object(registry, 'voice_catalog', return_value=APP_LIST['apps']), \
+         patch('backend.controllers.subprocess.Popen') as launched:
+        assert respond(client, 'Open Steam and show games.', specs(), dispatch) == 'Steam opened. Game library selected.'
+    launched.assert_called_once_with([str(executable)], cwd=str(tmp_path), shell=False)
+    assert service.navigation['screen'] == 'games'
     assert dispatch.call_count == 3
+
+
+def test_reply_failure_preserves_blocked_navigation_after_successful_open(tmp_path):
+    from backend.voice import VoiceService
+    from backend.voice_actions import execute_tool
+
+    executable = tmp_path / 'brave.exe'
+    executable.write_bytes(b'fixture only')
+    service = VoiceService(None, Mock(), Mock())
+    service.rest = SimpleNamespace(rest=True)
+    dispatch = Mock(side_effect=lambda name, args: execute_tool(name, args, Mock(), Mock(), navigate=service._show_screen))
+    client = Mock()
+    client.responses.create.side_effect = [output(call('open_website', {'url': 'https://www.youtube.com/'}, 'website'),
+        call('show_screen', {'screen': 'games'}, 'screen')), RuntimeError()]
+    with patch('backend.controllers.AppRegistry.resolve_executable', return_value=str(executable)), \
+         patch('backend.controllers.subprocess.Popen') as launched:
+        assert respond(client, 'Open YouTube and show games.', specs(), dispatch) == (
+            'www.youtube.com opened in Brave. Wake the displays before changing screens, sir.')
+    launched.assert_called_once()
+    assert service.navigation is None
+    assert dispatch.call_count == 2
 
 
 def test_unknown_tools_and_extra_arguments_never_grant_access():
