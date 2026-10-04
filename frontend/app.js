@@ -62,7 +62,7 @@ function render(){
   updateSurfaceBackground();
   paintScreenAwake();
   if(state.page==='system'||state.page==='devices')renderDevices();
-  if(state.page==='voice'||state.page==='system'){paintVoice();refreshVoice();loadVoiceInputs()}
+  if(state.page==='voice'||state.page==='system'){paintVoice();refreshVoice();loadVoiceInputs();if(state.page==='voice')loadVoiceHistory()}
 }
 function display(key,v){if(v==null)return 'Unavailable';if(key==='system.uptime')return `${format(v/3600,1)} hours`;if(key==='battery.charging')return v?'AC connected':'On battery';if(/network\.|storage\.(read|write)/.test(key))return `${mb(v)} MB/s`;if(/\.usage$|battery.percent/.test(key))return `${format(v)} %`;if(/\.temperature$/.test(key))return `${format(v)} °C`;if(/\.clock$/.test(key))return `${format(v)} MHz`;if(/\.power$/.test(key))return `${format(v)} W`;return String(v)}
 function series(key){const cutoff=Date.now()-state.range*1000;return state.history.filter(s=>Date.parse(s.timestamp)>=cutoff).map(s=>({time:Date.parse(s.timestamp),value:path(s,key)}))}
@@ -121,7 +121,7 @@ $('#fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenEl
 $('#pair-dialog').addEventListener('cancel',e=>e.preventDefault());
 $('#pair-form').addEventListener('submit',async event=>{event.preventDefault();const button=$('#pair-form button');button.disabled=true;$('#pair-error').textContent='';try{const local=state.auth?.local;const result=await api(local?'/api/pair':'/api/device/request',{method:'POST',body:JSON.stringify(local?{code:$('#pair-code').value.trim().toUpperCase(),name:$('#device-name').value.trim()}:{name:$('#device-name').value.trim()})});$('#pair-code').value='';if(result.device.status==='approved')await enterDashboard();else{state.auth.device=result.device;loadPairingMode()}}catch(e){$('#pair-error').textContent=e.message}finally{button.disabled=false}});
 let swipeStart;
-$('#page-content').addEventListener('touchstart',e=>{swipeStart=null;if(e.target.closest('button,input,select,.games-grid'))return;swipeStart=[e.changedTouches[0].clientX,e.changedTouches[0].clientY]},{passive:true});
+$('#page-content').addEventListener('touchstart',e=>{swipeStart=null;if(e.target.closest('button,input,select,.games-grid,.voice-history'))return;swipeStart=[e.changedTouches[0].clientX,e.changedTouches[0].clientY]},{passive:true});
 $('#page-content').addEventListener('touchend',e=>{if(!swipeStart)return;const dx=e.changedTouches[0].clientX-swipeStart[0],dy=e.changedTouches[0].clientY-swipeStart[1];swipeStart=null;if(Math.abs(dx)>120&&Math.abs(dy)<60){const ids=Object.keys(pages);state.page=ids[(ids.indexOf(state.page)+(dx<0?1:-1)+ids.length)%ids.length];location.hash=state.page;render()}},{passive:true});
 setInterval(()=>{$('#clock').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false});if(lastSample&&Date.now()-lastSample>5000&&state.paired)setConnection(false,'READINGS STALE')},1000);
 setInterval(()=>{if(state.paired&&document.visibilityState==='visible')refreshApps()},15000);

@@ -4,6 +4,7 @@ import ctypes
 from ctypes import wintypes
 import io
 import os
+import re
 import time
 import wave
 
@@ -43,7 +44,41 @@ def pcm_wav(pcm):
     return data
 
 
-def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id=None):
+def collect_utterance(stream, allowed, pre_roll=(), wait_seconds=3, on_speech=lambda: None):
+    """Wait for speech, then capture at most ten seconds, ending on 0.8s silence."""
+    import numpy as np
+    recording = list(pre_roll)[-3:]
+    before = deque(maxlen=3)
+    voice_seen, silent_frames = False, 0
+    waiting = 0
+    while allowed():
+        audio, overflow = stream.read(1280)
+        if overflow:
+            return None
+        chunk = bytes(audio)
+        samples = np.frombuffer(chunk, dtype=np.int16).astype(np.float32)
+        voiced = float(np.sqrt(np.mean(samples * samples))) >= 300
+        if not voice_seen:
+            waiting += 1
+            before.append(chunk)
+            if not voiced:
+                if waiting >= max(1, round(wait_seconds * 12.5)):
+                    return None
+                continue
+            voice_seen = True
+            on_speech()
+            recording.extend(before)
+            before.clear()
+        else:
+            recording.append(chunk)
+        silent_frames = 0 if voiced else silent_frames + 1
+        if silent_frames >= 10 or len(recording) >= 125:
+            return b''.join(recording[:125])
+    return None
+
+
+def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id=None,
+                followup_seconds=15, history=None):
     # Imported only in this child; disabled Jarvis adds no inference RAM to the server.
     for variable in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS'):
         os.environ[variable] = '1'
@@ -96,6 +131,8 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                      embedding_model_path=str(directory / 'embedding_model.onnx'))
         client = OpenAI(api_key=key, base_url='https://api.openai.com/v1', timeout=15, max_retries=0)
         key = None
+        context = list(history or [])[-12:]
+        followup = False
 
         def dispatch(name, arguments):
             if not allowed():
@@ -112,6 +149,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
         with client:
             while not stop.is_set():
                 if not desktop_unlocked():
+                    followup = False
                     status('locked', 'Laptop locked. Microphone paused.')
                     while not stop.wait(0.5) and not allowed():
                         # allowed also detects a lost parent; lock itself does not stop the worker.
@@ -122,9 +160,14 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                 wake.reset()
                 frames = deque(maxlen=3)
                 command = None
-                status('listening', 'Listening for Hey Jarvis · ' + input_device['name'])
+                status('followup' if followup else 'listening',
+                       f'Your turn · listening for a reply for {followup_seconds} seconds.' if followup else
+                       'Listening for Hey Jarvis · ' + input_device['name'])
                 with sd.RawInputStream(device=input_device['index'], samplerate=16000, blocksize=1280, channels=1, dtype='int16') as stream:
-                    while allowed():
+                    if followup:
+                        command = collect_utterance(stream, allowed, wait_seconds=followup_seconds,
+                                                    on_speech=lambda: status('recording', 'Listening to your reply.'))
+                    while not followup and allowed():
                         audio, overflow = stream.read(1280)
                         if overflow:
                             wake.reset()
@@ -136,48 +179,36 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                         if max(score.values(), default=0) < 0.6:
                             continue
                         status('recording', 'Listening to your command.')
-                        recording = list(frames)
-                        voice_seen, silent_frames = False, 0
-                        for index in range(125):  # At most ten seconds, held only in RAM.
-                            if not allowed():
-                                recording = []
-                                break
-                            audio, overflow = stream.read(1280)
-                            if overflow:
-                                recording = []
-                                break
-                            chunk = bytes(audio)
-                            recording.append(chunk)
-                            samples = np.frombuffer(chunk, dtype=np.int16).astype(np.float32)
-                            voiced = float(np.sqrt(np.mean(samples * samples))) >= 300
-                            voice_seen = voice_seen or voiced
-                            silent_frames = 0 if voiced else silent_frames + 1
-                            if voice_seen and silent_frames >= 10:
-                                break
-                            if not voice_seen and index >= 37:
-                                recording = []
-                                break
-                        if recording and voice_seen:
-                            command = b''.join(recording)
-                        recording.clear()
+                        command = collect_utterance(stream, allowed, pre_roll=frames)
                         frames.clear()
                         break
                 # Input device is closed before network calls or speaker playback.
                 if not command or not allowed():
+                    followup = False
                     continue
+                followup = False
+                pipe.send({'type': 'turn'})
                 status('transcribing', 'Understanding your command.')
                 try:
                     with pcm_wav(command) as audio:
-                        transcript = client.audio.transcriptions.create(model='gpt-transcribe', file=audio)
+                        transcript = client.audio.transcriptions.create(model='gpt-transcribe', file=audio,
+                            prompt='Laptop assistant command or conversational reply. App names: Steam, Discord, Spotify, Brave, YouTube, OBS.')
                     command = None
                     text = transcript.text.strip()[:1000]
                     if not text or not allowed():
                         continue
                     status('thinking', 'Working on your request.')
-                    reply = respond(client, text, tools, dispatch, allowed)
+                    normalized = text.lower().strip().rstrip('.!?,')
+                    normalized = re.sub(r'^(?:hey\s+)?jarvis[,\s:]*|[,\s]+jarvis$', '', normalized).strip()
+                    end_conversation = normalized in {'thanks', 'thank you', "that's all", 'that is all', 'never mind', 'goodbye'}
+                    sources = []
+                    reply = 'Very good, sir.' if end_conversation else respond(client, text, tools, dispatch, allowed,
+                                                                             context, cite=sources.extend)
                     if reply and allowed():
-                        pipe.send({'type': 'exchange', 'heard': text, 'reply': reply})
+                        pipe.send({'type': 'exchange', 'heard': text, 'reply': reply, 'sources': sources})
+                        context = [*context, {'role': 'user', 'content': text}, {'role': 'assistant', 'content': reply}][-12:]
                         speak(reply)
+                        followup = bool(followup_seconds) and not end_conversation
                 except Exception as error:
                     # API exceptions can contain request information. Never emit their contents.
                     code = getattr(error, 'status_code', None)

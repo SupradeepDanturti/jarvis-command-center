@@ -1,5 +1,13 @@
 # Foundation validation — 2026-10-03
 
+## Conversational Jarvis and native web search
+
+- 61 backend checks pass, including persistence/pagination/500-record retention, six-exchange context across restart, approved history reads and owner deletion, revoked-device refusal, follow-up settings validation, speech timeout/cancellation/overflow and a complete mocked two-turn worker conversation with only one wake detection.
+- Native Responses `web_search` was tested with the saved key and GPT-6 Luna: an official NASA search returned a concise update with a nasa.gov citation in approximately 4.4 seconds. The model has Jarvis-style system instructions. No laptop action was dispatched by that test.
+- Trusted Edge checks cover saved history, action results, escaped inline sources (unsafe URLs rejected), follow-up settings and owner clear-history. Voice writes and microphone/playback are mocked; actual input enumeration and configuration status are read through trusted HTTPS without exposing the key.
+- The configured 1280×800 Jarvis layout keeps controls above the dock, scrolls history separately and folds away the API key form. Screenshots are inspected locally. JavaScript syntax and the original browser navigation checks pass.
+- The user confirmed spoken YouTube and Steam launches before this conversation update. Physical follow-up timing, local spoken web-search output, Windows-lock behavior and the Redmi Jarvis screen still require acceptance after reloading and enabling Jarvis.
+
 ## Jarvis laptop voice
 
 - 56 backend tests pass, including DPAPI key encryption, owner/origin restrictions, revocation, strict tool arguments, locked/old-worker dispatch rejection, microphone selection, stop/unload and no retries of completed actions. Test temps use a new ignored directory. Optional voice dependencies are included in Windows CI.
@@ -7,7 +15,7 @@
 - The existing browser smoke passes with the new screen available; pairing, native wake lock, original navigation/backgrounds, game library, media controls, reconnect and CSP are preserved. New JavaScript syntax checks and `pip check` pass.
 - Actual downloaded ONNX models pass pinned checksums. Piper synthesized a 4.73-second sample in 1.9 seconds. A native process with Piper and the wake model used approximately 315 MB RSS after initialization and a silence inference. This is a single observed measurement, not a memory ceiling. No CUDA/Torch/local language model was installed.
 - The user saved the API key through the approved laptop UI. A real `gpt-transcribe` request correctly transcribed locally synthesized “Hey Jarvis, how much memory am I using?”; `gpt-6-luna` selected `system_status`, read current hardware values through our adapter and returned a short reply. Piper synthesized that reply locally. The cloud round trip measured 5.12 seconds. No microphone or app/media action was invoked by this test; only the read-only hardware function was allowed.
-- Windows initially used Stereo Mix as its default. Jarvis excludes it and offers compatible MME capture devices. After the user connected the Logitech C920e, its microphone was detected and selected, with identity saved across restart. Fresh-process enumeration and the dropdown refresh arrow support newly connected devices. A trusted native API/browser read verifies the current selection resolves to a detected input without exposing a key. Physical room wake detection, speaker output, live spoken app/media commands, Windows-lock behavior and the Redmi Jarvis screen still require user acceptance.
+- Windows initially used Stereo Mix as its default. Jarvis excludes it and offers compatible MME capture devices. After the user connected the Logitech C920e, its microphone was detected and selected, with identity saved across restart. Fresh-process enumeration and the dropdown refresh arrow support newly connected devices. A trusted native API/browser read verifies the current selection resolves to a detected input without exposing a key. The user subsequently confirmed spoken YouTube and Steam launches work. Conversational room timing, Windows-lock behavior and the Redmi Jarvis screen still require user acceptance.
 
 ```powershell
 $env:G16_PLAYWRIGHT_PATH='C:\Users\suppu\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\node_modules\playwright'

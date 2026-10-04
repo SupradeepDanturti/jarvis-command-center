@@ -133,13 +133,17 @@ Only existing executable files are accepted; do not register shells or interpret
 
 ## Jarvis voice on the laptop
 
-Open **More → Jarvis** on the approved laptop browser. Paste your OpenAI API key into the password field and choose **Save key**. Do not paste it into chat, source files, or Git. Windows encrypts it for the current user in the existing private-state directory; saving does not validate billing or model access.
+Open **More → Jarvis** on the approved laptop browser. Expand **Manage API key** if a key is already saved. Paste your OpenAI API key into the password field and choose **Save key**. Do not paste it into chat, source files, or Git. Windows encrypts it for the current user in the existing private-state directory; saving does not validate billing or model access.
 
 Choose a **Laptop microphone**, **Preview voice**, then **Turn on Jarvis**. The same microphone dropdown is also in **More → System & controls**, with an **Open Jarvis** shortcut. Selection persists across restarts. Tap the refresh arrow after connecting a webcam/headset. Stereo Mix is excluded; the integrated webcam's nearby microphone is Windows' Microphone Array. Headset/USB inputs are listed when Windows exposes a compatible capture device. The user's Logitech is **Microphone (Logi Webcam C920e)**.
 
 Say “Hey Jarvis, open YouTube,” “open Discord,” “turn the volume down,” or “how much memory am I using?” Wake detection and the synthetic Jarvis-style voice run locally on the CPU. Only the short command clip/text is sent to OpenAI. Registered app launches, media controls and hardware status are supported; no arbitrary shell, URLs, shutdown or smart-home control.
 
-OpenAI uses **GPT Transcribe** (`gpt-transcribe`) for speech recognition and **GPT-6 Luna** (`gpt-6-luna`, reasoning effort `none`) for command interpretation and replies. Piper generates the final voice locally.
+OpenAI uses **GPT Transcribe** (`gpt-transcribe`) for speech recognition and **GPT-6 Luna** (`gpt-6-luna`, reasoning effort `none`) for command interpretation and replies. Piper generates the final voice locally. The system prompt asks for Jarvis-style British phrasing and dry wit. Native OpenAI **web search** handles searches and current information; clickable sources appear beside the answer rather than being read aloud.
+
+After Jarvis replies, speak again within **15 seconds** without another “Hey Jarvis”. **Follow-up listening** offers Off, 15 or 30 seconds; turn Jarvis off before changing it. Silence or “thank you” returns to wake-word listening.
+
+**Your conversations** saves the latest 500 text exchanges, action results and sources privately on this laptop across restarts. The latest six exchanges accompany each OpenAI turn so follow-up answers retain context. Audio is not saved. Scroll the history or choose **Earlier conversations**; the localhost owner can choose **Clear history**, which also turns Jarvis off.
 
 Closing the webpage keeps Jarvis running. **Turn off Jarvis** releases the microphone and models. Listening pauses while Windows is locked and while processing/speaking. A server restart always starts with Jarvis off. Any approved browser can toggle it; only an approved direct-localhost owner can save or remove the key. OpenAI API billing is separate from ChatGPT subscriptions.
 

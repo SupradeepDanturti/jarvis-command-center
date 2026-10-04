@@ -7,12 +7,13 @@ from pathlib import Path
 import threading
 import time
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ConfigDict, SecretStr
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from .security import require_origin
 from .tls import dpapi
 from .voice_actions import execute_tool, voice_tools
+from .voice_history import VoiceHistory
 
 MODEL_FILES = ('jarvis-medium.onnx', 'jarvis-medium.onnx.json', 'hey_jarvis_v0.1.onnx',
                'melspectrogram.onnx', 'embedding_model.onnx')
@@ -31,9 +32,19 @@ class VoiceService:
         self.last_heard = self.last_reply = ''
         self.last_started = 0
         self.input_id = None
+        self.history = VoiceHistory(self.directory)
+        self.followup_seconds = 15
+        self.last_action = None
         if self.directory and (self.directory / 'input.json').exists():
             try:
                 self.input_id = json.loads((self.directory / 'input.json').read_text(encoding='utf-8')).get('id')
+            except (OSError, ValueError):
+                pass
+        if self.directory and (self.directory / 'settings.json').exists():
+            try:
+                seconds = json.loads((self.directory / 'settings.json').read_text(encoding='utf-8')).get('followupSeconds')
+                if type(seconds) is int and seconds in {0, 15, 30}:
+                    self.followup_seconds = seconds
             except (OSError, ValueError):
                 pass
 
@@ -51,7 +62,22 @@ class VoiceService:
                     'busy': alive, 'keyConfigured': configured, 'modelsInstalled': installed,
                     'dependenciesInstalled': dependencies, 'ready': installed and dependencies and configured,
                     'lastHeard': self.last_heard, 'lastReply': self.last_reply,
-                    'wakePhrase': 'Hey Jarvis', 'inputId': self.input_id}
+                    'wakePhrase': 'Hey Jarvis', 'inputId': self.input_id,
+                    'followupSeconds': self.followup_seconds, 'history': self.history.recent(12)}
+
+    def set_followup(self, seconds):
+        if type(seconds) is not int or seconds not in {0, 15, 30}:
+            raise HTTPException(400, 'Choose off, 15 seconds, or 30 seconds.')
+        with self.lock:
+            self.stop()
+            self.followup_seconds = seconds
+            if self.directory:
+                (self.directory / 'settings.json').write_text(json.dumps({'followupSeconds': seconds}), encoding='utf-8')
+
+    def clear_history(self):
+        with self.lock:
+            self.stop()
+            self.history.clear()
 
     def audio_inputs(self):
         from .voice_audio import enumerate_in_child
@@ -122,13 +148,15 @@ class VoiceService:
             parent, child = context.Pipe()
             stop = context.Event()
             process = context.Process(target=worker_main,
-                args=(child, stop, str(self.directory / 'models'), key, voice_tools(self.registry), preview, self.input_id),
+                args=(child, stop, str(self.directory / 'models'), key, voice_tools(self.registry), preview, self.input_id,
+                      self.followup_seconds, self.history.context()),
                 daemon=True, name='G16 Jarvis')
             self.generation += 1
             generation = self.generation
             self.phase = 'preview' if preview else 'starting'
             self.message = 'Preparing the local voice.' if preview else 'Starting Jarvis on your laptop.'
             self.last_heard = self.last_reply = ''
+            self.last_action = None
             try:
                 process.start()
             except Exception:
@@ -159,12 +187,18 @@ class VoiceService:
                             except (ValueError, TypeError, HTTPException):
                                 result = {'ok': False, 'message': 'This action could not be carried out.'}
                         pipe.send({'type': 'result', 'result': result})
+                        self.last_action = {'name': event.get('name'), 'arguments': event.get('arguments'),
+                                            'ok': bool(result.get('ok')), 'message': result.get('message', '')[:200]}
                     elif event.get('type') == 'status':
                         self.phase = event['phase']
                         self.message = event['message'][:200]
                     elif event.get('type') == 'exchange':
                         self.last_heard = str(event.get('heard', ''))[:500]
                         self.last_reply = str(event.get('reply', ''))[:500]
+                        self.history.add(event.get('heard', ''), self.last_reply, self.last_action, event.get('sources'))
+                        self.last_action = None
+                    elif event.get('type') == 'turn':
+                        self.last_action = None
         except (EOFError, OSError, ValueError):
             pass
         finally:
@@ -209,11 +243,30 @@ class InputRequest(BaseModel):
     id: str | None
 
 
+class FollowupRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    seconds: int = Field(strict=True)
+
+
 def voice_router(service, authenticate, owner):
     router = APIRouter(prefix='/api/voice')
 
     @router.get('/status', dependencies=[Depends(authenticate)])
     def status():
+        return service.status()
+
+    @router.get('/history', dependencies=[Depends(authenticate)])
+    def history(before: int | None = Query(default=None, ge=1)):
+        return service.history.recent(before=before)
+
+    @router.delete('/history', dependencies=[Depends(owner), Depends(require_origin)])
+    def clear_history():
+        service.clear_history()
+        return {'ok': True}
+
+    @router.put('/followup', dependencies=[Depends(authenticate), Depends(require_origin)])
+    def followup(body: FollowupRequest):
+        service.set_followup(body.seconds)
         return service.status()
 
     @router.get('/inputs', dependencies=[Depends(authenticate)])
