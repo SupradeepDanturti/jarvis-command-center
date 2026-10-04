@@ -174,6 +174,8 @@ Graph history begins at startup, lasts at most one hour in memory, and resets on
 
 ## Development checks
 
+Changes must use a feature branch and a pull request to main. Direct commits/pushes to main are prohibited. The human owner reviews and completes merges; agents leave PRs awaiting approval. See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow, owner exception for self-authored PRs, and GitHub enforcement.
+
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python.exe -m pytest -q

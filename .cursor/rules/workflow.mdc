@@ -12,4 +12,5 @@ alwaysApply: true
 - Avoid restarting the active server for static edits. Use scripts/restart-server.ps1 when a backend restart is necessary.
 - Test changed behavior and document actual verification; never claim an unperformed reboot or physical control test passed.
 - Keep user-facing how-tos aligned with the UI, particularly Device access for approving and revoking browsers.
-- Commit source, project rules, and documentation; exclude generated local state and secrets. Push completed work to the existing repository without rewriting history.
+- Commit source, rules, and docs on a feature branch; exclude private state/secrets. Push that branch and open a PR to main. No direct commits or pushes to main, even for docs/rules. Do not rewrite published history.
+- Leave merges to the human owner, SupradeepDanturti. Never approve, enable auto-merge, merge, use an owner bypass, or weaken repository protections unless the human explicitly authorizes that specific action/PR. Possession of owner credentials is not approval. See CONTRIBUTING.md.

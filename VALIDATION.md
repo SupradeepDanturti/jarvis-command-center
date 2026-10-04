@@ -1,5 +1,11 @@
 # Foundation validation — 2026-10-03
 
+## GitHub owner approval policy
+
+- Two active GitHub rulesets target main: a no-bypass PR requirement with force-push/deletion protection, and owner-controlled PR merging with review requirements and a PR-only administrator exception. The collaborator list identifies SupradeepDanturti as the only administrator.
+- Ruleset JSON, all-files CODEOWNERS, contribution guidance and agent rules are proposed on a feature branch and PR, without changing main directly. CODEOWNERS review assignment takes effect when that file reaches the base branch; the live owner-only update restriction already prevents other contributors completing merges.
+- Verification reads effective GitHub rule settings without testing a real push to main or merging a PR. The running app is unaffected; no server restart is required.
+
 ## Installation and how-to guide
 
 - `SETUP.md` provides an ordered fresh-install flow and separate existing-install update steps. Commands and labels were checked against the HTTPS, startup, restart, certificate export, pairing, connection-file and voice implementations.
