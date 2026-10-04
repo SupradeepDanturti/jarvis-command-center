@@ -1,8 +1,25 @@
 # Foundation validation — 2026-10-03
 
+## Specification organization · 2026-10-04
+
+- Moved dashboard, Jarvis, Android and desk-experience specifications/plans into `spec/`, added an index, and updated documentation links and AGENTS.md references. Installation, security and validation guides remain at the repository root.
+- Local Markdown link targets and Git whitespace checks pass. This documentation-only change does not restart the dashboard or require runtime tests.
+
+## Desk experience implementation · 2026-10-04
+
+- All 102 backend tests passed on Windows/Python 3.14 with a new ignored `.state/` basetemp. Coverage includes current-session/track validation, tick conversion, denied seeking, late metadata events, bounded corrupt/non-raster artwork, a native in-memory WinRT stream, timer conflicts/restart/clock changes/completion, local speech without wake/STT/cloud/history, cancellation, bounded HWiNFO parsing/mapping/freshness and owner-only configuration. `pip check` and syntax checks for all changed JavaScript passed.
+- `node scripts/desk-policy-smoke.cjs` passed injected-clock checks for initially off automation, night boundaries across midnight, invalid settings, dwell/manual hold/pin, settings/interaction/focus/presentation blocking, media/game priority, context exit and reconnect. No physical clock or system settings were changed.
+- `node scripts/desk-features-smoke.cjs` passed in trusted Edge: artwork/metadata, escaped hostile text, one session action/seek, corrected volume icons and all three volume commands, focus start/pause/resume/reset, browser preference persistence and honest unavailable sensors. Player, timer and sensor writes were intercepted, so QA does not change the owner's playback, live timer or mappings. Media/Focus layouts were checked at the existing nine viewport sizes, with >=44px media targets, no horizontal page overflow and volume clear of the dock. Landscape/portrait player and focus screenshots were inspected locally.
+- Existing browser, media-controls, tablet-layout, voice, wake-lock and security smoke checks passed. Checks use fresh QA profiles, revoke their own credentials and never bypass TLS validation. They retain all user approvals and CA trust; no physical playback, volume, microphone, game launch or power action was performed by QA.
+- Native read-only Windows probing found Brave exposing title/artist/artwork. Its thumbnail was 150 × 83 PNG, with unknown duration (`-1` microsecond), so the UI preserves the image proportions/caps enlargement and omits the unsupported timeline. The owner confirmed image/title now appear. Spotify was absent from the session list during that probe, so Spotify-specific physical rendering/seeking remains unverified. The source thumbnail does not contain high-resolution detail.
+- No installed/running HWiNFO provider was identified in the checked locations. The optional adapter and owner mapping UI are delivered; this Dell's CPU/fan/SSD/throttle values remain unverified and unavailable until actual provider setup/comparison. Foreground game matching is tested against trusted records, without launching a real game. Physical Redmi automation, timer announcements and the final player/volume appearance still require user confirmation.
+- Necessary backend reloads use `scripts/restart-server.ps1`; static UI edits do not restart the server. Timer/sensor state stays in ignored private JSON. Existing device credentials and CA trust are preserved.
+
+Reproduce with the existing `G16_PLAYWRIGHT_PATH` setting and trusted server on port 18761. The two new checks are `node scripts/desk-policy-smoke.cjs` and `node scripts/desk-features-smoke.cjs`; screenshots stay in ignored `artifacts/`.
+
 ## Desk experience planning
 
-- `EXPERIENCE_PLAN.md` is a proposed build plan for Now playing, Focus, optional display automation and deeper sensors. Existing media/navigation/telemetry/Jarvis code and project boundaries were inspected; no runtime feature was added or enabled.
+- `spec/EXPERIENCE_PLAN.md` is a proposed build plan for Now playing, Focus, optional display automation and deeper sensors. Existing media/navigation/telemetry/Jarvis code and project boundaries were inspected; no runtime feature was added or enabled.
 - Read-only Windows inventory identified Dell G16 7630 and Intel Core i7-13650HX. Checked uninstall records, processes and common HWiNFO folders did not identify the proposed sensor tooling; portable installs elsewhere remain possible. CPU/fan/SSD/throttling sensor availability remains unverified.
 - Official Windows media documentation and the HWiNFO license matrix were reviewed for metadata/control capabilities and shared-memory limitations. The plan's future test/physical acceptance lists are requirements, not completed checks.
 - This documentation-only change does not require backend/browser tests or a server restart. Documentation links, scope labeling and whitespace are checked before delivery; existing approvals and CA state are untouched.

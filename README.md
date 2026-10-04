@@ -2,15 +2,16 @@
 
 A local touchscreen dashboard for a Dell G16, opened in a Redmi Pad Pro browser. The laptop runs the backend; the tablet displays telemetry and sends registered controls over Wi-Fi.
 
-**Current build:** eleven responsive pages with a custom G16 identity, a clock, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, and Windows media keys. No cloud assets or frontend build step.
+**Current build:** twelve responsive pages with a custom G16 identity, a clock, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, and Windows media keys. No cloud assets or frontend build step.
 
-Read [SPEC.md](SPEC.md) for the complete target, implementation decisions, security model, and roadmap.
+Read [the dashboard specification](spec/SPEC.md) for the complete target, implementation decisions, security model, and roadmap. All specifications and design plans are indexed in [spec/](spec/README.md).
 
-**Next features (planned):** [Desk experience plan](EXPERIENCE_PLAN.md) defines Now playing, a focus timer with optional Jarvis reminders, opt-in night dimming/rotation/context switching, and verified deeper thermal sensors. It records the proposed defaults, build order, dependencies and acceptance checks; these additions are not implemented yet.
+**Desk experience:** **More → Now playing** shows the Windows-selected Spotify/Brave session's artwork, title and artist, with session-specific playback controls and progress/seeking when supported. **Clock → Focus timer** adds a shared laptop countdown. **More → System & controls → Tablet settings** holds opt-in night dimming, slow rotation, context switching and timer settings. **Hardware** has optional read-only HWiNFO sensor mapping; real extra readings remain unavailable until the owner enables and verifies the provider. See [SETUP.md](SETUP.md#now-playing-focus-and-automatic-display) and the original [experience plan](spec/EXPERIENCE_PLAN.md).
+
 
 **Installation and how-to:** follow [SETUP.md](SETUP.md) for the complete Windows, HTTPS, background startup, Redmi pairing, everyday use, Jarvis, update, and troubleshooting walkthrough. Already installed? Go directly to [the update steps](SETUP.md#update-an-existing-installation).
 
-The display uses a small floating dock: **Home, Live (performance), Games, Apps, Clock, Ambient**. **More** opens Hardware, Live graphs, System & controls, Device access, and Jarvis. Home gives the black-hole artwork the center, with a compact heading, one horizontal CPU/vitals/media strip, and launcher icons. Clock and Ambient fill the display; Games uses a sideways poster gallery. There is no permanent sidebar or overview card grid.
+The display uses a small floating dock: **Home, Live (performance), Games, Apps, Clock, Ambient**. **More** opens Now playing, Hardware, Live graphs, System & controls, Device access, and Jarvis. Home gives the black-hole artwork the center, with a compact heading, one horizontal CPU/vitals/media strip, and launcher icons. Clock and Ambient fill the display; Games uses a sideways poster gallery. There is no permanent sidebar or overview card grid.
 
 Home's sound controls include previous/play-pause/next and **volume down, mute/unmute, volume up**. They control sound on the laptop through Windows media keys; every button remains available in narrow layouts. **Hold volume down/up** to adjust continuously: one step immediately, then repeat after 400 ms until released. A tap keeps Windows' normal volume step (typically two percentage points). Repeats stop when you release, slide off the button, change pages, hide the browser, lose connection, or a command fails; requests do not pile up behind a slow connection. A continuous hold is bounded to ten seconds; lift and hold again if needed.
 
@@ -125,7 +126,7 @@ Three original 1280×720, 16-second loops and their posters are included in the 
 
 **Games** detects installed games from all registered Steam libraries, Epic installation manifests, GOG registry entries, and Riot installation metadata. It excludes Steam redistributables, Unreal Engine/plugins, incomplete installations, and missing installation paths. Swipe/scroll the poster gallery sideways to see more games. Locally cached Steam artwork is displayed when available; other games get a branded fallback cover. Game artwork remains on the laptop and is served only to approved browsers.
 
-Search by title, filter by launcher, and tap **Play on laptop**. Steam and Epic launch through their registered launcher protocols; Riot uses its client with fixed product/patchline arguments; GOG launches its registered executable. The tablet sends only the detected game ID. Game processes and gameplay status are not yet tracked.
+Search by title, filter by launcher, and tap **Play on laptop**. Steam and Epic launch through their registered launcher protocols; Riot uses its client with fixed product/patchline arguments; GOG launches its registered executable. The tablet sends only the detected game ID. Opt-in automatic display can recognize a foreground executable inside a trusted game installation or an exact local registration. Launchers/helpers and ambiguous matches are excluded; unsupported foreground processes cause no automatic switch.
 
 Opening Games checks the library, with a one-minute discovery cache. **Refresh** rescans immediately after you install or remove a game. Portable games and launchers without a supported local record need a trusted laptop registration in ignored `config/games.local.json`:
 
@@ -164,7 +165,7 @@ Optional setup on a new laptop:
 .\.venv\Scripts\python.exe scripts/install-voice.py
 ```
 
-The installer downloads only the ONNX runtime voice/wake models into ignored private state and verifies pinned checksums. It does not install another assistant's UI. See [JARVIS_SPEC.md](JARVIS_SPEC.md) and the **Setup & supported commands** link on the Jarvis screen.
+The installer downloads only the ONNX runtime voice/wake models into ignored private state and verifies pinned checksums. It does not install another assistant's UI. See [JARVIS_SPEC.md](spec/JARVIS_SPEC.md) and the **Setup & supported commands** link on the Jarvis screen.
 
 ## Sensor availability
 

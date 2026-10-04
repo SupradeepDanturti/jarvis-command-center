@@ -172,9 +172,9 @@ Evaluate candidates in this order:
 - Preserve HTTPS/WSS, approved-browser access, same-origin mutations, direct-loopback owner management and the setup-only HTTP listener. New reads/artwork require approval; endpoints never accept arbitrary URLs, paths or command arrays.
 - Browser display preferences are harmless local preferences. Shared timer state/sensor mapping remains in ignored private/local configuration. Never stage keys, certificates, device databases, logs, audio, conversation files or QA state.
 - Backend increments run `.venv\Scripts\python.exe -m pytest -q`; changed JavaScript runs `node --check`. Use a new nonexistent ignored `.state/` basetemp if stale Windows temp ACLs require it. Never delete unrelated temp folders.
-- Extend trusted Edge QA with deterministic media/timer/display/sensor mocks, and rerun relevant scripts in VALIDATION.md: browser, media-controls, tablet-layout, wake-lock, voice and security as affected. Fresh QA profiles revoke only their own credentials and never bypass certificate validation.
+- Extend trusted Edge QA with deterministic media/timer/display/sensor mocks, and rerun relevant scripts in ../VALIDATION.md: browser, media-controls, tablet-layout, wake-lock, voice and security as affected. Fresh QA profiles revoke only their own credentials and never bypass certificate validation.
 - Use the existing nine viewport sizes, including the reported physical Redmi 1280x800, to verify touch targets, dock clearance, sliders, portrait reflow and immersive views. Inspect screenshots; browser emulation does not replace physical acceptance.
-- For each delivered phase update README.md, SETUP.md, SPEC.md and VALIDATION.md; update JARVIS_SPEC.md for timer speech and SECURITY.md for metadata/artwork/timer/activity/sensor privacy where applicable. Mark automated, native read-only and owner-confirmed physical checks separately.
+- For each delivered phase update ../README.md, ../SETUP.md, SPEC.md and ../VALIDATION.md; update JARVIS_SPEC.md for timer speech and ../SECURITY.md for metadata/artwork/timer/activity/sensor privacy where applicable. Mark automated, native read-only and owner-confirmed physical checks separately.
 - Restart only for installed backend changes, through `scripts/restart-server.ps1`, preserving approvals and CA trust. Static/frontend/documentation changes do not restart the working dashboard. This planning-only change needs no restart or runtime tests.
 
 ## Decisions carried forward
@@ -191,3 +191,9 @@ The remaining external dependency decision is the thermal provider and any licen
 - [HWiNFO license matrix](https://www.hwinfo.com/licenses/): shared-memory runtime limits and manual re-enabling requirement.
 
 References reviewed while preparing this plan. Native media metadata/seek behavior and HWiNFO shared-memory layout still require implementation-time verification.
+
+## Implementation status · 2026-10-03
+
+The owner subsequently authorized the build. Media, Focus and display behavior were implemented as one integrated increment on the implementation feature branch, preserving this plan as the design record. The optional read-only thermal adapter and owner mapping UI are delivered, but HWiNFO is not installed/running on this laptop and no new physical sensors are claimed verified. Native Brave title/artist/artwork were read successfully; the owner confirmed image/title display. Brave supplied a 150 × 83 thumbnail and an unknown duration, so the UI preserves image proportions and hides unsupported seeking. Spotify-specific physical verification remains outstanding.
+
+See ../SETUP.md for current controls and ../VALIDATION.md for final automated/native/physical evidence. Separate per-phase PRs were consolidated after the build request; the feature PR remains for human review, without merging.

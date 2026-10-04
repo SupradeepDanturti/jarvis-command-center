@@ -141,7 +141,7 @@ This app uses `gpt-transcribe` for recognition and `gpt-6-luna` for interpretati
 
 Home shows the Iron Man activity overlay during listening, processing, speech, follow-up, and warnings. Closing the webpage leaves Jarvis running. **Turn off Jarvis** releases its microphone and models. Windows lock pauses listening. A server restart always starts Jarvis **off**; turn it back on after updating/restarting.
 
-See [JARVIS_SPEC.md](JARVIS_SPEC.md) or **Setup & supported commands** on Jarvis for details.
+See [JARVIS_SPEC.md](spec/JARVIS_SPEC.md) or **Setup & supported commands** on Jarvis for details.
 
 ## Update an existing installation
 
@@ -250,3 +250,23 @@ Confirm it is installed. YouTube requires Brave. Use **Games → Refresh** for n
 Graph history stays **in memory for up to one hour** and resets on restart. It is not stored in the device database. Audio is not saved. Keep private state out of Git/shared folders; encrypted keys belong to this Windows account and are not a portable setup package for another laptop.
 
 See [SECURITY.md](SECURITY.md) for trust boundaries and [VALIDATION.md](VALIDATION.md) for checks actually performed.
+
+## Now playing, focus and automatic display
+
+After updating dependencies and restarting through `scripts/restart-server.ps1`, reload the tablet once. Existing approvals and certificates remain valid.
+
+**More → Now playing** follows the Windows-selected player. Start Spotify on the laptop or play a YouTube video in Brave. Artwork, title, artist and available album information update automatically. Previous/play/pause/next affect that session; unsupported buttons are disabled. Progress and seeking appear only when the player reports a valid duration and seek support. Laptop volume down/mute/up are also available; holding down/up repeats the existing Windows volume steps. These buttons do not claim an absolute volume or mute state.
+
+Artwork keeps its original proportions and uses a local backdrop. The dashboard serves the image supplied by Windows without a remote artwork lookup. Some Brave YouTube sessions provide only a 150 × 83 thumbnail and no duration: a better page layout cannot recover missing image detail, and the seek bar stays hidden. This is a player limitation. Spotify should expose its own session while playing; a background Spotify window alone does not select it. If details remain unavailable, verify the player appears in Windows media controls and reload after the backend update.
+
+**Clock → Focus timer**, or the Home shortcut, opens the large laptop-owned countdown. Start, pause/resume, skip and reset it from any approved browser. Defaults are 25-minute focus, 5-minute short break and 15-minute long break after four completed focus phases. Each phase waits for you to start the next. Reloading preserves the timer; overdue recovery after a server restart is silent. A system-clock change pauses for review. Durations and optional completion speech are under **More → System & controls → Tablet settings → Focus timer**. Pause before changing durations. Announcements require Jarvis already enabled, idle and the laptop unlocked; they never turn listening on or use a cloud request.
+
+**Tablet settings → Display behavior** holds independent, initially off switches for night dimming, slow screen rotation, playing-media switching and recognized-game switching. Default night hours are 22:00–07:00 in this viewing device's timezone; dimming affects page artwork/readings, while Android retains hardware-brightness control. Brighten temporarily lasts 15 minutes. Rotation defaults to Home/Clock/Ambient every 120 seconds; choose at least two screens. Touch holds your view for two minutes, and More/settings/dialogs, immersive view, a running/paused Focus view, a hidden tab or stale connection suppress navigation. Games take priority over background music. **Stay on this screen** pins the view until **Resume automatic display**. Settings are remembered per browser.
+
+## Optional extra thermal readings
+
+Extra sensors are off by default. HWiNFO is not installed by the dashboard. If you choose it, open its Sensors window on the laptop and enable Shared Memory Support. Non-Pro 64-bit shared memory stops after 12 hours and needs manual enabling again; [HWiNFO's license matrix](https://www.hwinfo.com/licenses/) documents the limit.
+
+In the approved owner browser at **https://localhost:18761**, open **More → Hardware → Extra sensor setup**. Turn extra sensors on, refresh the sensor list, and compare labels/current values against HWiNFO. Select the actual CPU package temperature, fan RPM entries, individual physical SSD temperature entries, and explicit CPU/GPU thermal-throttling flags. Save the mapping. Do not map a core temperature as CPU package or a power-limit flag as thermal throttling. Separate drive readings remain separate from partition usage. Mapping is laptop-private and uses stable sensor/reading identities.
+
+Missing, unmapped, stopped, expired or incompatible readings show Unavailable and stale values clear within five seconds. Fan control and thermal intervention are not implemented. This Dell's CPU/fan/SSD/throttle readings remain unverified until compared with a running provider; working NVIDIA readings continue independently.

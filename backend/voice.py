@@ -38,6 +38,7 @@ class VoiceService:
         self.last_action = None
         self.output_id = None
         self.alerts_enabled = True
+        self.pending_reminder = None
         self.alert_policy = HardwareAlerts(self.directory / 'alerts.json' if self.directory else None)
         if self.directory and (self.directory / 'input.json').exists():
             try:
@@ -221,11 +222,47 @@ class VoiceService:
                 pipe.send({'type': 'alert', 'text': text})
                 self.phase, self.message = 'alert', 'Hardware threshold reached.'
 
+    def remind(self, identity, phase):
+        from .voice_worker import desktop_unlocked
+        with self.lock:
+            if (phase not in {'focus', 'short', 'long'} or not self.process or not self.process.is_alive()
+                or self.phase in {'off', 'preview', 'locked', 'error'} or not desktop_unlocked()):
+                return
+            phrase = ('Your focus session is complete. Time for a break.' if phase == 'focus' else
+                      'Your break is complete. Ready for another focus session?')
+            self.pending_reminder = {'type': 'reminder', 'id': identity, 'text': phrase,
+                                     'expires': time.time() + 60, 'generation': self.generation}
+
+    def cancel_reminder(self):
+        with self.lock:
+            self.pending_reminder = None
+            if self.pipe and self.process and self.process.is_alive():
+                try:
+                    self.pipe.send({'type': 'reminder-cancel'})
+                except (EOFError, OSError):
+                    pass
+
+    def _check_reminders(self, generation, pipe):
+        from .voice_worker import desktop_unlocked
+        with self.lock:
+            reminder = self.pending_reminder
+            if reminder is None:
+                return
+            if (reminder['generation'] != generation or generation != self.generation
+                or reminder['expires'] <= time.time() or self.stop_event.is_set() or not desktop_unlocked()):
+                self.pending_reminder = None
+                return
+            if self.phase == 'listening':
+                pipe.send({k: v for k, v in reminder.items() if k != 'generation'})
+                self.pending_reminder = None
+                self.phase, self.message = 'alert', 'Focus reminder.'
+
     def _monitor(self, generation, process, pipe):
         from .voice_worker import desktop_unlocked
         try:
             while process.is_alive() or pipe.poll():
                 self._check_alerts(generation, pipe)
+                self._check_reminders(generation, pipe)
                 if not pipe.poll(0.2):
                     continue
                 event = pipe.recv()
@@ -267,6 +304,7 @@ class VoiceService:
     def stop(self):
         with self.lock:
             self.generation += 1  # Reject all late actions and replies from the old worker.
+            self.pending_reminder = None
             process, stop, pipe = self.process, self.stop_event, self.pipe
             self.process = self.pipe = self.stop_event = None
             self.phase, self.message = 'off', 'Microphone off.'
