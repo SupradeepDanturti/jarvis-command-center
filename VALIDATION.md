@@ -1,5 +1,11 @@
 # Foundation validation — 2026-10-03
 
+## Personalized assistant feasibility plan · 2026-10-04
+
+- Official Google documentation was checked for Calendar/Gmail/Sheets scopes, desktop OAuth/PKCE and its lack of incremental authorization, personal-use verification and Testing-token expiry, and Google Health setup, profile linkage, data-type operations and current new-project onboarding restrictions. Official Meta Muse and OpenAI dots documentation informed the personalization/responsibility direction. Dated source links and unresolved compatibility gates are recorded in `spec/PERSONAL_ASSISTANT_PLAN.md`.
+- This is a documentation-only planning change. No OAuth flow, Google account access, runtime adapter, microphone, provider write or background job was started; no private account data or credentials were collected. The working server was not restarted. Runtime, provider and physical-device acceptance are pending implementation; previously passing checks are not evidence that these planned integrations work.
+- Local Markdown file links and Git whitespace checks pass. Backend/browser tests were not rerun because no runtime code or frontend behavior changed.
+
 ## Completed-action Jarvis replies · 2026-10-04
 
 - Jarvis's prompt now leads with brief completed-action confirmations and composed British phrasing: “YouTube opened in Brave, sir,” “Steam opened,” “Clock selected” and named Ambient scene selections. App/website dispatch and navigation success messages use the same wording for reply-failure fallback. Confirmations acknowledge dispatch/selection, without claiming page loading, continued app operation or browser acknowledgment. Failures and Rest restrictions remain explicit. Reference audio files were not opened; speech synthesis and the saved introduction are unchanged.

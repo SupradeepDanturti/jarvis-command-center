@@ -1,5 +1,7 @@
 # Laptop Jarvis voice
 
+The planned expansion into a connected, personalized agent is recorded in [PERSONAL_ASSISTANT_PLAN.md](PERSONAL_ASSISTANT_PLAN.md). It includes the user's full-access Google service direction and editable memory/ongoing responsibilities. Those adapters and background assistant features are not implemented by the current voice worker described below.
+
 ## Scope
 
 An optional laptop voice worker inside G16 Command Center, controlled from the existing HTTPS webpage. No Android app, separate assistant frontend, ElevenLabs, or local language model. The worker uses the laptop microphone and speakers; the Redmi remains a remote switch and status surface.
