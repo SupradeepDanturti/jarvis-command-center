@@ -114,6 +114,9 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     current.enabled=true;current.busy=true;current.phase='listening';
     await page.locator('[data-page="home"]').click();
     await page.waitForFunction(()=>document.querySelector('#jarvis-home')?.dataset.active==='false'&&!document.querySelector('#jarvis-home').hidden);
+    await page.evaluate(()=>{restState={...restState,rest:true};render()});
+    assert.equal(await page.locator('#jarvis-home').isHidden(),true,'Rest entered from Home hides idle badge');
+    await page.evaluate(()=>{restState={...restState,rest:false};render()});
     for(const phase of ['recording','transcribing','thinking','speaking','followup','alert']){
       current.phase=phase;current.message=phase==='thinking'?'Working on your request.':'Voice activity.';current.lastReply='At your service, sir. Your laptop is within reach.';
       await page.waitForFunction(phase=>document.querySelector('#jarvis-home')?.dataset.phase===phase,phase);
@@ -141,9 +144,12 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
       await page.setViewportSize({width:widthHeight[0],height:widthHeight[1]});
       for(const id of ['gaming','games','apps','hardware','graphs','system','devices','voice','clock','ambient','rest']){
         await page.evaluate(id=>goPage(id),id);
-        current.phase='thinking';
+        current.phase='listening';await page.evaluate(()=>refreshVoice());
+        await page.waitForFunction(()=>document.querySelector('#jarvis-home')?.dataset.phase==='listening'&&document.querySelector('#jarvis-home').hidden);
+        assert.equal(await page.evaluate(()=>document.body.classList.contains('jarvis-active')),false,'Idle Jarvis reserves no space');
+        current.phase='thinking';await page.evaluate(()=>refreshVoice());
         await page.waitForFunction(()=>document.querySelector('#jarvis-home')?.dataset.phase==='thinking'&&!document.querySelector('#jarvis-home').hidden);
-        current.phase='speaking';
+        current.phase='speaking';await page.evaluate(()=>refreshVoice());
         await page.waitForFunction(()=>document.querySelector('#jarvis-home')?.dataset.phase==='speaking');
         const layout=await page.locator('#jarvis-home').evaluate(el=>{
           const r=el.getBoundingClientRect(),dock=document.querySelector('.surface-dock').getBoundingClientRect();
@@ -153,6 +159,10 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
         if(id==='clock'||id==='ambient'){
           await page.evaluate(()=>setPresentation(true));
           assert.equal(await page.locator('#jarvis-home').isVisible(),true,'HUD remains available in immersive scenes');
+          assert.equal(await page.evaluate(()=>{
+            const hud=document.querySelector('#jarvis-home').getBoundingClientRect();
+            return ['.screen-kicker','.exit-immersive'].every(selector=>document.querySelector(selector).getBoundingClientRect().top>=hud.bottom);
+          }),true,'Active HUD leaves immersive heading and exit clear');
           await page.evaluate(()=>setPresentation(false));
         }
       }

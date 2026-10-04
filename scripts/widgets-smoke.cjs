@@ -9,6 +9,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   const external=[];page.on('request',request=>{if(!request.url().startsWith('https://localhost:18761/')&&!request.url().startsWith('wss://localhost:18761/'))external.push(request.url())});
   page.on('pageerror',error=>errors.push(error.message));
   page.on('console',message=>{if(message.type()==='error'&&/Content Security Policy|Refused/i.test(message.text()))errors.push(message.text())});
+  const voice={phase:'listening',busy:true,enabled:true,message:'Working on your request.',lastReply:'At your service, sir.'};
+  await page.route('**/api/voice/status',route=>route.fulfill({json:voice}));
   let failures=false,delayed=false,releaseWeather;
   const makeFeed=data=>({status:'ready',fetchedAt:Date.now()/1000,serverTime:Date.now()/1000,data});
   await page.route('**/api/widgets/**',async route=>{
@@ -27,18 +29,28 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   async function screen(id){await page.evaluate(id=>goPage(id),id);await page.waitForFunction(id=>document.body.dataset.view===id,id);await page.evaluate(()=>scrollTo(0,0))}
   async function settings(){await screen('system');await page.locator('#widget-settings').scrollIntoViewIfNeeded()}
   async function layout(label){
-    await page.evaluate(()=>scrollTo(0,document.querySelector('.widget-screen')&&innerHeight<600?document.documentElement.scrollHeight:0));
+    await page.evaluate(()=>scrollTo(0,0));
     const result=await page.evaluate(()=>{
       const dock=document.querySelector('.surface-dock').getBoundingClientRect();
       const elements=[...document.querySelectorAll('#page-content button,#page-content select,.native-digits,.analog-face,.moon-composition,.weather-temperature,.weather-air,.race-countdown')];
       return {overflow:document.documentElement.scrollWidth>innerWidth,
-        overlaps:elements.filter(el=>{const r=el.getBoundingClientRect();return r.width&&r.height&&r.top<dock.bottom&&r.bottom>dock.top&&r.left<dock.right&&r.right>dock.left}).map(el=>el.className||el.textContent),
+        overlaps:elements.filter(el=>{const r=el.getBoundingClientRect();return r.width&&r.height&&r.top<dock.bottom&&r.bottom>dock.top&&r.left<dock.right&&r.right>dock.left&&(!el.closest('.widget-content')||r.top<document.querySelector('.widget-content').getBoundingClientRect().bottom)}).map(el=>el.className||el.textContent),
         touch:elements.filter(el=>el.matches('button,select')&&getComputedStyle(el).display!=='none').every(el=>el.getBoundingClientRect().height>=44)};
     });
     assert.equal(result.overflow,false,label+' horizontal overflow');
     if(result.overlaps.length)await page.screenshot({path:path.join(root,'artifacts/widgets-layout-failure.png')});
     assert.deepEqual(result.overlaps,[],label+' dock overlap');
     assert.equal(result.touch,true,label+' touch target');
+    if(await page.locator('.widget-screen').count()){
+      const fit=await page.evaluate(()=>{
+        const rect=selector=>document.querySelector(selector).getBoundingClientRect();
+        const screen=rect('.widget-screen'),header=rect('.widget-screen>.screen-kicker'),content=rect('.widget-content'),footer=rect('.widget-screen>.screen-bottom');
+        const hud=document.querySelector('#jarvis-home'),voice=hud.hidden?null:hud.getBoundingClientRect();
+        const dock=rect('.surface-dock');
+        return {page:document.documentElement.scrollHeight<=innerHeight+1,controls:header.top>=0&&footer.bottom<=screen.bottom+1&&screen.bottom<=(presentation?innerHeight:dock.top),space:content.height>0&&content.top>=header.bottom&&content.bottom<=footer.top,voice:!voice||(voice.top>=header.bottom&&voice.bottom<=content.top&&voice.left>=screen.left&&voice.right<=screen.right),exit:!presentation||rect('[data-screen-exit]').bottom<=header.bottom};
+      });
+      for(const [key,ok] of Object.entries(fit))assert.equal(ok,true,label+' '+key);
+    }
   }
   try{
     await page.goto('https://localhost:18761');await page.waitForFunction(()=>state.auth?.local===true);
@@ -61,7 +73,25 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     assert.match(await page.locator('[data-widget-start]').innerText(),/local time/);assert.equal(await page.locator('[data-race-days]').innerText(),'01');
     for(const [width,height] of [[1280,800],[1280,720],[1024,600],[960,600],[800,1280],[768,1024],[600,960],[412,915],[640,400]]){
       await page.setViewportSize({width,height});
-      for(const view of ['weather','f1']){await screen('widgets');await page.locator(`[data-widget-select=${view}]`).click();await page.waitForFunction(()=>widgetFeeds[selectedWidget()]?.status==='ready');await layout(`${width}×${height} ${view}`)}
+      for(const view of ['weather','f1']){
+        await screen('widgets');await page.locator(`[data-widget-select=${view}]`).click();await page.waitForFunction(()=>widgetFeeds[selectedWidget()]?.status==='ready');
+        for(const immersive of [false,true]){
+          await page.evaluate(enabled=>setPresentation(enabled),immersive);
+          for(const phase of ['listening','speaking']){
+            voice.phase=phase;await page.evaluate(status=>{voiceState=status;jarvisStatusFreshAt=Date.now();paintJarvisHome()},voice);
+            assert.equal(await page.locator('#jarvis-home').isVisible(),phase==='speaking','Only active Jarvis appears on Widgets');
+            await layout(`${width}×${height} ${view} immersive=${immersive} ${phase}`);
+            await page.evaluate(()=>{const el=document.querySelector('.widget-content');el.scrollTop=el.scrollHeight});
+            await layout(`${width}×${height} ${view} scrolled immersive=${immersive} ${phase}`);
+            if(((width===1280&&height===800)||(width===412&&height===915)||(width===640&&height===400))&&phase==='speaking'){
+              await page.evaluate(()=>{document.querySelector('.widget-content').scrollTop=0;document.querySelector('#toast').hidden=true});
+              await page.screenshot({path:path.join(root,`artifacts/widgets-${view}-${immersive?'immersive':'normal'}-jarvis-${width}.png`)});
+            }
+          }
+          await page.evaluate(()=>{document.querySelector('.widget-content').scrollTop=0;setPresentation(false)});
+        }
+        voice.phase='listening';await page.evaluate(status=>{voiceState=status;paintJarvisHome()},voice);
+      }
       for(const face of ['minimal','analog','moon','flip']){
         await screen('clock');await page.locator('[data-clock-face]').selectOption(face);await layout(`${width}×${height} ${face}`);
         if(face==='analog')assert.equal(await page.evaluate(()=>{updateClock(new Date(2026,9,4,3,15,0),false);return document.querySelector('[data-analog-minute]').getAttribute('transform')}),'rotate(90 100 100)');
@@ -75,6 +105,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     await page.screenshot({path:path.join(root,'artifacts/widgets-weather.png')});
     await page.locator('[data-widget-select=f1]').click();await page.waitForFunction(()=>document.querySelector('[data-widget-race]').textContent==='Canadian Grand Prix');
     await page.screenshot({path:path.join(root,'artifacts/widgets-f1.png')});
+    await page.evaluate(()=>setConnection(false,'Reconnecting'));await layout('Widgets reconnecting banner');
+    await page.evaluate(()=>setConnection(true,'Live connection'));
     for(const id of ['widgets','clock']){
       await screen(id);await page.locator('[data-screen-focus]').click();
       await page.waitForFunction(()=>presentation&&document.fullscreenElement);

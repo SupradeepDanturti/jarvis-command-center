@@ -1,10 +1,18 @@
 /* Optional native desk screens. No remote artwork, fonts or embedded pages. */
 body[data-view=widgets] .surface-header{display:none}
 body[data-view=widgets] .surface-backdrop video{opacity:.22}
-.widget-screen{display:flex;flex-direction:column;gap:16px;min-height:var(--display-height);height:auto;padding:0;background:transparent;overflow:visible}
+body[data-view=widgets] main{display:flex;flex-direction:column;height:100dvh;min-height:0;overflow:hidden}
+body[data-view=widgets] #page-content{flex:1;min-height:0}
+body[data-view=widgets] #offline-banner{flex-shrink:0}
+.widget-screen{display:flex;flex-direction:column;gap:12px;min-height:0;height:100%;padding:0;background:transparent;overflow:hidden}
+.widget-header-actions{display:flex;align-items:center;gap:12px}
+.widget-screen>.screen-kicker,.widget-screen>.screen-bottom,.widget-voice-slot{flex-shrink:0}
+.widget-content{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;display:flex;flex-direction:column;gap:12px;padding-right:4px}
+.widget-content>.weather-composition,.widget-content>.race-composition{flex:1 0 auto}
+.widget-voice-slot:empty,.widget-voice-slot:has(.jarvis-home[hidden]){display:none}
 .widget-screen .screen-kicker{position:static;display:flex;align-items:center;justify-content:space-between;gap:20px}
 .widget-screen .screen-kicker button{min-height:44px;letter-spacing:0;font-size:13px;padding:8px 12px}
-.widget-screen .screen-bottom{position:static;margin-top:auto;gap:16px;flex-wrap:wrap}
+.widget-screen .screen-bottom{position:static;gap:16px;flex-wrap:wrap}
 .widget-screen .screen-bottom button,.native-clock button{min-height:44px}
 .widget-source,.widget-feed-status{font-size:12px;color:var(--muted);line-height:1.6;margin:0}
 .widget-source a{color:#b6c6ab;text-underline-offset:3px}
@@ -20,11 +28,11 @@ body[data-view=widgets] .surface-backdrop video{opacity:.22}
 .weather-forecast>div{display:flex;flex-direction:column;gap:8px;min-width:90px}
 .weather-forecast strong{font-size:24px;font-weight:450}.weather-forecast small,.weather-forecast>div>span{font-size:13px;color:var(--muted)}
 .weather-sun{width:100%;font-size:13px;color:var(--muted);margin:0}
-.race-composition{flex:1;display:flex;flex-direction:column;justify-content:center;padding:24px 0;min-width:0}
-.race-composition h2{font-size:clamp(32px,5vw,68px);font-weight:400;letter-spacing:-.035em;margin:16px 0;overflow-wrap:anywhere}
-.race-composition>p{color:var(--muted);font-size:14px;line-height:1.6;margin:6px 0}
-.race-countdown{display:flex;gap:clamp(16px,4vw,64px);margin:28px 0;flex-wrap:wrap;font-variant-numeric:tabular-nums}
-.race-countdown>div{display:flex;flex-direction:column;gap:8px}.race-countdown strong{font-size:clamp(40px,min(8vw,13dvh),100px);font-weight:350;line-height:1.1;letter-spacing:-.025em}
+.race-composition{flex:1;display:flex;flex-direction:column;justify-content:center;padding:12px 0;min-width:0}
+.race-composition h2{font-size:clamp(32px,min(5vw,7dvh),68px);line-height:1.1;font-weight:400;letter-spacing:-.035em;margin:12px 0;overflow-wrap:anywhere}
+.race-composition>p{color:var(--muted);font-size:13px;line-height:1.4;margin:3px 0}
+.race-countdown{display:flex;gap:clamp(16px,4vw,64px);margin:12px 0;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+.race-countdown>div{display:flex;flex-direction:column;gap:8px}.race-countdown strong{font-size:clamp(40px,min(8vw,10dvh),100px);font-weight:350;line-height:1.1;letter-spacing:-.025em}
 .race-countdown span{font-size:12px;color:var(--muted)}
 .widget-settings label:not(.setting-check),.clock-face-picker{display:flex;flex-wrap:wrap;align-items:center;gap:12px;font-size:14px;color:var(--muted)}
 .widget-settings select,.clock-face-picker select{min-height:44px;border:1px solid #ffffff25;border-radius:6px;padding:8px 12px;background:#10171c;color:var(--text);max-width:100%;font-size:14px}
@@ -43,10 +51,12 @@ body[data-view=widgets] .surface-backdrop video{opacity:.22}
 .analog-rim{fill:none;stroke:currentColor;stroke-width:.5;opacity:.4}.analog-ticks{stroke:currentColor;stroke-width:1.3}.analog-hour,.analog-minute{stroke:currentColor;stroke-linecap:round;stroke-width:4}.analog-minute{stroke-width:2}.analog-second{stroke:var(--green);stroke-width:.7}.analog-center{fill:var(--green)}
 .analog-clock .native-digits,.moon-clock .native-digits{font-size:clamp(36px,5vw,60px);letter-spacing:-.04em}
 .moon-composition{display:flex;gap:clamp(20px,5vw,70px);align-items:center}.moon-face{width:min(36dvh,30vw,300px);min-width:150px;height:auto}.moon-dark{fill:#242c33}.moon-light{fill:#e7eadb}.moon-composition h2{font-size:clamp(28px,4vw,52px);font-weight:400;margin:14px 0}.moon-composition p{color:var(--muted);font-size:14px}
-body.presentation[data-view=widgets] main{padding-top:24px;padding-bottom:24px}
-body.presentation .widget-screen{height:calc(100dvh - 48px);min-height:calc(100dvh - 48px);padding:0;overflow:auto}
+body.presentation[data-view=widgets] main{padding: max(16px,env(safe-area-inset-top,0px)) var(--surface-side) max(16px,env(safe-area-inset-bottom,0px));height:100dvh}
+body.presentation .widget-screen{height:100%;min-height:0;padding:0;overflow:hidden}
+body.presentation .widget-screen .exit-immersive{position:static;display:flex;white-space:nowrap}
+body.presentation .widget-header-actions [data-go=system]{display:none}
 @media(max-width:700px){.weather-composition{grid-template-columns:minmax(0,1fr);gap:24px}.weather-air{display:grid;grid-template-columns:auto 1fr;gap:4px 20px;align-items:center}.weather-air strong{grid-row:1/4;grid-column:1;font-size:56px}.weather-air>.surface-overline,.weather-air p{grid-column:2}.weather-forecast{gap:16px 24px}.native-clock .screen-bottom{flex-direction:column;align-items:flex-start}.native-digits{font-size:clamp(62px,18vw,110px)}.moon-composition{flex-direction:column;text-align:center}.moon-face{width:180px}.widget-screen .screen-kicker{gap:12px}.race-countdown{gap:20px}.race-countdown strong{font-size:clamp(36px,10vw,64px)}}
-@media(max-height:650px) and (orientation:landscape){.native-clock,.widget-screen{min-height:var(--display-height)}.analog-face{min-width:160px;min-height:160px;width:27dvh}.native-clock-center{padding:0;gap:8px}.native-clock{gap:12px}.moon-face{min-width:120px;width:25dvh}.moon-composition h2{font-size:30px}.weather-composition,.race-composition{padding:0;gap:14px}.weather-temperature{font-size:72px}.weather-forecast{padding-top:12px;gap:12px 24px}.race-countdown{margin:16px 0}}
+@media(max-height:650px) and (orientation:landscape){.native-clock{min-height:var(--display-height)}.analog-face{min-width:160px;min-height:160px;width:27dvh}.native-clock-center{padding:0;gap:8px}.native-clock{gap:12px}.moon-face{min-width:120px;width:25dvh}.moon-composition h2{font-size:30px}.weather-composition,.race-composition{padding:0;gap:14px}.weather-temperature{font-size:72px}.weather-forecast{padding-top:12px;gap:12px 24px}.race-countdown{margin:16px 0}}
 @media(max-height:650px) and (orientation:landscape){
   .widget-screen{gap:8px}
   .weather-composition{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:12px 28px}
