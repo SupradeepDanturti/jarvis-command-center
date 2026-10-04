@@ -50,7 +50,8 @@ def request_tool_action(pipe, stop, name, arguments, allowed, control):
         return {'ok': False, 'message': 'Voice control was stopped.'}
     identity = secrets.token_hex(12)
     pipe.send({'type': 'action', 'id': identity, 'name': name, 'arguments': arguments})
-    deadline = time.monotonic() + 5
+    # Fixed Windows discovery can take two bounded twelve-second reads; other actions stay short.
+    deadline = time.monotonic() + (30 if name == 'list_apps' else 5)
     while not stop.is_set() and time.monotonic() < deadline:
         if pipe.poll(0.08):
             message = pipe.recv()
@@ -295,7 +296,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                 try:
                     with pcm_wav(command) as audio:
                         transcript = client.audio.transcriptions.create(model='gpt-transcribe', file=audio,
-                            prompt='Laptop assistant command or conversational reply. App names: Steam, Discord, Spotify, Brave, YouTube, OBS. Rest commands: enter rest mode; wake up.')
+                            prompt='Laptop assistant command or conversational reply. App names may be any installed Windows application. Rest commands: enter rest mode; wake up.')
                     command = None
                     text = transcript.text.strip()[:1000]
                     if not text or not allowed():

@@ -66,12 +66,20 @@ async def _run_turn(client, instructions, text, tools, dispatch, allowed, histor
                     available = {scene.get('id') for scene in discovery.get('scenes', []) if isinstance(scene, dict)}
                     if not isinstance(arguments.get('scene'), str) or arguments['scene'] not in available:
                         return {'ok': False, 'message': 'Select a scene from the discovered Ambient options.'}
+                if spec['name'] == 'launch_app':
+                    discovery = completed.get(('list_apps', '{}'), {})
+                    if not discovery.get('ok'):
+                        return {'ok': False, 'message': 'Call list_apps before choosing an app to open.'}
+                    available = {app.get('id') for app in discovery.get('apps', []) if isinstance(app, dict)}
+                    if not isinstance(arguments.get('id'), str) or arguments['id'] not in available:
+                        return {'ok': False, 'message': 'Select an app from the discovered available apps.'}
                 key = (spec['name'], json.dumps(arguments, sort_keys=True))
                 if key in completed:
                     return completed[key]  # Never repeat even a timed-out or failed physical request.
                 slot = ('physical' if spec['name'] in {'launch_app', 'media_control'} else
                         'screen' if spec['name'] in {'show_screen', 'show_ambient'} else
-                        'catalog' if spec['name'] == 'list_ambient_scenes' else 'read')
+                        'scenes' if spec['name'] == 'list_ambient_scenes' else
+                        'apps' if spec['name'] == 'list_apps' else 'read')
                 if slot in slots:
                     return {'ok': False, 'message': 'One PC control, one screen request and one hardware read per turn.'}
                 slots.add(slot)
@@ -82,7 +90,9 @@ async def _run_turn(client, instructions, text, tools, dispatch, allowed, histor
                     completed[key] = result
                 except Exception:
                     result = completed[key]
-                results.append(result)
+                # Discovery is context, not a completed PC action to announce again on reply failure.
+                if spec['name'] not in {'list_apps', 'list_ambient_scenes'}:
+                    results.append(result)
                 return result
         return FunctionTool(name=spec['name'], description=spec['description'],
                             params_json_schema=spec['parameters'], on_invoke_tool=invoke,
@@ -96,7 +106,7 @@ async def _run_turn(client, instructions, text, tools, dispatch, allowed, histor
             agent = Agent(name='Jarvis', instructions=instructions, model=JarvisModel(connection, allowed, sources),
                           tools=sdk_tools, model_settings=settings)
             result = await Runner.run(agent, [*(history or [])[-12:], {'role': 'user', 'content': text[:1000]}],
-                                      max_turns=3, run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False))
+                                      max_turns=4, run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False))
             return spoken_reply(str(result.final_output or 'Please repeat that, sir.')) if allowed() else ''
     except VoiceCancelled:
         return ''

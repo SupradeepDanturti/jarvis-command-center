@@ -372,6 +372,19 @@ class VoiceService:
                 if not pipe.poll(0.2):
                     continue
                 event = pipe.recv()
+                app_inventory = None
+                if event.get('type') == 'action' and event.get('name') == 'list_apps':
+                    # Windows enumeration is read-only and may take seconds. Keep stop/lock/status responsive.
+                    with self.lock:
+                        if generation != self.generation:
+                            return
+                        discover = (self.phase == 'thinking' and self.pending_rest is None
+                                    and not self.stop_event.is_set() and desktop_unlocked())
+                    if discover:
+                        try:
+                            app_inventory = execute_tool('list_apps', event.get('arguments'), self.registry, self.telemetry)
+                        except (ValueError, TypeError, HTTPException):
+                            app_inventory = {'ok': False, 'message': 'Available apps could not be read. Try again shortly.'}
                 with self.lock:
                     if generation != self.generation:
                         return
@@ -383,8 +396,11 @@ class VoiceService:
                         result = {'ok': False, 'message': 'Voice control is unavailable.'}
                         if self.phase == 'thinking' and self.pending_rest is None and not self.stop_event.is_set() and desktop_unlocked():
                             try:
-                                result = execute_tool(event.get('name'), event.get('arguments'), self.registry,
-                                                      self.telemetry, navigate=self._show_screen)
+                                if event.get('name') == 'list_apps':
+                                    result = app_inventory or result
+                                else:
+                                    result = execute_tool(event.get('name'), event.get('arguments'), self.registry,
+                                                          self.telemetry, navigate=self._show_screen)
                             except (ValueError, TypeError, HTTPException):
                                 result = {'ok': False, 'message': 'This action could not be carried out.'}
                         pipe.send({'type': 'result', 'id': event.get('id'), 'result': result})

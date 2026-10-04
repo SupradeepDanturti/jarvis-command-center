@@ -110,6 +110,34 @@ class AppRegistry:
                  'artwork': f'/api/apps/{app["id"]}/artwork' if app.get('detected') else None,
                  "available": self.available(app)} for app in apps]
 
+    def voice_catalog(self):
+        """Available saved shortcuts plus the same bounded inventory as the Settings picker."""
+        with self.lock:
+            detected = self.discover()
+            selected = [{'id': app['id'], 'name': app['name']} for app in self.apps if self.available(app)]
+            return selected + [app for app in detected if self.available(self.detected[app['id']])]
+
+    def launch_voice(self, app_id):
+        # Discovery never registers a shortcut or persists a new launch capability.
+        # Do not wait behind a Windows discovery while the voice parent holds its cancellation gate.
+        if not self.lock.acquire(timeout=.25):
+            raise HTTPException(503, 'Apps are being refreshed. Try again shortly.')
+        try:
+            app = next((app for app in self.apps if app['id'] == app_id), None)
+            if app is None:
+                if not self.discovered_at or time.monotonic() - self.discovered_at > 120:
+                    raise HTTPException(409, 'Refresh available apps before opening an app.')
+                app = self.detected.get(app_id)
+                if app is None or app.get('args') or not (
+                    package_available(app) if app.get('kind') == 'packaged' else executable_path(app['target'])
+                ):
+                    raise HTTPException(409, 'This application is not available. Refresh available apps.')
+            if not self.available(app):
+                raise HTTPException(409, 'This application is not available.')
+            return self._launch(app)
+        finally:
+            self.lock.release()
+
     def artwork(self, app_id):
         with self.lock:
             app = next((a for a in self.apps if a['id'] == app_id and a.get('detected')), None)
@@ -154,6 +182,9 @@ class AppRegistry:
         app = next((app for app in self.apps if app["id"] == app_id), None)
         if not app:
             raise HTTPException(404, "This application is not registered.")
+        return self._launch(app)
+
+    def _launch(self, app):
         if os.name != "nt":
             raise HTTPException(501, "Application launching requires Windows.")
         try:

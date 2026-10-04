@@ -78,7 +78,12 @@ def registry():
     result = Mock()
     result.catalog.return_value = [{'id': 'youtube', 'name': 'YouTube', 'available': True},
                                   {'id': 'missing', 'name': 'Missing', 'available': False}]
-    result.launch.return_value = {'ok': True, 'message': 'Opening YouTube'}
+    result.voice_catalog.return_value = [{'id': 'youtube', 'name': 'YouTube'}]
+    def launch(app_id):
+        if app_id != 'youtube':
+            raise ValueError('Unavailable')
+        return {'ok': True, 'message': 'Opening YouTube'}
+    result.launch_voice.side_effect = launch
     return result
 
 
@@ -89,16 +94,18 @@ def test_model_cannot_escape_action_allowlist(name, args):
     apps = registry()
     with pytest.raises(ValueError):
         execute_tool(name, args, apps, Mock())
-    apps.launch.assert_not_called()
+    if name != 'launch_app' or args != {'id': 'missing'}:
+        apps.launch_voice.assert_not_called()
 
 
 def test_voice_tools_and_valid_registered_action():
     apps = registry()
     tools = voice_tools(apps)
-    assert tools[0]['parameters']['properties']['id']['enum'] == ['youtube']
+    assert tools[0]['name'] == 'list_apps'
+    assert next(tool for tool in tools if tool.get('name') == 'launch_app')['parameters']['properties']['id']['type'] == 'string'
     assert 'target' not in str(tools)
     assert execute_tool('launch_app', {'id': 'youtube'}, apps, Mock())['ok']
-    apps.launch.assert_called_once_with('youtube')
+    apps.launch_voice.assert_called_once_with('youtube')
     with patch('backend.voice_actions.media_action', return_value={'ok': True}) as send:
         execute_tool('media_control', {'action': 'volume-up'}, apps, Mock())
         send.assert_called_once_with('volume-up')
@@ -109,11 +116,22 @@ def tool_response(arguments='{"id":"youtube"}'):
                           arguments=arguments, call_id='qa-call')])
 
 
+def discovery_response():
+    return SimpleNamespace(output_text='', output=[SimpleNamespace(type='function_call', name='list_apps',
+                          arguments='{}', call_id='qa-discovery')])
+
+
+def discovered_result(name, args):
+    if name == 'list_apps':
+        return {'ok': True, 'apps': [{'id': 'youtube', 'name': 'YouTube'}]}
+    return {'ok': True, 'message': 'Opening YouTube'}
+
+
 def test_cloud_reply_failure_never_repeats_completed_action():
-    client, dispatch = Mock(), Mock(return_value={'ok': True, 'message': 'Opening YouTube'})
-    client.responses.create.side_effect = [tool_response(), RuntimeError('network failed')]
+    client, dispatch = Mock(), Mock(side_effect=discovered_result)
+    client.responses.create.side_effect = [discovery_response(), tool_response(), RuntimeError('network failed')]
     assert respond(client, 'open youtube', voice_tools(registry()), dispatch) == 'Opening YouTube'
-    dispatch.assert_called_once_with('launch_app', {'id': 'youtube'})
+    assert [item.args for item in dispatch.call_args_list] == [('list_apps', {}), ('launch_app', {'id': 'youtube'})]
     assert all(call.kwargs['store'] is False for call in client.responses.create.call_args_list)
     assert all(call.kwargs['model'] == 'gpt-6-luna' for call in client.responses.create.call_args_list)
 
@@ -125,10 +143,10 @@ def test_stop_during_cloud_request_blocks_action_and_duplicate_calls_are_dedupli
     assert respond(client, 'open youtube', [], dispatch, allowed=lambda: False) == ''
     dispatch.assert_not_called()
     response.output *= 2
-    client.responses.create.side_effect = [response, RuntimeError('follow-up failed')]
-    dispatch.return_value = {'ok': True, 'message': 'Opening YouTube'}
+    client.responses.create.side_effect = [discovery_response(), response, RuntimeError('follow-up failed')]
+    dispatch.side_effect = discovered_result
     assert respond(client, 'open youtube', voice_tools(registry()), dispatch) == 'Opening YouTube'
-    dispatch.assert_called_once()
+    assert dispatch.call_count == 2
 
 
 def test_microphone_resolution_excludes_stereo_mix_and_prefers_array():
@@ -157,7 +175,7 @@ def test_parent_refuses_locked_or_old_worker_actions(current_generation, unlocke
     pipe.recv.return_value = {'type': 'action', 'name': 'launch_app', 'arguments': {'id': 'youtube'}}
     with patch('backend.voice_worker.desktop_unlocked', return_value=unlocked):
         service._monitor(1, process, pipe)
-    service.registry.launch.assert_not_called()
+    service.registry.launch_voice.assert_not_called()
     if current_generation == 1:
         assert pipe.send.call_args.args[0]['result']['ok'] is False
 

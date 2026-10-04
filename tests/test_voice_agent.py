@@ -26,13 +26,20 @@ def output(*items, text=''):
     return SimpleNamespace(output=list(items), output_text=text)
 
 
+def discovery():
+    return output(call('list_apps', {}, 'discover'))
+
+
+APP_LIST = {'ok': True, 'apps': [{'id': 'steam', 'name': 'Steam'}, {'id': 'discord', 'name': 'Discord'}]}
+
+
 def test_sdk_parallel_batch_can_show_screen_read_hardware_and_launch_once():
-    client, dispatch = Mock(), Mock(return_value={'ok': True, 'message': 'Completed.'})
-    client.responses.create.side_effect = [output(
+    client, dispatch = Mock(), Mock(side_effect=lambda name, args: APP_LIST if name == 'list_apps' else {'ok': True, 'message': 'Completed.'})
+    client.responses.create.side_effect = [discovery(), output(
         call('show_screen', {'screen': 'games'}, 'screen'), call('system_status', {}, 'read'),
         call('launch_app', {'id': 'steam'}, 'app')), output(text='Steam is open and the game library was requested.')]
     assert 'game library' in respond(client, 'Open Steam, show games and read my CPU.', specs(), dispatch)
-    assert [item.args[0] for item in dispatch.call_args_list] == ['show_screen', 'system_status', 'launch_app']
+    assert [item.args[0] for item in dispatch.call_args_list] == ['list_apps', 'show_screen', 'system_status', 'launch_app']
     for request in client.responses.create.call_args_list:
         assert request.kwargs['parallel_tool_calls'] is True
         assert request.kwargs['store'] is False
@@ -40,12 +47,12 @@ def test_sdk_parallel_batch_can_show_screen_read_hardware_and_launch_once():
 
 
 def test_parallel_physical_budget_and_duplicate_call_ledger_survive_extra_sdk_round():
-    client, dispatch = Mock(), Mock(return_value={'ok': True, 'message': 'Steam opened.'})
-    client.responses.create.side_effect = [output(call('launch_app', {'id': 'steam'}, 'app-1'),
+    client, dispatch = Mock(), Mock(side_effect=lambda name, args: APP_LIST if name == 'list_apps' else {'ok': True, 'message': 'Steam opened.'})
+    client.responses.create.side_effect = [discovery(), output(call('launch_app', {'id': 'steam'}, 'app-1'),
         call('launch_app', {'id': 'discord'}, 'app-2'), call('media_control', {'action': 'volume-up'}, 'media')),
         output(call('launch_app', {'id': 'steam'}, 'repeat')), output(text='Steam opened.')]
     assert respond(client, 'Open Steam and Discord.', specs(), dispatch) == 'Steam opened.'
-    dispatch.assert_called_once_with('launch_app', {'id': 'steam'})
+    assert [item.args for item in dispatch.call_args_list] == [('list_apps', {}), ('launch_app', {'id': 'steam'})]
 
 
 def test_disable_between_parallel_calls_prevents_later_dispatch_and_reply():
@@ -75,7 +82,7 @@ def test_sdk_run_has_no_tracing_or_sensitive_data_and_is_bounded():
         assert respond(client, 'Hello', specs(), Mock()) == 'Ready.'
     assert captured[0]['run_config'].tracing_disabled is True
     assert captured[0]['run_config'].trace_include_sensitive_data is False
-    assert captured[0]['max_turns'] == 3
+    assert captured[0]['max_turns'] == 4
     assert agent.logging.getLogger('openai.agents').disabled
     assert agent.os.environ['OPENAI_AGENTS_DONT_LOG_MODEL_DATA'] == '1'
     assert agent.os.environ['OPENAI_AGENTS_DONT_LOG_TOOL_DATA'] == '1'
@@ -83,12 +90,12 @@ def test_sdk_run_has_no_tracing_or_sensitive_data_and_is_bounded():
 
 def test_followup_failure_reports_all_completed_tools_without_retry():
     client = Mock()
-    dispatch = Mock(side_effect=[{'ok': True, 'message': 'Steam opened.'},
+    dispatch = Mock(side_effect=[APP_LIST, {'ok': True, 'message': 'Steam opened.'},
                                 {'ok': True, 'message': 'Games requested.'}])
-    client.responses.create.side_effect = [output(call('launch_app', {'id': 'steam'}, 'app'),
+    client.responses.create.side_effect = [discovery(), output(call('launch_app', {'id': 'steam'}, 'app'),
                                                   call('show_screen', {'screen': 'games'}, 'screen')), RuntimeError()]
     assert respond(client, 'Open Steam and show games.', specs(), dispatch) == 'Steam opened. Games requested.'
-    assert dispatch.call_count == 2
+    assert dispatch.call_count == 3
 
 
 def test_unknown_tools_and_extra_arguments_never_grant_access():

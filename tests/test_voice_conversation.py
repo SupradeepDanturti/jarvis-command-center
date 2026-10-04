@@ -104,8 +104,11 @@ def test_native_web_search_citations_and_jarvis_prompt_with_conversation():
     response.output.append(SimpleNamespace(type='function_call', name='launch_app',
                                           arguments='{"id":"steam"}', call_id='search-then-app'))
     final = SimpleNamespace(output=[], output_text='Opening Steam, sir.')
-    client.responses.create.side_effect = [response, final]
-    dispatch.return_value = {'ok': True, 'message': 'Opening Steam'}
+    discovery = SimpleNamespace(output_text='', output=[SimpleNamespace(type='function_call', name='list_apps',
+                                                                       arguments='{}', call_id='discover-apps')])
+    client.responses.create.side_effect = [discovery, response, final]
+    dispatch.side_effect = lambda name, args: ({'ok': True, 'apps': [{'id': 'steam', 'name': 'Steam'}]}
+                                              if name == 'list_apps' else {'ok': True, 'message': 'Opening Steam'})
     cite.reset_mock()
     apps.catalog.return_value = [{'id': 'steam', 'name': 'Steam', 'available': True}]
     assert respond(client, 'Search, then open Steam.', voice_tools(apps), dispatch, cite=cite) == final.output_text
@@ -152,13 +155,17 @@ def test_worker_accepts_followup_without_second_wake_and_uses_previous_question(
     message = lambda text: SimpleNamespace(output_text=text, output=[SimpleNamespace(type='message', content=[])])
     tool = SimpleNamespace(output_text='', output=[SimpleNamespace(type='function_call', name='launch_app',
                                                                   arguments='{"id":"steam"}', call_id='qa')])
-    client.responses.create.side_effect = [message('Which app would you like, sir?'), tool, message('Opening Steam, sir.')]
+    discovery = SimpleNamespace(output_text='', output=[SimpleNamespace(type='function_call', name='list_apps',
+                                                                       arguments='{}', call_id='discover-apps')])
+    client.responses.create.side_effect = [message('Which app would you like, sir?'), discovery, tool, message('Opening Steam, sir.')]
     monkeypatch.setitem(sys.modules, 'openai', SimpleNamespace(OpenAI=Mock(return_value=client)))
     pipe = Mock()
     result_pending = []
     def send(event):
         if event['type'] == 'action':
-            result_pending.append({'type': 'result', 'id': event['id'], 'result': {'ok': True, 'message': 'Opening Steam'}})
+            result = ({'ok': True, 'apps': [{'id': 'steam', 'name': 'Steam'}]} if event['name'] == 'list_apps'
+                      else {'ok': True, 'message': 'Opening Steam'})
+            result_pending.append({'type': 'result', 'id': event['id'], 'result': result})
     pipe.send.side_effect = send
     pipe.poll.side_effect = lambda *args: bool(result_pending)
     pipe.recv.side_effect = lambda: result_pending.pop(0)

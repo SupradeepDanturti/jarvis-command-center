@@ -40,10 +40,18 @@ def rest_wake_requested(text):
 
 
 def voice_tools(registry):
-    apps = [app for app in registry.catalog() if app['available']]
-    tools = []
+    # The worker discovers the live parent inventory, rather than freezing selected shortcuts at startup.
+    tools = [
+        {'type': 'function', 'name': 'list_apps',
+         'description': 'Discover all currently available installed laptop apps and saved shortcuts, including apps not selected for the Apps screen. Returns IDs and names only. Call before choosing an app to open.',
+         'strict': True, 'parameters': {'type': 'object', 'properties': {}, 'required': [], 'additionalProperties': False}},
+        {'type': 'function', 'name': 'launch_app',
+         'description': 'Open one laptop app using an ID returned by list_apps in this turn. It need not be selected for the Apps screen. Never pass a name, path, URL, command or arguments.',
+         'strict': True, 'parameters': {'type': 'object', 'properties': {
+             'id': {'type': 'string', 'description': 'Exact app ID returned by list_apps.'}},
+             'required': ['id'], 'additionalProperties': False}},
+    ]
     for name, description, field, values in [
-        ('launch_app', 'Open an installed laptop app: ' + ', '.join(f"{a['id']} = {a['name']}" for a in apps), 'id', [a['id'] for a in apps]),
         ('media_control', 'Change laptop sound or control its current media player. Play-pause toggles playback.', 'action', list(MEDIA_KEYS)),
         ('show_screen', 'Request a dashboard screen on already connected, visible approved browsers. '
          'Opening a screen does not launch apps/games, start timers, change settings or enter Rest. '
@@ -124,6 +132,10 @@ def execute_tool(name, arguments, registry, telemetry, navigate=None):
     # Treat model output as untrusted, even with strict API schemas.
     if not isinstance(arguments, dict):
         raise ValueError('Invalid action arguments.')
+    if name == 'list_apps' and not arguments:
+        apps = registry.voice_catalog()
+        return {'ok': bool(apps), 'apps': apps,
+                'message': 'Available installed apps and saved shortcuts.' if apps else 'No available apps were found.'}
     if name == 'list_ambient_scenes' and not arguments:
         options = ambient_options()
         return {'ok': bool(options), 'scenes': options,
@@ -144,9 +156,9 @@ def execute_tool(name, arguments, registry, telemetry, navigate=None):
         return navigate(screen)
     if name == 'launch_app' and set(arguments) == {'id'}:
         app_id = arguments['id']
-        if not isinstance(app_id, str) or app_id not in {a['id'] for a in registry.catalog() if a['available']}:
+        if not isinstance(app_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', app_id):
             raise ValueError('This application is not available.')
-        return registry.launch(app_id)
+        return registry.launch_voice(app_id)
     if name == 'media_control' and set(arguments) == {'action'}:
         action = arguments['action']
         if not isinstance(action, str) or action not in MEDIA_KEYS:
