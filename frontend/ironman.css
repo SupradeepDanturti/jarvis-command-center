@@ -81,14 +81,21 @@ body[data-view=voice] .voice-console{padding-top:0}body[data-view=voice] .voice-
 
 .jarvis-mask{object-fit:contain}
 
-/* Shared activity floats above every screen and leaves navigation/taps available. */
-#jarvis-overlay .jarvis-home{position:fixed;z-index:18;top:calc(78px + env(safe-area-inset-top,0px));right:var(--surface-side,4vw);bottom:auto;width:min(480px,calc(100vw - 44px));height:190px}
-#jarvis-overlay .jarvis-home[data-active=false]{height:auto;top:calc(78px + env(safe-area-inset-top,0px));bottom:auto}
-#jarvis-overlay .jarvis-home-active{height:100%;max-height:none;padding:12px 16px}
-#jarvis-overlay .jarvis-home .jarvis-core{width:90px;height:110px;flex-basis:90px}
-#jarvis-overlay .jarvis-home .jarvis-ring{width:84px;height:84px}
-#jarvis-overlay .jarvis-home .jarvis-ring-inner{width:70px;height:70px}
-#jarvis-overlay .jarvis-home .jarvis-mask{width:50px;height:66px}
-#jarvis-overlay .jarvis-home-copy h3{font-size:24px}
-@media(max-width:600px){#jarvis-overlay .jarvis-home{height:160px}#jarvis-overlay .jarvis-home-copy h3{font-size:20px}#jarvis-overlay .jarvis-home-copy p{-webkit-line-clamp:2}}
-@media(max-height:640px) and (orientation:landscape){#jarvis-overlay .jarvis-home{height:75px;width:min(430px,calc(100vw - 44px));top:calc(65px + env(safe-area-inset-top,0px))}#jarvis-overlay .jarvis-home .jarvis-core{width:42px;height:40px;flex-basis:42px}#jarvis-overlay .jarvis-home .jarvis-ring{width:38px;height:38px}#jarvis-overlay .jarvis-home .jarvis-ring-inner{width:31px;height:31px}#jarvis-overlay .jarvis-home .jarvis-mask{width:25px;height:32px}#jarvis-overlay .jarvis-home-copy h3{font-size:17px}}
+/* Active voice has its own header space; listening stays quiet outside Home. */
+#jarvis-overlay .jarvis-home,.widget-voice-slot .jarvis-home{width:min(480px,100%);height:64px;top:auto;bottom:auto;pointer-events:none}
+#jarvis-overlay .jarvis-home{position:fixed;z-index:18;top:max(8px,env(safe-area-inset-top,0px));right:var(--surface-side);width:min(480px,calc(100vw - 2 * var(--surface-side)))}
+.widget-voice-slot .jarvis-home{position:relative;right:auto;width:100%}
+:is(#jarvis-overlay,.widget-voice-slot) .jarvis-home-active{height:100%;max-height:none;padding:6px 12px}
+:is(#jarvis-overlay,.widget-voice-slot) .jarvis-hud-rail,:is(#jarvis-overlay,.widget-voice-slot) .jarvis-overline,:is(#jarvis-overlay,.widget-voice-slot) .jarvis-wave{display:none}
+:is(#jarvis-overlay,.widget-voice-slot) .jarvis-home-center{gap:12px}
+:is(#jarvis-overlay,.widget-voice-slot) .jarvis-core{width:42px;height:44px;flex-basis:42px}
+:is(#jarvis-overlay,.widget-voice-slot) .jarvis-ring{width:38px;height:38px;outline-offset:3px}
+:is(#jarvis-overlay,.widget-voice-slot) .jarvis-ring-inner{width:31px;height:31px}
+:is(#jarvis-overlay,.widget-voice-slot) .jarvis-mask{width:25px;height:32px}
+:is(#jarvis-overlay,.widget-voice-slot) .jarvis-scan{display:none}
+:is(#jarvis-overlay,.widget-voice-slot) .jarvis-home-copy h3{font-size:18px;margin:0;line-height:1.2}
+:is(#jarvis-overlay,.widget-voice-slot) .jarvis-home-copy p{font-size:11px;margin:4px 0 0;line-height:1.35;-webkit-line-clamp:1}
+body.jarvis-active:not([data-view=home]):not([data-view=widgets])>.surface-bar{visibility:hidden}
+body.jarvis-active.presentation:not([data-view=widgets]) .desk-screen{padding-top:88px}
+body.jarvis-active.presentation:not([data-view=widgets]) .exit-immersive{top:88px}
+body.jarvis-active.presentation:not([data-view=widgets]) .screen-kicker{padding-right:160px}

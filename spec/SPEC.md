@@ -131,6 +131,8 @@ Technical references: [FastAPI WebSockets](https://fastapi.tiangolo.com/advanced
 
 ## Delivered desk experience
 
+Optional native widgets add a fourteenth page without changing the primary dock. More → System & controls → Tablet settings holds opt-in extra clock faces, Weather/AQI and F1, all off by default. Clock retains Flip and adds original Minimal, Analog and approximate Moon phase faces. More → Widgets opens one enabled online composition at a time. Fixed-provider reads and caches run on the PC; the tablet still requests only same-origin assets/data. See [WIDGETS_SPEC.md](WIDGETS_SPEC.md) for scope, provider limits, privacy and verification.
+
 Now playing is a screen-level composition with original-aspect artwork, artwork haze, player identity, large title/artist, supported session controls, optional timeline/seek, laptop volume keys, screen pin and immersive view. A shared Windows monitor emits bounded text, current-only validated artwork, capability flags and a clamped timeline. Native metadata may lack a useful timeline or offer a tiny thumbnail; the dashboard does not fabricate either. Seek/transport revalidate the selected session and track before dispatch.
 
 Focus is a mode on Clock, owned/persisted by the laptop with monotonic live timing, wall-clock restart recovery, revision conflicts and exactly-once completion. Defaults are 25/5/15 minutes, a long break after four completed focuses, manual phase starts and no speech. Optional idle local Jarvis announcements are cancellable and excluded from conversation history.
