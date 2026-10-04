@@ -1,5 +1,13 @@
 # Foundation validation — 2026-10-03
 
+## Personal tools and memory · 2026-10-04
+
+- Backend suite: **414 passed**. Existing dashboard/Jarvis/voice-navigation fresh-browser checks also pass with mocked controls. New coverage exercises fact capacity/persistence/relevance, pending versus exact explicit remember, fresh context, cloud consent/current-generation/lock/voice gates, account-bound registered ranges, invalid ranges/value types, RAW transport, preview expiry/single use, uncertain writes without retries, read cancellation, memory/Sheets owner boundaries, personal-history isolation and SDK/parent tool wiring.
+- JavaScript syntax checks pass for assistant/app/memory-sheets and personal-smoke. Trusted fresh Edge QA passes existing assistant screens and the new Memory/Sheets flow at 1280×800, 800×1280 and 390×844: add/edit/approve/forget/clear facts, cloud consent, registration, safe cell rendering, preserved multiline/tab values, prepare without write, preserve unedited cells/formulas, typed numeric edits, explicit apply, no personal localStorage, private-content clearing, floating dock and no horizontal page overflow. Google/account/memory changes are fixtures; QA revokes only its own browser. Screenshots remain ignored.
+- The owner reports the earlier Google connection works; no OAuth JSON/account payload has been read by test tooling. Live Sheets re-consent/read/write, microphone personalization and physical Windows lock transitions remain owner acceptance work. Gmail, Health, specialist agents and durable responsibilities are not implemented.
+- Existing Google client/account state, CA trust and browser approvals are preserved. Backend reloads use the prescribed restart helper; assistant access and microphone listening start off. Personal consent is saved but initially false. Setup and limitations are in [personal tools and memory](spec/ASSISTANT_TOOLS_MEMORY.md).
+
+
 ## Personal assistant foundation · 2026-10-04
 
 - Automated backend suite: **388 passed** with a new ignored pytest temp directory. The existing `.pytest_cache` ACL warning remains non-fatal. The working backend was reloaded through the prescribed restart helper, leaving both account access and voice listening off.
@@ -8,7 +16,7 @@
 - Google tests mock provider transport and cover DPAPI ciphertext/reload, endpoint metadata rejection, PKCE, loopback binding, state/host/duplicate/absolute-URL rejection, replay/expiry/decline/partial grants, verified identity, account switching, refresh/read budgets, corrupt storage, no provider history, timezone/DST/recurrence/all-day bounds, HTTPS/owner/origin/forwarded-header denial and redacted input errors. Stop, lock, disconnect, client replacement and owner revocation suppress late results. One test uses a real ephemeral loopback receiver and verifies closure/no code logging.
 - Fresh-profile trusted Edge assistant QA passes for client import and external sign-in tab (both fully mocked), enable/stop, editable/forget preferences, escaped event titles, agenda display, no personal browser-storage copies, stale-response suppression, unpair clearing and landscape/portrait/narrow layouts. It revokes only its own credential; no real Google grants/tokens or provider writes are exercised.
 - Existing trusted Edge dashboard, Jarvis and voice-navigation checks pass with their mocked physical/voice controls. No page/CSP errors; desktop/tablet approvals and CA trust are preserved. Screenshots were visually checked. JavaScript syntax checks pass for the changed frontend and QA script.
-- Real Google consent and a live Calendar read remain untested: the owner has no Google Cloud Desktop client yet, and setup instructions are in Connections and `spec/ASSISTANT_FOUNDATION.md`. No new physical-tablet, microphone, Windows lock transition or desktop-control acceptance is claimed. No schedules/jobs were started. Google Health onboarding/desktop compatibility remains gated.
+- The owner subsequently reports successful Google connection. A live Calendar agenda read remains unconfirmed by automated checks; setup instructions are in Connections and `spec/ASSISTANT_FOUNDATION.md`. No new physical-tablet, microphone, Windows lock transition or desktop-control acceptance is claimed. No schedules/jobs were started. Google Health onboarding/desktop compatibility remains gated.
 
 ## Personalized assistant feasibility plan · 2026-10-04
 

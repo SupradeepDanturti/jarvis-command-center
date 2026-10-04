@@ -9,7 +9,7 @@ from pathlib import Path
 import threading
 import time
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from .security import require_origin
@@ -19,6 +19,8 @@ from .voice_history import VoiceHistory
 from .voice_alerts import HardwareAlerts
 from .voice_wake import WAKE_MODEL, WAKE_PHRASE
 from .ambient import load_ambient_scenes
+from .agent.personal_tools import PERSONAL_NAMES, execute_personal
+from .agent.google import GoogleError
 
 MODEL_FILES = ('jarvis-medium.onnx', 'jarvis-medium.onnx.json', WAKE_MODEL,
                'melspectrogram.onnx', 'embedding_model.onnx')
@@ -35,6 +37,7 @@ class VoiceService:
         self.phase = 'off'
         self.message = 'Microphone off.'
         self.last_heard = self.last_reply = ''
+        self.last_private = False
         self.last_started = 0
         self.input_id = None
         self.history = VoiceHistory(self.directory)
@@ -45,6 +48,7 @@ class VoiceService:
         self.alerts_enabled = True
         self.pending_reminder = None
         self.rest = None
+        self.assistant = None
         self.pending_rest = None
         self.navigation = None
         self.alert_policy = HardwareAlerts(self.directory / 'alerts.json' if self.directory else None)
@@ -153,6 +157,9 @@ class VoiceService:
         with self.lock:
             self.stop()
             self.history.clear()
+        if self.assistant:
+            with self.assistant.lock:
+                self.assistant.last_context = None
 
     def audio_inputs(self, output=False):
         from .voice_audio import enumerate_in_child
@@ -361,6 +368,7 @@ class VoiceService:
 
     def _monitor(self, generation, process, pipe):
         from .voice_worker import desktop_unlocked
+        personal_heard, personal_generation, private_turn = '', None, False
         try:
             while process.is_alive() or pipe.poll():
                 with self.lock:
@@ -373,6 +381,33 @@ class VoiceService:
                     continue
                 event = pipe.recv()
                 app_inventory = None
+                personal_result = None
+                if event.get('type') == 'action' and event.get('name') in PERSONAL_NAMES | {'assistant_context'}:
+                    deadline = time.monotonic() + (4 if event['name'] == 'assistant_context' else 24)
+                    def personal_allowed():
+                        return (generation == self.generation and self.phase == 'thinking' and self.pending_rest is None
+                                and process is self.process and process.is_alive() and not self.stop_event.is_set()
+                                and desktop_unlocked() and time.monotonic() < deadline)
+                    try:
+                        if self.assistant is None or not personal_allowed():
+                            raise GoogleError('Personal tools are unavailable.', 409)
+                        if event['name'] == 'assistant_context':
+                            arguments = event.get('arguments')
+                            if not isinstance(arguments, dict) or set(arguments) != {'heard'} or not isinstance(arguments['heard'], str) or len(arguments['heard']) > 1000:
+                                raise ValueError()
+                            personal_heard = arguments['heard']
+                            personal_result = self.assistant.voice_context(personal_heard)
+                            personal_generation = personal_result['generation']
+                            private_turn = bool(personal_result.get('personal'))
+                        elif personal_generation is not None:
+                            personal_result = execute_personal(self.assistant, event['name'], event.get('arguments'),
+                                                               personal_heard, personal_generation, personal_allowed)
+                        else:
+                            raise GoogleError('Start a fresh voice turn before using personal tools.', 409)
+                        if not personal_allowed() or personal_generation != self.assistant.generation:
+                            raise GoogleError('Personal access stopped.', 409)
+                    except (GoogleError, OSError, ValueError, TypeError):
+                        personal_result = {'ok': False, 'message': 'Personal tools are unavailable. Check Memory and Connections, sir.'}
                 if event.get('type') == 'action' and event.get('name') == 'list_apps':
                     # Windows enumeration is read-only and may take seconds. Keep stop/lock/status responsive.
                     with self.lock:
@@ -396,7 +431,9 @@ class VoiceService:
                         result = {'ok': False, 'message': 'Voice control is unavailable.'}
                         if self.phase == 'thinking' and self.pending_rest is None and not self.stop_event.is_set() and desktop_unlocked():
                             try:
-                                if event.get('name') == 'list_apps':
+                                if event.get('name') in PERSONAL_NAMES | {'assistant_context'}:
+                                    result = personal_result or result
+                                elif event.get('name') == 'list_apps':
                                     result = app_inventory or result
                                 else:
                                     result = execute_tool(event.get('name'), event.get('arguments'), self.registry,
@@ -404,7 +441,9 @@ class VoiceService:
                             except (OSError, ValueError, TypeError, HTTPException):
                                 result = {'ok': False, 'message': 'This action could not be carried out.'}
                         pipe.send({'type': 'result', 'id': event.get('id'), 'result': result})
-                        self.last_action = {'name': event.get('name'), 'arguments': event.get('arguments'),
+                        if event.get('name') == 'assistant_context':
+                            continue
+                        self.last_action = {'name': event.get('name'), 'arguments': {} if event.get('name') in PERSONAL_NAMES else event.get('arguments'),
                                             'ok': bool(result.get('ok')), 'message': result.get('message', '')[:200]}
                         self.last_actions.append(self.last_action)
                         if len(self.last_actions) > 1:
@@ -418,13 +457,15 @@ class VoiceService:
                         if self.phase in {'off', 'preview', 'locked', 'error'}:
                             self.navigation = None
                     elif event.get('type') == 'exchange':
+                        self.last_private = private_turn
                         self.last_heard = str(event.get('heard', ''))[:500]
                         self.last_reply = str(event.get('reply', ''))[:500]
                         self.history.add(event.get('heard', ''), self.last_reply, self.last_action, event.get('sources'),
-                                         kind='alert' if event.get('kind') == 'alert' else 'conversation')
+                                         kind='alert' if event.get('kind') == 'alert' else 'personal' if private_turn else 'conversation')
                         self.last_action = None
                         self.last_actions = []
                     elif event.get('type') == 'turn':
+                        personal_heard, personal_generation, private_turn = '', None, False
                         self.last_action = None
                         self.last_actions = []
         except (EOFError, OSError, ValueError):
@@ -485,13 +526,30 @@ class FollowupRequest(BaseModel):
 def voice_router(service, authenticate, owner):
     router = APIRouter(prefix='/api/voice')
 
+    def personal_owner(request):
+        try:
+            owner(request, authenticate(request))
+            return request.url.scheme == 'https'
+        except HTTPException:
+            return False
+
+    def visible_status(request):
+        private = personal_owner(request)
+        with service.lock:
+            result = service.status()
+            if not private:
+                result['history'] = service.history.recent(12, personal=False)
+                if service.last_private:
+                    result['lastHeard'] = result['lastReply'] = ''
+            return result
+
     @router.get('/status', dependencies=[Depends(authenticate)])
-    def status():
-        return service.status()
+    def status(request: Request):
+        return visible_status(request)
 
     @router.get('/history', dependencies=[Depends(authenticate)])
-    def history(before: int | None = Query(default=None, ge=1)):
-        return service.history.recent(before=before)
+    def history(request: Request, before: int | None = Query(default=None, ge=1)):
+        return service.history.recent(before=before, personal=personal_owner(request))
 
     @router.delete('/history', dependencies=[Depends(owner), Depends(require_origin)])
     def clear_history():
@@ -499,9 +557,9 @@ def voice_router(service, authenticate, owner):
         return {'ok': True}
 
     @router.put('/followup', dependencies=[Depends(authenticate), Depends(require_origin)])
-    def followup(body: FollowupRequest):
+    def followup(body: FollowupRequest, request: Request):
         service.set_followup(body.seconds)
-        return service.status()
+        return visible_status(request)
 
     @router.get('/inputs', dependencies=[Depends(authenticate)])
     def inputs():
@@ -512,19 +570,19 @@ def voice_router(service, authenticate, owner):
         return service.audio_inputs(output=True)
 
     @router.put('/output', dependencies=[Depends(authenticate), Depends(require_origin)])
-    def output_device(body: InputRequest):
+    def output_device(body: InputRequest, request: Request):
         service.set_output(body.id)
-        return service.status()
+        return visible_status(request)
 
     @router.put('/alerts', dependencies=[Depends(authenticate), Depends(require_origin)])
-    def alerts(body: EnableRequest):
+    def alerts(body: EnableRequest, request: Request):
         service.set_alerts(body.enabled)
-        return service.status()
+        return visible_status(request)
 
     @router.put('/input', dependencies=[Depends(authenticate), Depends(require_origin)])
-    def input_device(body: InputRequest):
+    def input_device(body: InputRequest, request: Request):
         service.set_input(body.id)
-        return service.status()
+        return visible_status(request)
 
     @router.put('/key', dependencies=[Depends(owner), Depends(require_origin)])
     def save_key(body: KeyRequest):
@@ -537,16 +595,16 @@ def voice_router(service, authenticate, owner):
         return {'ok': True, 'keyConfigured': False}
 
     @router.post('/enabled', dependencies=[Depends(authenticate), Depends(require_origin)])
-    def enabled(body: EnableRequest):
+    def enabled(body: EnableRequest, request: Request):
         if body.enabled:
             service.start()
         else:
             service.stop()
-        return service.status()
+        return visible_status(request)
 
     @router.post('/preview', dependencies=[Depends(authenticate), Depends(require_origin)])
-    def preview():
+    def preview(request: Request):
         service.start(preview=True)
-        return service.status()
+        return visible_status(request)
 
     return router

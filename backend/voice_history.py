@@ -32,19 +32,19 @@ class VoiceHistory:
         with self.lock, self.db:
             self.db.execute('INSERT INTO exchanges(created,heard,reply,action,sources,kind) VALUES(?,?,?,?,?,?)',
                             (time.time(), str(heard)[:1000], str(reply)[:500],
-                             detail, json.dumps(safe_sources(sources)), 'alert' if kind == 'alert' else 'conversation'))
+                             detail, json.dumps(safe_sources(sources)), kind if kind in {'alert', 'personal'} else 'conversation'))
             self.db.execute('DELETE FROM exchanges WHERE id NOT IN (SELECT id FROM exchanges ORDER BY id DESC LIMIT 500)')
 
-    def recent(self, limit=50, before=None):
+    def recent(self, limit=50, before=None, personal=True):
         with self.lock:
-            rows = self.db.execute('SELECT * FROM exchanges WHERE (? IS NULL OR id < ?) ORDER BY id DESC LIMIT ?',
-                                   (before, before, max(1, min(50, limit)))).fetchall()
+            rows = self.db.execute("SELECT * FROM exchanges WHERE (? IS NULL OR id < ?) AND (? OR kind!='personal') ORDER BY id DESC LIMIT ?",
+                                   (before, before, personal, max(1, min(50, limit)))).fetchall()
             return [{**dict(row), 'action': json.loads(row['action']) if row['action'] else None,
                      'sources': safe_sources(json.loads(row['sources'])) if row['sources'] else []} for row in reversed(rows)]
 
-    def context(self):
+    def context(self, personal=False):
         with self.lock:
-            rows = self.db.execute("SELECT heard,reply FROM exchanges WHERE kind='conversation' ORDER BY id DESC LIMIT 6").fetchall()
+            rows = self.db.execute("SELECT heard,reply FROM exchanges WHERE kind='conversation' OR (? AND kind='personal') ORDER BY id DESC LIMIT 6", (personal,)).fetchall()
             return [message for row in reversed(rows) for message in
                     ({'role': 'user', 'content': row['heard']}, {'role': 'assistant', 'content': row['reply']})]
 

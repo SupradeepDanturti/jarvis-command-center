@@ -16,8 +16,10 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..tls import dpapi
-from .google import AUTH_URL, EVENTS_SCOPE, SCOPES, GoogleClient, GoogleError
+from .google import AUTH_URL, EVENTS_SCOPE, SHEETS_SCOPE, SCOPES, GoogleClient, GoogleError
 from .profile import ProfileStore
+from .memory import MemoryStore
+from .sheets import SheetStore, values
 
 
 def desktop_unlocked():
@@ -69,6 +71,10 @@ class Flow:
 class AssistantService:
     def __init__(self, history, directory=None, google=None, unlocked=desktop_unlocked):
         self.profile = ProfileStore(history)
+        self.memory = MemoryStore(history)
+        self.sheets = SheetStore(history)
+        self.last_context = None
+        self.stop_voice = lambda: None
         self.directory = Path(directory) if directory else None
         self.google = google or GoogleClient()
         self.unlocked = unlocked
@@ -110,14 +116,18 @@ class AssistantService:
             return {'enabled': self.enabled, 'clientConfigured': bool(self.vault.get('client')),
                     'account': self.vault.get('account'), 'grantedScopes': self.vault.get('scopes', []),
                     'calendarReady': EVENTS_SCOPE in self.vault.get('scopes', []),
+                    'sheetsReady': SHEETS_SCOPE in self.vault.get('scopes', []),
+                    'cloudContext': self.memory.cloud(),
                     'connecting': self.flow is not None, 'message': self.notice,
-                    'services': {'calendar': 'read-only', 'gmail': 'planned', 'sheets': 'planned',
+                    'services': {'calendar': 'read-only', 'gmail': 'planned', 'sheets': 'registered-ranges',
                                  'health': 'awaiting-google-access'}}
 
     def _cancel(self):
         self.generation += 1
         self.access = None
         self.access_until = 0
+        self.sheets.proposals.clear()
+        self.last_context = None
         if self.flow:
             self.flow.stop.set()
             self.flow.server.server_close()
@@ -263,6 +273,7 @@ class AssistantService:
             refresh = tokens.get('refresh_token')
             if not isinstance(refresh, str) or not 1 <= len(refresh) <= 8192:
                 raise GoogleError('Google did not grant offline access. Remove Jarvis access at Google, then connect again.', 409)
+            self.stop_voice()  # a completed account switch invalidates any worker context too
             with self.lock:
                 self._check_flow(flow)
                 self._save({'client': flow.client, 'refresh': refresh, 'scopes': scopes,
@@ -301,13 +312,14 @@ class AssistantService:
             raise GoogleError()
         return token
 
-    def _access(self, generation):
+    def _access(self, generation, scope=EVENTS_SCOPE):
         with self.lock:
             self._check(generation)
             if self.flow:
                 raise GoogleError('Finish or cancel Google sign-in first.', 409)
-            if EVENTS_SCOPE not in self.vault.get('scopes', []) or not self.vault.get('refresh'):
-                raise GoogleError('Connect Google and grant Calendar permission first.', 409)
+            label = 'Calendar' if scope == EVENTS_SCOPE else 'Sheets'
+            if scope not in self.vault.get('scopes', []) or not self.vault.get('refresh'):
+                raise GoogleError(f'Connect Google and grant {label} permission first.', 409)
             if self.access and time.monotonic() < self.access_until:
                 return self.access
             client, refresh = dict(self.vault['client']), self.vault['refresh']
@@ -316,8 +328,11 @@ class AssistantService:
         access_until = self._expiry(tokens)
         with self.lock:
             self._check(generation)
-            if 'scope' in tokens and EVENTS_SCOPE not in tokens['scope'].split():
-                raise GoogleError('Calendar permission is no longer granted. Connect again.', 409)
+            if 'scope' in tokens:
+                granted = tokens['scope'].split()
+                self._save({**self.vault, 'scopes': granted})
+                if scope not in granted:
+                    raise GoogleError(f'{label} permission is no longer granted. Connect again.', 409)
             if tokens.get('refresh_token'):
                 self._save({**self.vault, 'refresh': tokens['refresh_token']})
             self.access, self.access_until = token, access_until
@@ -376,3 +391,98 @@ class AssistantService:
                         'partial': partial, 'message': message, 'checkedAt': time.time(), 'calendar': 'primary'}
         finally:
             self.operation.release()
+
+    def account_id(self):
+        account = self.vault.get('account')
+        if not account:
+            raise GoogleError('Connect Google first.', 409)
+        return account['id']
+
+    def sheet_read(self, identity, allowed=lambda: True):
+        if not self.operation.acquire(blocking=False):
+            raise GoogleError('A personal data request is already running.', 409)
+        try:
+            with self.lock:
+                generation = self.generation
+                self._check(generation)
+                sheet = self.sheets.get(self.account_id(), identity)
+                if not sheet:
+                    raise GoogleError('Choose a registered sheet range.', 404)
+            token = self._access(generation, SHEETS_SCOPE)
+            with self.lock:
+                self._check(generation)
+                if not allowed():
+                    raise GoogleError('Personal access stopped.', 409)
+            result = self.google.sheet_values(token, sheet)
+            rows = result.get('values', [])
+            if rows:
+                values(rows, sheet['range'])
+            with self.lock:
+                self._check(generation)
+                if not allowed():
+                    raise GoogleError('Personal access stopped.', 409)
+                return {'ok': True, 'sheet': sheet, 'values': rows, 'message': f"{sheet['name']} checked."}
+        finally:
+            self.operation.release()
+
+    def sheet_propose(self, identity, rows):
+        with self.lock:
+            self._check(self.generation)
+            sheet = self.sheets.get(self.account_id(), identity)
+            if not sheet:
+                raise GoogleError('Choose a registered sheet range.', 404)
+            if SHEETS_SCOPE not in self.vault.get('scopes', []):
+                raise GoogleError('Reconnect Google and grant Sheets access.', 409)
+            values(rows, sheet['range'])
+            if not any(cell is not None for row in rows for cell in row):
+                raise GoogleError('Change at least one cell before preparing an update.', 400)
+            identity = self.sheets.propose(sheet, rows, self.generation)
+            return {'ok': True, 'proposalId': identity, 'message': 'Sheet change prepared. Review and apply it in More → Sheets. Nothing has been changed yet.'}
+
+    def sheet_apply(self, identity, allowed=lambda: True):
+        if not self.operation.acquire(blocking=False):
+            raise GoogleError('A personal data request is already running.', 409)
+        dispatched = False
+        try:
+            with self.lock:
+                self.sheets.expire()
+                proposal = self.sheets.proposals.pop(identity, None)  # consume before any network operation; never retry
+                if not proposal:
+                    raise GoogleError('This change expired or was already submitted. Prepare it again.', 409)
+                generation = proposal['generation']
+                self._check(generation)
+            token = self._access(generation, SHEETS_SCOPE)
+            with self.lock:
+                self._check(generation)
+                if not allowed() or time.time() >= proposal['expiresAt']:
+                    raise GoogleError('Browser access was revoked.', 409)
+            dispatched = True
+            result = self.google.sheet_values(token, proposal['sheet'], update=proposal['values'])
+            with self.lock:
+                self._check(generation)
+                if not allowed():
+                    raise GoogleError('Browser access was revoked.', 409)
+                return {'ok': True, 'message': 'Sheet values updated.', 'updatedCells': result.get('updatedCells')}
+        except GoogleError as error:
+            if dispatched:
+                raise GoogleError('The update outcome is uncertain. Check Google Sheets before preparing another change.', 502) from None
+            raise
+        finally:
+            self.operation.release()
+
+    def inspect_memory(self):
+        with self.lock:
+            return {'facts': self.memory.all(), 'profile': self.profile.get().model_dump(),
+                    'cloudContext': self.memory.cloud(), 'recentConversation': self.memory.history.context(personal=True),
+                    'lastContext': self.last_context,
+                    'limits': {'facts': 200, 'selectedFacts': 20, 'recentExchanges': 6, 'savedExchanges': 500}}
+
+    def voice_context(self, heard):
+        with self.lock:
+            personal_enabled = self.enabled and self.unlocked() and self.memory.cloud()
+            history = self.memory.history.context(personal=personal_enabled)
+            context = {'history': history, 'personal': None, 'generation': self.generation}
+            if personal_enabled:
+                context['personal'] = {'profile': self.profile.get().model_dump(), 'facts': self.memory.selected(heard)}
+            self.last_context = {'checkedAt': time.time(), 'personal': context['personal'], 'history': history}
+            return {'ok': True, **context}

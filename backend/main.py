@@ -144,6 +144,8 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     media_monitor = MediaMonitor()
     voice = VoiceService(voice_dir or (state_dir / 'voice' if not pairing_code else None), registry, telemetry)
     assistant = AssistantService(voice.history, voice.directory)
+    voice.assistant = assistant
+    assistant.stop_voice = voice.stop
     focus = FocusTimer(focus_path or (None if pairing_code else state_dir / 'focus.json'), notify=voice.remind)
     activity = ActivityMonitor(games)
     widgets = WidgetFeeds()

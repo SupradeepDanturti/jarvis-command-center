@@ -1,7 +1,8 @@
 """Fixed Google endpoints; credentials never reach the model or browser."""
 import json
+import re
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
@@ -9,7 +10,8 @@ TOKEN_URL = 'https://oauth2.googleapis.com/token'
 IDENTITY_URL = 'https://openidconnect.googleapis.com/v1/userinfo'
 EVENTS_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
 EVENTS_SCOPE = 'https://www.googleapis.com/auth/calendar.events.readonly'
-SCOPES = ('openid', 'email', EVENTS_SCOPE)
+SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
+SCOPES = ('openid', 'email', EVENTS_SCOPE, SHEETS_SCOPE)
 
 
 class GoogleError(Exception):
@@ -24,9 +26,9 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 class GoogleClient:
-    def _request(self, endpoint, *, form=None, token=None, query=None):
+    def _request(self, endpoint, *, form=None, token=None, query=None, payload=None, method=None):
         # No arbitrary URLs, caller headers, redirects, proxies or automatic retries.
-        if endpoint not in {TOKEN_URL, IDENTITY_URL, EVENTS_URL}:
+        if endpoint not in {TOKEN_URL, IDENTITY_URL, EVENTS_URL} and not re.fullmatch(r'https://sheets\.googleapis\.com/v4/spreadsheets/[A-Za-z0-9_-]{10,150}/values/[^/?#]+', endpoint):
             raise GoogleError('Unsupported Google operation.', 400)
         url = endpoint + ('?' + urlencode(query) if query else '')
         headers = {'Accept': 'application/json'}
@@ -35,8 +37,11 @@ class GoogleClient:
         data = urlencode(form).encode() if form is not None else None
         if data is not None:
             headers['Content-Type'] = 'application/x-www-form-urlencoded'
+        if payload is not None:
+            data = json.dumps(payload, allow_nan=False).encode()
+            headers['Content-Type'] = 'application/json'
         try:
-            with build_opener(ProxyHandler({}), NoRedirect()).open(Request(url, data=data, headers=headers), timeout=10) as response:
+            with build_opener(ProxyHandler({}), NoRedirect()).open(Request(url, data=data, headers=headers, method=method), timeout=10) as response:
                 raw = response.read(1_048_577)
             if len(raw) > 1_048_576:
                 raise GoogleError('Google returned too much data. Please narrow the request.')
@@ -50,7 +55,7 @@ class GoogleClient:
             if error.code == 401 or endpoint == TOKEN_URL and error.code == 400:
                 raise GoogleError('Google sign-in expired or was revoked. Connect again.', 409) from None
             if error.code == 403:
-                raise GoogleError('Google denied access. Check Calendar API setup and granted permissions.', 409) from None
+                raise GoogleError('Google denied access. Check the API is enabled and the requested permissions were granted.', 409) from None
             raise GoogleError() from None
         except (URLError, TimeoutError, OSError, ValueError):
             raise GoogleError() from None
@@ -67,3 +72,12 @@ class GoogleClient:
 
     def events(self, token, query):
         return self._request(EVENTS_URL, token=token, query=query)
+
+    def sheet_values(self, token, sheet, update=None):
+        from .sheets import SheetRegistration, values
+        body = SheetRegistration.model_validate({key: sheet[key] for key in ('name', 'spreadsheetId', 'range')})
+        endpoint = 'https://sheets.googleapis.com/v4/spreadsheets/' + body.spreadsheetId + '/values/' + quote(body.range, safe='')
+        if update is None:
+            return self._request(endpoint, token=token, query={'majorDimension': 'ROWS', 'valueRenderOption': 'UNFORMATTED_VALUE'})
+        return self._request(endpoint, token=token, method='PUT', query={'valueInputOption': 'RAW'},
+                             payload={'range': body.range, 'majorDimension': 'ROWS', 'values': values(update, body.range)})

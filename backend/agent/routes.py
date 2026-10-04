@@ -5,6 +5,8 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from ..security import require_origin
 from .google import GoogleError
 from .profile import Profile
+from .memory import Fact
+from .sheets import SheetRegistration
 
 
 class ClientImport(BaseModel):
@@ -15,6 +17,11 @@ class ClientImport(BaseModel):
 class Enabled(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
     enabled: bool
+
+
+class SheetValues(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    values: list[list[str | int | float | bool | None]] = Field(min_length=1, max_length=100)
 
 
 def assistant_router(service, owner, authenticate):
@@ -47,26 +54,31 @@ def assistant_router(service, owner, authenticate):
     @router.post('/enabled')
     def enabled(body: Enabled, request: Request):
         require_origin(request)
+        service.stop_voice()
         return call(service.enable, body.enabled)
 
     @router.put('/google/client')
     def client(body: ClientImport, request: Request):
         require_origin(request)
+        service.stop_voice()
         return call(service.configure, body.contents.get_secret_value())
 
     @router.post('/google/connect')
     def connect(request: Request):
         require_origin(request)
+        service.stop_voice()
         return call(service.begin, lambda: authorized(request))
 
     @router.delete('/google/connection')
     def disconnect(request: Request):
         require_origin(request)
+        service.stop_voice()
         return call(service.disconnect)
 
     @router.delete('/google/client')
     def remove_client(request: Request):
         require_origin(request)
+        service.stop_voice()
         return call(service.disconnect, True)
 
     @router.get('/profile')
@@ -76,6 +88,7 @@ def assistant_router(service, owner, authenticate):
     @router.put('/profile')
     def save_profile(body: Profile, request: Request):
         require_origin(request)
+        service.stop_voice()
         with service.lock:
             service._cancel()  # discard any agenda built with the earlier preferences
             return call(service.profile.save, body).model_dump()
@@ -83,6 +96,7 @@ def assistant_router(service, owner, authenticate):
     @router.delete('/profile')
     def forget_profile(request: Request):
         require_origin(request)
+        service.stop_voice()
         with service.lock:
             service._cancel()
             call(service.profile.clear)
@@ -92,6 +106,93 @@ def assistant_router(service, owner, authenticate):
     def today(request: Request):
         require_origin(request)
         result = call(service.today)
+        private(request, owner(request, authenticate(request)))
+        return result
+
+    def changed(request):
+        require_origin(request)
+        service.stop_voice()  # remove stale private context from the isolated worker before editing
+
+    def mutate(request, function, *args):
+        changed(request)
+        with service.lock:
+            service._cancel()
+            return call(function, *args)
+
+    @router.get('/memory')
+    def memory():
+        return call(service.inspect_memory)
+
+    @router.put('/memory/cloud')
+    def cloud(body: Enabled, request: Request):
+        mutate(request, service.memory.set_cloud, body.enabled)
+        return {'ok': True}
+
+    @router.post('/memory')
+    def add_memory(body: Fact, request: Request):
+        return {'id': mutate(request, service.memory.save, body.text)}
+
+    @router.put('/memory/{identity}')
+    def edit_memory(identity: str, body: Fact, request: Request):
+        return {'id': mutate(request, service.memory.save, body.text, identity)}
+
+    @router.delete('/memory')
+    def clear_memory(request: Request):
+        mutate(request, service.memory.delete)
+        return {'ok': True}
+
+    @router.delete('/memory/{identity}')
+    def forget_memory(identity: str, request: Request):
+        mutate(request, service.memory.delete, identity)
+        return {'ok': True}
+
+    @router.get('/sheets')
+    def sheets():
+        with service.lock:
+            service.sheets.expire()
+            account = service.vault.get('account')
+            return {'sheets': service.sheets.all(account['id']) if account else [],
+                    'proposals': list(service.sheets.proposals.values())}
+
+    @router.post('/sheets')
+    def register_sheet(body: SheetRegistration, request: Request):
+        changed(request)
+        with service.lock:
+            service._cancel()
+            return {'id': call(service.sheets.register, call(service.account_id), body)}
+
+    @router.delete('/sheets/{identity}')
+    def remove_sheet(identity: str, request: Request):
+        changed(request)
+        with service.lock:
+            service._cancel()
+            call(service.sheets.delete, call(service.account_id), identity)
+        return {'ok': True}
+
+    @router.post('/sheets/{identity}/read')
+    def read_sheet(identity: str, request: Request):
+        require_origin(request)
+        result = call(service.sheet_read, identity, lambda: authorized(request))
+        private(request, owner(request, authenticate(request)))
+        return result
+
+    @router.post('/sheets/{identity}/propose')
+    def propose_sheet(identity: str, body: SheetValues, request: Request):
+        require_origin(request)
+        return call(service.sheet_propose, identity, body.values)
+
+    @router.delete('/sheet-proposals/{identity}')
+    def discard_sheet(identity: str, request: Request):
+        require_origin(request)
+        with service.lock:
+            service.sheets.proposals.pop(identity, None)
+        return {'ok': True}
+
+    @router.post('/sheet-proposals/{identity}/apply')
+    def apply_sheet(identity: str, request: Request):
+        require_origin(request)
+        service.stop_voice()
+        result = call(service.sheet_apply, identity, lambda: authorized(request))
         private(request, owner(request, authenticate(request)))
         return result
 

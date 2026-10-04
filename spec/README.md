@@ -10,3 +10,5 @@
 - [Android app specification](ANDROID_APP_SPEC.md): planned Android shell and Google Home integration; implementation deferred.
 
 Installation, operating guidance and verification remain in [README](../README.md), [SETUP](../SETUP.md), [SECURITY](../SECURITY.md) and [VALIDATION](../VALIDATION.md) at the repository root.
+
+- [Personal tools and memory](ASSISTANT_TOOLS_MEMORY.md): Google Sheets registration/read/reviewed updates, editable facts, voice tools, context inspection and privacy controls.
