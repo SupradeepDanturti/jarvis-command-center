@@ -8,14 +8,15 @@ const pageBackgrounds={home:'blackhole',gaming:'grid',games:'blackhole',apps:'au
 let backgroundGeneration=0;
 function saveBackgroundPreferences(){try{localStorage.setItem('g16-background-preferences',JSON.stringify(backgroundPreferences))}catch{}}
 function backgroundSettings(){
-  return `<div class="detail-row background-setting"><label for="background-scene">Background scene</label><select id="background-scene">${[['auto','Match each screen'],...Object.entries(ambientScenes).map(([id,scene])=>[id,scene.name])].map(([id,name])=>`<option value="${id}" ${backgroundPreferences.scene===id?'selected':''}>${name}</option>`).join('')}</select></div><div class="page-actions"><button id="background-motion" aria-pressed="${backgroundPreferences.motion}" ${backgroundMotion.matches?'disabled':''}>${backgroundMotion.matches?'Motion reduced':backgroundPreferences.motion?'Pause backgrounds':'Resume backgrounds'}</button></div><p class="section-note">Local artwork behind your screens. Motion pauses while hidden and follows your device’s reduced-motion setting. Home keeps its Black hole scene. Ambient has its own scene controls.</p>`;
+  return `<div class="detail-row background-setting"><label for="background-scene">Background scene</label><select id="background-scene">${[['auto','Match each screen'],...Object.entries(ambientScenes).map(([id,scene])=>[id,scene.name])].map(([id,name])=>`<option value="${id}" ${backgroundPreferences.scene===id?'selected':''}>${escapeHtml(name)}</option>`).join('')}</select></div><div class="page-actions"><button id="background-motion" aria-pressed="${backgroundPreferences.motion}" ${backgroundMotion.matches?'disabled':''}>${backgroundMotion.matches?'Motion reduced':backgroundPreferences.motion?'Pause backgrounds':'Resume backgrounds'}</button></div><p class="section-note">Local artwork behind your screens. Motion pauses while hidden and follows your device’s reduced-motion setting. Home keeps its Black hole scene. Ambient has its own scene controls.</p>`;
 }
 function updateSurfaceBackground(){
   const layer=document.querySelector('.surface-backdrop'),video=document.querySelector('#surface-background');
   const dedicated=state.page==='ambient'||state.page==='rest'||!!restState?.rest;layer.hidden=dedicated;
   if(dedicated){video.pause();return}
   const id=state.page==='home'?'blackhole':backgroundPreferences.scene==='auto'?(pageBackgrounds[state.page]||'aurora'):backgroundPreferences.scene;
-  const scene=ambientScenes[id];
+  const scene=ambientScenes[id]||ambientScenes[Object.keys(ambientScenes)[0]];
+  if(!scene){video.pause();layer.hidden=true;return}
   if(video.dataset.scene!==id){
     backgroundGeneration++;
     video.pause();video.dataset.scene=id;video.poster=ambientPoster(scene);video.src=ambientMedia(scene);video.load();

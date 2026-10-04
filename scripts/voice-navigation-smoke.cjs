@@ -94,10 +94,44 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     await page.evaluate(()=>refreshVoice());
     await page.waitForFunction(id=>voiceState?.navigation?.id===id,current.navigation.id);
     await view('clock');await send('home');await view('home');
+    // Scene IDs come from the display catalog, not this test's fixed list.
+    const catalog=await page.evaluate(()=>ambientScenes),sceneIds=Object.keys(catalog);
+    assert.equal(sceneIds.length>0,true);
+    await page.evaluate(()=>{screenPreferences.motion=false;saveScreenPreferences()});
+    for(const scene of sceneIds){
+      await send('ambient',{scene});await view('ambient');
+      assert.equal(await page.locator('.ambient-screen').getAttribute('data-scene'),scene);
+      assert.equal(await page.locator('#scene-name').innerText(),catalog[scene].name);
+      assert.equal(await page.locator('#ambient-video').getAttribute('data-scene'),scene);
+      assert.equal(await page.locator('#ambient-video').evaluate(video=>video.paused),true,'Voice preserves pause');
+    }
+    await page.locator(`[data-scene-select="${sceneIds[0]}"]`).click();
+    await page.evaluate(()=>refreshVoice());
+    assert.equal(await page.evaluate(()=>screenPreferences.scene),sceneIds[0],'A repeated voice status cannot undo a scene chosen by touch');
+    await send('ambient');assert.equal(await page.evaluate(()=>screenPreferences.scene),sceneIds[0],'Plain Ambient keeps the selected scene');
+    await page.evaluate(()=>goPage('home'));
+    await send('ambient',{scene:'https://evil.example/movie'});await view('home');
+    await send('games',{scene:sceneIds[0]});await view('home');
+    await page.reload();await page.waitForFunction(()=>state.paired&&!state.stale&&voiceNavigationReady);
+    assert.equal(await page.evaluate(()=>screenPreferences.scene),sceneIds[0],'Scene choice persists on this QA browser');
+    // A previously unknown catalog option uses the same generic selector and escaped captions.
+    const added={...catalog,["qa-new-scene"]:{...catalog[sceneIds[0]],number:'05 /',name:'New catalog option',description:'<img src=x onerror=alert(1)>',credit:'Fixture <credit>'}};
+    let servedCatalog=added;
+    await page.route('**/static/ambient-scenes.js*',route=>route.fulfill({contentType:'application/javascript',body:'const ambientScenes='+JSON.stringify(servedCatalog)+';'}));
+    await page.reload();await page.waitForFunction(()=>state.paired&&!state.stale&&voiceNavigationReady);
+    await send('ambient',{scene:'qa-new-scene'});await view('ambient');
+    assert.equal(await page.locator('[data-scene-select="qa-new-scene"]').innerText(),'New catalog option');
+    assert.equal(await page.locator('#scene-name').innerText(),'New catalog option');
+    assert.equal(await page.locator('#scene-description').innerText(),added['qa-new-scene'].description);
+    assert.equal(await page.locator('.ambient-caption img').count(),0,'Catalog captions remain text');
+    servedCatalog={};await page.reload();await page.waitForFunction(()=>state.paired&&!state.stale&&voiceNavigationReady);
+    await send('ambient');await view('ambient');
+    assert.match(await page.locator('.ambient-screen').innerText(),/unavailable/);
+    assert.equal(await page.locator('#ambient-video').count(),0,'An empty catalog does not invent a playable scene');
     assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>qaCsp),[]);
     assert.deepEqual(writes.filter(endpoint=>!['/api/pair','/api/device/activate','/api/device/display','/api/widgets/weather','/api/widgets/air-quality'].includes(endpoint)),[],
       'Opening screens must not launch apps/games, change settings, start timers or control physical devices');
-    console.log('Voice navigation passed: all pages, weather/F1 consent, Focus, once-only delivery, reload/hide/reconnect baselines, expiry/allowlist, lock/off/Rest/dialog guards, immersive exit and manual hold; no physical writes or CSP/page errors.');
+    console.log('Voice navigation passed: all pages, weather/F1 consent, Focus, all catalog scenes and a new scene, preserved pause/choice, escaped captions, empty catalog, once-only delivery, reload/hide/reconnect baselines, expiry/allowlist, lock/off/Rest/dialog guards, immersive exit and manual hold; no physical writes or CSP/page errors.');
   }finally{
     if(!page.isClosed())await page.evaluate(()=>fetch('/api/logout',{method:'POST'})).catch(()=>{});
     await context.close();await browser.close();

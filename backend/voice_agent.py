@@ -59,11 +59,19 @@ async def _run_turn(client, instructions, text, tools, dispatch, allowed, histor
                         raise ValueError()
                 except (ValueError, TypeError):
                     return {'ok': False, 'message': 'Invalid action arguments.'}
+                if spec['name'] == 'show_ambient':
+                    discovery = completed.get(('list_ambient_scenes', '{}'), {})
+                    if not discovery.get('ok'):
+                        return {'ok': False, 'message': 'Call list_ambient_scenes before selecting an Ambient scene.'}
+                    available = {scene.get('id') for scene in discovery.get('scenes', []) if isinstance(scene, dict)}
+                    if not isinstance(arguments.get('scene'), str) or arguments['scene'] not in available:
+                        return {'ok': False, 'message': 'Select a scene from the discovered Ambient options.'}
                 key = (spec['name'], json.dumps(arguments, sort_keys=True))
                 if key in completed:
                     return completed[key]  # Never repeat even a timed-out or failed physical request.
                 slot = ('physical' if spec['name'] in {'launch_app', 'media_control'} else
-                        'screen' if spec['name'] == 'show_screen' else 'read')
+                        'screen' if spec['name'] in {'show_screen', 'show_ambient'} else
+                        'catalog' if spec['name'] == 'list_ambient_scenes' else 'read')
                 if slot in slots:
                     return {'ok': False, 'message': 'One PC control, one screen request and one hardware read per turn.'}
                 slots.add(slot)

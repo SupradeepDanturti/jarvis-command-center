@@ -18,6 +18,7 @@ from .voice_actions import execute_tool, voice_tools, rest_entry_requested, rest
 from .voice_history import VoiceHistory
 from .voice_alerts import HardwareAlerts
 from .voice_wake import WAKE_MODEL, WAKE_PHRASE
+from .ambient import load_ambient_scenes
 
 MODEL_FILES = ('jarvis-medium.onnx', 'jarvis-medium.onnx.json', WAKE_MODEL,
                'melspectrogram.onnx', 'embedding_model.onnx')
@@ -97,13 +98,21 @@ class VoiceService:
             self.navigation = None
         return dict(self.navigation) if self.navigation else None
 
-    def _show_screen(self, screen):
+    def _show_screen(self, screen, scene=None):
         # Called under the parent lock after checking the live worker generation.
         # Read the flag without acquiring Rest's lock: alarm delivery calls voice.stop under that lock.
         if self.rest is not None and self.rest.rest:
             return {'ok': False, 'message': 'Wake the displays before changing screens, sir.'}
+        label = VOICE_SCREENS[screen]
+        if scene is not None:
+            available = load_ambient_scenes()
+            if screen != 'ambient' or scene not in available:
+                raise ValueError('This Ambient scene is unavailable.')
+            label += ' · ' + available[scene]['name']
         self.navigation = {'id': secrets.token_hex(12), 'screen': screen, 'expiresAt': time.time() * 1000 + 10000}
-        return {'ok': True, 'message': f'Requested {VOICE_SCREENS[screen]} on active dashboard screens.',
+        if scene is not None:
+            self.navigation['scene'] = scene
+        return {'ok': True, 'message': f'Requested {label} on active dashboard screens.',
                 'delivery': 'Visible connected browsers only; disabled widgets open their settings.'}
 
     def set_followup(self, seconds):

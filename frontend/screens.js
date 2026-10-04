@@ -1,16 +1,11 @@
 // Desk screens use local media and browser time; they do not imitate sensor readings.
-const ambientScenes={
-  horizon:{number:'01 /',name:'Event horizon',description:'Starlight, dust, and a golden accretion disk.',file:'event-horizon',type:'video/webm',credit:''},
-  grid:{number:'02 /',name:'Neon drift',description:'Light trails into an endless electric horizon.',file:'neon-drift',type:'video/webm',credit:''},
-  aurora:{number:'03 /',name:'Aurora',description:'Northern lights above a sleeping alpine lake.',file:'aurora',type:'video/webm',credit:''},
-  blackhole:{number:'04 /',name:'Black hole',description:'Gravity bends the light. The disk keeps turning.',file:'nasa-black-hole',type:'video/mp4',credit:'NASA’s Goddard Space Flight Center / Jeremy Schnittman'}
-};
+// ambientScenes is supplied before this script from the shared local scene catalog.
 function ambientMedia(scene){const extension=scene.type==='video/mp4'?'mp4':'webm';return `/static/assets/${scene.file}.${extension}?v=20261003-collection`}
 function ambientPoster(scene){return `/static/assets/${scene.file}.jpg?v=20261003-collection`}
-const screenPreferences={format:'24',scene:'horizon',motion:!matchMedia('(prefers-reduced-motion: reduce)').matches};
+const screenPreferences={format:'24',scene:Object.keys(ambientScenes)[0]||null,motion:!matchMedia('(prefers-reduced-motion: reduce)').matches};
 try{Object.assign(screenPreferences,JSON.parse(localStorage.getItem('g16-screen-preferences')||'{}'))}catch{}
 if(!['24','12'].includes(screenPreferences.format))screenPreferences.format='24';
-if(!Object.hasOwn(ambientScenes,screenPreferences.scene))screenPreferences.scene='horizon';
+if(!Object.hasOwn(ambientScenes,screenPreferences.scene))screenPreferences.scene=Object.keys(ambientScenes)[0]||null;
 if(typeof screenPreferences.motion!=='boolean')screenPreferences.motion=true;
 let presentation=false;
 function saveScreenPreferences(){try{localStorage.setItem('g16-screen-preferences',JSON.stringify(screenPreferences))}catch{}}
@@ -41,7 +36,8 @@ function setFlipValue(tile,value,animate=true){
 }
 function ambientScreen(){
   const scene=ambientScenes[screenPreferences.scene];
-  return `<article class="desk-screen ambient-screen" data-scene="${screenPreferences.scene}" data-motion="${screenPreferences.motion}"><video id="ambient-video" data-scene="${screenPreferences.scene}" muted loop playsinline preload="metadata" src="${ambientMedia(scene)}" poster="${ambientPoster(scene)}" aria-label="${scene.name} ambient animation"></video><div class="ambient-vignette"></div><div class="screen-kicker"><span>JARVIS / AMBIENT COLLECTION</span><span>VOL. 01</span></div><div class="ambient-caption"><span class="ambient-number">${scene.number}</span><h2 id="scene-name">${scene.name}</h2><p id="scene-description">${scene.description}</p><p id="scene-credit" class="scene-credit" ${scene.credit?'':'hidden'}>${scene.credit}</p></div><div class="ambient-live-clock"><span data-ambient-time></span><small data-clock-date></small></div><div class="screen-bottom"><div class="scene-controls" aria-label="Ambient scenes">${Object.entries(ambientScenes).map(([id,item])=>`<button data-scene-select="${id}" class="${screenPreferences.scene===id?'active':''}">${item.name}</button>`).join('')}<button data-motion-toggle aria-label="Pause animation">${glyph(screenPreferences.motion?'pause':'play')}</button></div>${screenActions()}</div><button class="exit-immersive" data-screen-exit>${glyph('arrow')}<span>Back to display</span></button></article>`;
+  if(!scene)return '<article class="desk-screen ambient-screen"><div class="screen-kicker">JARVIS / AMBIENT COLLECTION</div><p>Local ambient scenes are unavailable.</p></article>';
+  return `<article class="desk-screen ambient-screen" data-scene="${screenPreferences.scene}" data-motion="${screenPreferences.motion}"><video id="ambient-video" data-scene="${screenPreferences.scene}" muted loop playsinline preload="metadata" src="${ambientMedia(scene)}" poster="${ambientPoster(scene)}" aria-label="${escapeHtml(scene.name)} ambient animation"></video><div class="ambient-vignette"></div><div class="screen-kicker"><span>JARVIS / AMBIENT COLLECTION</span><span>VOL. 01</span></div><div class="ambient-caption"><span class="ambient-number">${scene.number}</span><h2 id="scene-name">${escapeHtml(scene.name)}</h2><p id="scene-description">${escapeHtml(scene.description)}</p><p id="scene-credit" class="scene-credit" ${scene.credit?'':'hidden'}>${escapeHtml(scene.credit)}</p></div><div class="ambient-live-clock"><span data-ambient-time></span><small data-clock-date></small></div><div class="screen-bottom"><div class="scene-controls" aria-label="Ambient scenes">${Object.entries(ambientScenes).map(([id,item])=>`<button data-scene-select="${id}" class="${screenPreferences.scene===id?'active':''}">${escapeHtml(item.name)}</button>`).join('')}<button data-motion-toggle aria-label="Pause animation">${glyph(screenPreferences.motion?'pause':'play')}</button></div>${screenActions()}</div><button class="exit-immersive" data-screen-exit>${glyph('arrow')}<span>Back to display</span></button></article>`;
 }
 function updateClock(now=new Date(),animate=true){
   paintNativeClock(now);
@@ -59,6 +55,7 @@ function updateAmbient(){
   const screen=document.querySelector('.ambient-screen');if(!screen)return;
   screen.dataset.scene=screenPreferences.scene;screen.dataset.motion=String(screenPreferences.motion);
   const scene=ambientScenes[screenPreferences.scene];
+  if(!scene)return;
   screen.querySelector('.ambient-number').textContent=scene.number;document.querySelector('#scene-name').textContent=scene.name;document.querySelector('#scene-description').textContent=scene.description;
   const credit=screen.querySelector('#scene-credit');credit.textContent=scene.credit;credit.hidden=!scene.credit;
   screen.querySelectorAll('[data-scene-select]').forEach(el=>el.classList.toggle('active',el.dataset.sceneSelect===screenPreferences.scene));

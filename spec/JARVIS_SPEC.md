@@ -36,6 +36,12 @@ Each already connected, visible approved browser establishes its first status as
 
 Natural-language routing is instructed through the existing conversational model, not a keyword trigger for casual mentions. Automated model-turn checks use mocked function choices; actual room recognition and cloud routing of paraphrases still require user acceptance.
 
+### Discovered Ambient scenes
+
+The trusted local `config/ambient-scenes.json` replaces the scene literal formerly in `frontend/screens.js`. `backend/ambient.py` validates bounded IDs/metadata, fixed local filename stems and supported movie types, and requires the movie and JPG poster to exist inside the local asset directory. Missing/corrupt/empty catalogs yield no options. Its generated same-origin `/static/ambient-scenes.js` supplies the Ambient buttons and background picker; it is public artwork metadata like existing static assets, never controls or private state. Labels are escaped for HTML, and an empty display catalog renders an unavailable message.
+
+`list_ambient_scenes()` returns only available IDs, names and descriptions. `show_ambient(scene)` has a strict enum generated from that same catalog and is validated again in the parent. Voice schemas refresh every conversation turn, so catalog changes do not require a worker restart or edited name mappings. The SDK requires successful discovery in the current turn and a matching returned option before it dispatches selection; discovery has its own read slot, while selection shares the screen slot with `show_screen`. A named-scene request opens Ambient and selects that ID in one ephemeral navigation event. Generic Ambient keeps the current selection. Browsers revalidate against their loaded catalog and preserve/save scene selection without changing pause/reduced-motion settings or physical controls. Reload browsers after local catalog edits to load updated metadata. Existing generation, Rest, lock, expiry, once-only and visible/approved-browser guards also apply to scene selection.
+
 ## Iron Man interface and hardware warnings
 
 - The voice screen uses a sourced transparent PNG Iron Man helmet stored locally with red/gold armor, cyan ring/scan animations, conversation history and the existing controls. Native phase changes drive animations. The graphics are status indicators, not measured audio levels.

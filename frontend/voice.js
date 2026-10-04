@@ -17,8 +17,10 @@ function acceptVoiceNavigation(status){
     ||request.expiresAt<=status.serverTime||request.expiresAt-status.serverTime>10000)return;
   let target=request.screen;
   if(!['weather','f1','focus'].includes(target)&&!Object.hasOwn(pages,target))return;
+  if(request.scene!==undefined&&(target!=='ambient'||typeof request.scene!=='string'||!Object.hasOwn(ambientScenes,request.scene)))return;
   if(document.querySelector('dialog[open]')){toast('Finish the open dialog, then ask Jarvis again.');return}
   setPresentation(false);
+  if(target==='ambient'&&request.scene!==undefined){screenPreferences.scene=request.scene;saveScreenPreferences()}
   if(['weather','f1'].includes(target)){
     if(!widgetPreferences[target]||(target==='weather'&&!widgetPreferences.location)){
       goPage('system');document.querySelector('#widget-settings')?.scrollIntoView({block:'center'});

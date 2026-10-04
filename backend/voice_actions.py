@@ -5,6 +5,7 @@ import re
 from urllib.parse import urlsplit
 
 from .controllers import MEDIA_KEYS, media_action
+from .ambient import ambient_options, load_ambient_scenes
 
 VOICE_MODEL = 'gpt-6-luna'
 PROMPT_PATH = Path(__file__).with_name('jarvis_prompt.txt')
@@ -59,7 +60,25 @@ def voice_tools(registry):
                   'strict': True, 'parameters': {'type': 'object', 'properties': {},
                                                'required': [], 'additionalProperties': False}})
     tools.append({'type': 'web_search', 'search_context_size': 'low'})
-    return tools
+    return scene_voice_tools(tools)
+
+
+def scene_voice_tools(tools):
+    # Refresh per turn, so an enabled worker sees catalog additions/removals without a prompt edit.
+    result = [tool for tool in tools if tool.get('name') not in {'list_ambient_scenes', 'show_ambient'}]
+    result.append({'type': 'function', 'name': 'list_ambient_scenes',
+                   'description': 'Discover the currently available local Ambient scenes and their IDs before choosing a named scene.',
+                   'strict': True, 'parameters': {'type': 'object', 'properties': {},
+                                                'required': [], 'additionalProperties': False}})
+    options = ambient_options()
+    if options:
+        result.append({'type': 'function', 'name': 'show_ambient',
+                       'description': 'Open Ambient and select one scene discovered with list_ambient_scenes. '
+                                      'Available scene IDs and names: ' + ', '.join(f"{scene['id']} = {scene['name']}" for scene in options),
+                       'strict': True, 'parameters': {'type': 'object', 'properties': {
+                           'scene': {'type': 'string', 'enum': [scene['id'] for scene in options]}},
+                           'required': ['scene'], 'additionalProperties': False}})
+    return result
 
 
 def safe_sources(sources):
@@ -105,6 +124,17 @@ def execute_tool(name, arguments, registry, telemetry, navigate=None):
     # Treat model output as untrusted, even with strict API schemas.
     if not isinstance(arguments, dict):
         raise ValueError('Invalid action arguments.')
+    if name == 'list_ambient_scenes' and not arguments:
+        options = ambient_options()
+        return {'ok': bool(options), 'scenes': options,
+                'message': 'Available local Ambient scenes.' if options else 'Local Ambient scenes are unavailable.'}
+    if name == 'show_ambient' and set(arguments) == {'scene'}:
+        scene = arguments['scene']
+        if not isinstance(scene, str) or scene not in load_ambient_scenes():
+            raise ValueError('This Ambient scene is unavailable.')
+        if navigate is None:
+            return {'ok': False, 'message': 'Dashboard navigation is unavailable.'}
+        return navigate('ambient', scene=scene)
     if name == 'show_screen' and set(arguments) == {'screen'}:
         screen = arguments['screen']
         if not isinstance(screen, str) or screen not in VOICE_SCREENS:
@@ -135,4 +165,4 @@ def respond(client, text, tools, dispatch, allowed=lambda: True, history=None, c
     """Load the trusted local prompt; the optional SDK stays inside the voice worker."""
     instructions = PROMPT_PATH.read_text(encoding='utf-8').replace('{now}', datetime.now().astimezone().isoformat())
     from .voice_agent import run_turn
-    return run_turn(client, instructions, text, tools, dispatch, allowed, history, cite)
+    return run_turn(client, instructions, text, scene_voice_tools(tools), dispatch, allowed, history, cite)

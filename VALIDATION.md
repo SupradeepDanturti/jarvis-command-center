@@ -1,5 +1,12 @@
 # Foundation validation — 2026-10-03
 
+## Discovered Ambient scene voice selection · 2026-10-04
+
+- **254 backend tests pass**, including shared UI/voice catalog discovery, strict fields/IDs/local file stems and supported types, movie/poster availability, removal immediately denying selection, corrupt/missing/empty catalogs, per-turn refreshed enums in an already-enabled worker, discovery required before selection, the shared screen-request slot and scene ID preservation. SDK transport is mocked; a new fixture scene with no voice-code mapping is discovered and selected through the actual SDK loop. The first full run saw the existing app-shortcut transient Windows sharing-lock test count an extra replace; its isolated rerun and the complete fresh-basetemp rerun passed without changing that test or unrelated paths.
+- Trusted Edge voice navigation checks pass for every catalog scene, actual displayed/video scene IDs and labels, preserved pause, touch overriding a repeated voice snapshot, generic Ambient retaining the current selection, reload persistence, invalid/non-Ambient scene payload rejection, a previously unknown catalog option, escaped captions and an empty catalog showing unavailable rather than inventing media. These checks mock voice status/Rest/online feeds, use a fresh QA profile and revoke only its own credential; they send no cloud requests, microphone/audio, app/game launches or physical controls.
+- Existing dashboard and Jarvis browser checks also pass, including all four local movies/posters, playback/loop/pause/wake/fullscreen, responsive navigation and Jarvis setup/history/citations, with no page or CSP errors.
+- The shared catalog is served as a local generated script before display scripts, and scene labels are escaped. Changed JavaScript syntax checks pass. Required backend reload uses `scripts/restart-server.ps1`, preserving device approvals and CA state and leaving listening off. Reload displays and turn Jarvis on to try “Ambient mode, Event horizon” or “Show Black hole in Ambient.” Actual room/cloud interpretation and physical Redmi scene selection remain unverified.
+
 ## Voice navigation, editable prompt and Agents SDK · 2026-10-04
 
 - Started from the latest `origin/main` (`ed4cdd9`) on a clean feature branch. The optional voice requirements now pin `openai-agents==0.23.1`; runtime dependency checks pass. The disabled-dashboard subprocess check confirms neither the Agents SDK nor its adapter is imported by the normal server.
