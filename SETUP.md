@@ -106,6 +106,12 @@ Open the tablet bookmark after signing into the laptop. The dock has **Home, Liv
 
 **Keep-awake starts automatically** while the approved page is visible. **Screen keep-awake → Active · screen stays on** confirms the browser granted it. If blocked, check battery saver and tap **Retry keep-awake**. Turning it off is remembered in that browser. It cannot override a manual tablet lock or laptop sleep.
 
+## Add or remove app shortcuts
+
+On your approved Windows browser at `https://localhost:18761/#system`, open **More → System & controls → App shortcuts**. Select from **Detected Windows apps**, then tap **Add app**. You can keep up to **25 apps total**; use **Remove** to free a slot. **Detect apps** checks again, with a 30-second discovery cache. Added apps appear on Apps; Home keeps the first eight. Tablets update their shared list within 15 seconds, or on reload.
+
+This picker detects supported desktop apps registered with Windows or with a direct Start Menu executable shortcut. Store apps and shortcuts needing extra arguments may be absent. Shells, interpreters and installers are excluded. Changes save in ignored private state and persist after a server restart; your existing local configuration is retained as the initial list. After the first settings save, the private list takes precedence. Turn Jarvis off and on after changes to refresh its voice shortcuts. Tablet browsers can launch saved apps; registration remains restricted to the approved Windows owner.
+
 ## Optional: set up Jarvis
 
 Jarvis uses the **laptop microphone and speaker**. The tablet controls its switch and shows activity; it does not record your voice. The dashboard works without installing Jarvis.
@@ -141,7 +147,7 @@ This app uses `gpt-transcribe` for recognition and `gpt-6-luna` for interpretati
 
 **Alerts on / Alerts off** controls hardware warnings: CPU/RAM **90% or above**, or GPU temperature **70°C or above**, across three fresh readings. Jarvis waits for idle wake listening and speaks through the dedicated speaker. All warnings share a **one-hour cooldown across restarts**. Alerts off cancels warning playback without turning Jarvis off.
 
-Home shows the Iron Man activity overlay during listening, processing, speech, follow-up, and warnings. Closing the webpage leaves Jarvis running. **Turn off Jarvis** releases its microphone and models. Windows lock pauses listening. A server restart always starts Jarvis **off**; turn it back on after updating/restarting.
+Every screen, including Clock, Ambient and Rest, shows the Iron Man activity overlay during listening, processing, speech, follow-up, and warnings. Closing the webpage leaves Jarvis running. **Turn off Jarvis** releases its microphone and models. Windows lock pauses listening. A server restart always starts Jarvis **off**; turn it back on after updating/restarting.
 
 See [JARVIS_SPEC.md](spec/JARVIS_SPEC.md) or **Setup & supported commands** on Jarvis for details.
 
@@ -241,7 +247,7 @@ Check the selected **Laptop microphone** and **Jarvis speaker**, not only Window
 
 ### App/game fails to open
 
-Confirm it is installed. YouTube requires Brave. Use **Games → Refresh** for new games. Trusted overrides go in ignored `config/apps.local.json` or `config/games.local.json`; app overrides require a server restart. Formats are in [README.md](README.md#configure-applications).
+Confirm it is installed. YouTube requires Brave. Use **Games → Refresh** for new games. Add supported desktop apps using **More → System & controls → App shortcuts** on Windows. Initial trusted app overrides go in ignored `config/apps.local.json`; once saved in settings, the private shortcut list takes precedence. Game overrides use `config/games.local.json`. Initial app overrides require a server restart. Formats are in [README.md](README.md#configure-applications).
 
 ### Where are logs and data?
 

@@ -25,7 +25,7 @@ function paintVoice(){
   const keyDetails=document.querySelector('#voice-key-details');if(keyDetails&&keyDetails.dataset.configured!==String(status.keyConfigured)){keyDetails.open=!status.keyConfigured;keyDetails.dataset.configured=String(status.keyConfigured)}
 }
 async function refreshVoice(){
-  if(voicePolling||!state.paired||!['home','voice','system'].includes(state.page)||document.visibilityState!=='visible')return;
+  if(voicePolling||!state.paired||document.visibilityState!=='visible')return;
   voicePolling=true;const epoch=jarvisVisualEpoch;
   try{const status=await api('/api/voice/status',{signal:AbortSignal.timeout(4000)});if(!state.paired||epoch!==jarvisVisualEpoch)return;voiceState=status;jarvisStatusFreshAt=Date.now();const mark=voiceState.history?.at(-1)?.id??null;if(state.page==='voice'&&mark!==voiceHistoryMark){voiceHistoryMark=mark;await loadVoiceHistory()}paintVoice()}
   catch(error){jarvisStatusFreshAt=0;paintJarvisHome();const message=document.querySelector('#voice-message');if(message)message.textContent='Voice status unavailable. Reconnecting…';document.querySelector('#voice-toggle')?.setAttribute('disabled','');document.querySelector('#voice-preview')?.setAttribute('disabled','')}

@@ -1,5 +1,15 @@
 # Foundation validation — 2026-10-03
 
+## Shared Jarvis overlay, app picker and smaller game covers · 2026-10-04
+
+- **180 backend tests** pass on Windows/Python 3.14 with a new ignored `.state/` basetemp. Registration coverage checks authentication/direct-loopback ownership, forwarded-peer rejection, same-origin writes, rejected path/argument input, unknown/expired/missing/duplicate detected IDs, the 25-app limit under concurrent additions, atomic save failure, persisted add/remove and argument-free launch dispatch. Discovery fixtures verify deduplication, safe executable filtering and the fixed bounded shortcut reader. Physical app launches are mocked.
+- `scripts/voice-smoke.cjs` passes trusted Edge checks for the same fresh-phase HUD on all thirteen screens, including immersive Clock/Ambient and Rest, at landscape, portrait and short-window sizes. Existing Home layout, inactive/disabled/stale/expired/unpaired lifecycle, reduced motion, private history/citations and speaker controls remain covered. All voice writes are mocked; only QA credentials are revoked.
+- `scripts/app-picker-smoke.cjs` passes owner add/remove and 25-app-limit UI checks, escaped app names, 25 Apps tiles, tablet guidance, and compact game covers at nine touch sizes. It reads the real owner-only detected-app endpoint to verify ID/name-only output; all app writes and launches are intercepted. Real read-only Windows discovery also found installed desktop apps. Settings, smaller covers and a Clock Jarvis-overlay screenshot were inspected locally.
+- Existing trusted Edge tablet-layout, browser navigation/reconnection/wake-lock/fullscreen/background/CSP, and HTTPS approval/revocation checks pass without bypassing certificate validation. The navigation check now waits for a live connection and each mocked sound-control response after reload, resolving an early first-volume-action timing race without changing media controls. Game-cover measurements query and measure in one browser evaluation to avoid detached elements during an asynchronous catalog refresh. New/changed JavaScript syntax and Git whitespace checks pass.
+- The backend was loaded with `scripts/restart-server.ps1`, preserving device approvals and CA trust. Jarvis starts off after that restart. Reload tablet pages to load the new assets. These are automated desktop Edge touch-viewport checks; physical tablet appearance and launching newly registered apps still require owner confirmation. User app selections were not altered during QA.
+
+Reproduce using the existing `G16_PLAYWRIGHT_PATH`, trusted port 18761 and `node scripts/app-picker-smoke.cjs`, `node scripts/voice-smoke.cjs`, `node scripts/tablet-layout-smoke.cjs`, and `node scripts/browser-smoke.cjs`. Screenshots remain in ignored `artifacts/`.
+
 ## Jarvis-only primary wake phrase · 2026-10-04
 
 - Changed the worker's selected classifier to community `jarvis_v1.onnx`, its reported wake phrase to **Jarvis**, and the UI/preview/how-tos accordingly. The detector still accepts Hey Jarvis. Sensitivity remains 0.6; optional dependencies still load only in the enabled child, startup remains off and lock/disable cancellation is unchanged.

@@ -51,10 +51,13 @@ const assert = require('node:assert/strict');
     // Verify registered media dispatch without altering the user's real sound.
     const mediaRequests=[];
     await page.route('**/api/media/*',async route=>{mediaRequests.push(route.request().url().split('/').pop());assert.equal(route.request().method(),'POST');await route.fulfill({json:{ok:true,message:'Sound control checked'}})});
+    await page.waitForFunction(()=>state.paired&&!state.stale&&state.socket?.readyState===WebSocket.OPEN);
     for(const id of ['volume-down','mute','volume-up']){
       const button=page.locator(`.orbit-controls [data-media="${id}"]`);
       assert.equal(await button.isVisible(),true);
+      const response=page.waitForResponse(response=>response.url().endsWith(`/api/media/${id}`)&&response.request().method()==='POST');
       await button.click();
+      await response;
     }
     assert.deepEqual(mediaRequests,['volume-down','mute','volume-up']);
     await page.unroute('**/api/media/*');

@@ -107,8 +107,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     await page.waitForFunction(()=>voiceState.alertsEnabled===false);
     await page.locator('#voice-alert-toggle').click();
     await page.waitForFunction(()=>voiceState.alertsEnabled===true);
-    assert.equal(await page.locator('.jarvis-mask').count(),1);
-    assert.equal(await page.locator('.jarvis-mask').getAttribute('src'),'/static/assets/iron-man-helmet.png');
+    assert.equal(await page.locator('.jarvis-identity .jarvis-mask').count(),1);
+    assert.equal(await page.locator('.jarvis-identity .jarvis-mask').getAttribute('src'),'/static/assets/iron-man-helmet.png');
     await page.waitForFunction(()=>document.querySelector('.jarvis-mask')?.naturalWidth===393);
     await page.route('**/api/media/**',route=>route.request().method()==='POST'?route.fulfill({json:{ok:true}}):route.continue());
     current.enabled=true;current.busy=true;current.phase='listening';
@@ -136,6 +136,32 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     }
     await page.setViewportSize({width:1280,height:800});
     await page.screenshot({path:path.join(root,'artifacts/jarvis-home-speaking.png'),fullPage:true});
+    // The same HUD stays live throughout all screens, including immersive artwork.
+    for(const widthHeight of [[1280,800],[412,915],[640,400]]){
+      await page.setViewportSize({width:widthHeight[0],height:widthHeight[1]});
+      for(const id of ['gaming','games','apps','hardware','graphs','system','devices','voice','clock','ambient','rest']){
+        await page.evaluate(id=>goPage(id),id);
+        current.phase='thinking';
+        await page.waitForFunction(()=>document.querySelector('#jarvis-home')?.dataset.phase==='thinking'&&!document.querySelector('#jarvis-home').hidden);
+        current.phase='speaking';
+        await page.waitForFunction(()=>document.querySelector('#jarvis-home')?.dataset.phase==='speaking');
+        const layout=await page.locator('#jarvis-home').evaluate(el=>{
+          const r=el.getBoundingClientRect(),dock=document.querySelector('.surface-dock').getBoundingClientRect();
+          return {single:document.querySelectorAll('#jarvis-home').length===1,fit:r.left>=0&&r.right<=innerWidth+1&&r.top>=0&&r.bottom<dock.top,pointer:getComputedStyle(el).pointerEvents};
+        });
+        assert.equal(layout.single,true);assert.equal(layout.fit,true,`${id} HUD fits ${widthHeight}`);assert.equal(layout.pointer,'none');
+        if(id==='clock'||id==='ambient'){
+          await page.evaluate(()=>setPresentation(true));
+          assert.equal(await page.locator('#jarvis-home').isVisible(),true,'HUD remains available in immersive scenes');
+          await page.evaluate(()=>setPresentation(false));
+        }
+      }
+    }
+    await page.setViewportSize({width:1280,height:800});
+    await page.evaluate(()=>goPage('clock'));
+    await page.screenshot({path:path.join(root,'artifacts/jarvis-clock-speaking.png'),fullPage:true});
+    await page.evaluate(()=>goPage('home'));
+
     await page.locator('[data-media="volume-up"]').click();
     assert.equal(await page.evaluate(()=>{const wasStale=state.stale;state.stale=true;paintJarvisHome();const hidden=document.querySelector('#jarvis-home').hidden;state.stale=wasStale;paintJarvisHome();return hidden}),true,'Disconnected HUD cannot show old activity');
     await page.emulateMedia({reducedMotion:'reduce'});
@@ -162,7 +188,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     assert.equal(await page.evaluate(()=>{jarvisStatusFreshAt=Date.now()-6000;paintJarvisHome();return document.querySelector('#jarvis-home').hidden}),true,'Expired voice snapshots hide the HUD');
     await page.evaluate(()=>showPairing());
     assert.equal(await page.locator('#jarvis-home').isHidden(),true,'Unpairing removes private voice activity');
-    console.log('Jarvis browser checks passed: setup, private key field, microphone dropdowns, toggle and navigation. All voice writes mocked. History, citations, follow-up, speaker/alert preferences, Iron Man theme and actual-phase Home HUD lifecycle/layout checked.');
+    console.log('Jarvis browser checks passed: setup, private key field, microphone dropdowns, toggle and navigation. All voice writes mocked. History, citations, follow-up, speaker/alert preferences, Iron Man theme and actual-phase HUD lifecycle/layout on all screens checked.');
   }finally{
     await page.evaluate(async()=>{await fetch('/api/logout',{method:'POST',headers:{'Content-Type':'application/json'}})}).catch(()=>{});
     await context.close();await browser.close();

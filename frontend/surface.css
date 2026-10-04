@@ -152,9 +152,9 @@ main {
 .game-filters button, .game-toolbar input { font-size: 12px; }
 .games-grid { padding-bottom: 14px; }
 .game-card {
-  height: clamp(200px, calc(var(--display-height) - 220px), 440px);
+  height: clamp(190px, calc(var(--display-height) - 270px), 350px);
   min-height: 0;
-  flex-basis: clamp(170px, 24vw, 310px);
+  flex-basis: clamp(155px, 19vw, 245px);
 }
 .game-store { font-size: 10px; }
 .game-info { bottom: 18px; left: 16px; right: 16px; }
@@ -275,7 +275,7 @@ main {
   .game-toolbar input { width: 100%; }
   .game-filters { gap: 10px; }
   .game-filters button { font-size: 11px; }
-  .game-card { flex-basis: 230px; height: 340px; }
+  .game-card { flex-basis: 185px; height: 275px; }
   .screen-kicker { font-size: 9px; letter-spacing: .6px; }
   .clock-dial { width: min(55vw, 28dvh); }
   .clock-digits { font-size: 23vw; }
