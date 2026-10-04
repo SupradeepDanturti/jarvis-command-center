@@ -101,6 +101,8 @@ Use trusted-local-network firewall access only. No automatic firewall changes, r
 
 ## Milestones
 
+The next owner-selected increments are detailed in [EXPERIENCE_PLAN.md](EXPERIENCE_PLAN.md): Now playing, Focus, display automation and deeper sensors. That document records proposed behavior and acceptance criteria, not delivered features, and orders these increments around their dependencies.
+
 **M1 — Foundation (this build):** local server, pairing, real psutil/NVIDIA data, touch UI, graphs/reconnection, registered launcher, basic media keys, tests, repository/CI.
 
 **M2 — Sensors:** inspect this Dell's exact sensor sources; implement HWiNFO shared-memory adapter behind a capability check. Confirm current HWiNFO licensing and shared-memory availability before selection. Add sensor ID mapping, timestamps, thermal limits, drives/fans. Integrate RTSS without inventing unsupported global FPS.

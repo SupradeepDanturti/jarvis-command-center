@@ -1,5 +1,12 @@
 # Foundation validation — 2026-10-03
 
+## Desk experience planning
+
+- `EXPERIENCE_PLAN.md` is a proposed build plan for Now playing, Focus, optional display automation and deeper sensors. Existing media/navigation/telemetry/Jarvis code and project boundaries were inspected; no runtime feature was added or enabled.
+- Read-only Windows inventory identified Dell G16 7630 and Intel Core i7-13650HX. Checked uninstall records, processes and common HWiNFO folders did not identify the proposed sensor tooling; portable installs elsewhere remain possible. CPU/fan/SSD/throttling sensor availability remains unverified.
+- Official Windows media documentation and the HWiNFO license matrix were reviewed for metadata/control capabilities and shared-memory limitations. The plan's future test/physical acceptance lists are requirements, not completed checks.
+- This documentation-only change does not require backend/browser tests or a server restart. Documentation links, scope labeling and whitespace are checked before delivery; existing approvals and CA state are untouched.
+
 ## GitHub owner approval policy
 
 - Two active GitHub rulesets target main: a no-bypass PR requirement with force-push/deletion protection, and owner-controlled PR merging with review requirements and a PR-only administrator exception. The collaborator list identifies SupradeepDanturti as the only administrator.
