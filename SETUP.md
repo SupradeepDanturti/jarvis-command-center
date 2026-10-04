@@ -1,10 +1,10 @@
-# G16 Command Center — installation and setup
+# Jarvis Command Center — installation and setup
 
-The Windows laptop runs the app in the background. The tablet opens it in a browser over your private Wi-Fi. No Android app or frontend build is required.
+Any supported Windows PC or laptop can run Jarvis Command Center in the background. The tablet opens it in a browser over your private Wi-Fi. No Android app or frontend build is required.
 
 **Already installed?** Go to [Everyday use](#everyday-use) or [Update an existing installation](#update-an-existing-installation). Normal updates do not require a new certificate or fresh approval of the same browser.
 
-## 1. Prepare a new laptop
+## 1. Prepare your Windows PC
 
 Install Git and 64-bit Python on Windows. The current installation was tested with **Python 3.14.2**. Both devices need the same private Wi-Fi, and the tablet browser must trust Android's installed CA certificates. Internet access is needed to install dependencies and to use Jarvis's OpenAI features.
 
@@ -99,7 +99,7 @@ Approval is remembered for up to **180 days**, including server restarts. Keep u
 Open the tablet bookmark after signing into the laptop. The dock has **Home, Live, Games, Apps, Clock, Ambient**, and **More**. More contains Hardware, Live graphs, System & controls, Device access, and Jarvis.
 
 - **Home:** black-hole artwork, live readings, app shortcuts, playback and laptop volume. Hold volume up/down for repeated adjustments; release to stop.
-- **Games:** search/filter installed games and choose **Play on laptop**. Tap **Refresh** after installing/removing games. This is installed-game discovery; gameplay is not tracked.
+- **Games:** search/filter installed games and choose **Play on PC**. Tap **Refresh** after installing/removing games. This is installed-game discovery; gameplay is not tracked.
 - **Apps:** launch registered laptop applications. **YouTube opens on the laptop in Brave**, which must be installed.
 - **Clock / Ambient:** flip clock or silent local movies. **Immersive view** hides the dock; **Back to display** restores it.
 - **System & controls → Tablet settings:** backgrounds, motion, keep-awake, display size, and Jarvis microphone/speaker settings.
@@ -110,7 +110,7 @@ Open the tablet bookmark after signing into the laptop. The dock has **Home, Liv
 
 On your approved Windows browser at `https://localhost:18761/#system`, open **More → System & controls → App shortcuts**. Select from **Detected Windows apps**, then tap **Add app**. You can keep up to **25 apps total**; use **Remove** to free a slot. **Detect apps** checks again, with a 30-second discovery cache. Added apps appear on Apps; Home keeps the first eight. Tablets update their shared list within 15 seconds, or on reload.
 
-This picker detects supported desktop apps registered with Windows or with a direct Start Menu executable shortcut. Store apps and shortcuts needing extra arguments may be absent. Shells, interpreters and installers are excluded. Changes save in ignored private state and persist after a server restart; your existing local configuration is retained as the initial list. After the first settings save, the private list takes precedence. Turn Jarvis off and on after changes to refresh its voice shortcuts. Tablet browsers can launch saved apps; registration remains restricted to the approved Windows owner.
+This picker detects desktop executable shortcuts and installed packaged apps registered in the Windows Start menu, including ChatGPT and Claude. Added apps use their locally installed logos. Choose **Detect apps** after an installation; shortcuts needing arbitrary extra arguments may be absent. Shells, interpreters and installers are excluded. Changes save in ignored private state and persist after a server restart; your existing local configuration is retained as the initial list. After the first settings save, the private list takes precedence. Turn Jarvis off and on after changes to refresh its voice shortcuts. Tablet browsers can launch saved apps; registration remains restricted to the approved Windows owner.
 
 ## Optional: set up Jarvis
 
@@ -131,7 +131,7 @@ The installer downloads checksum-verified Piper Jarvis and wake-word models into
 
 1. In the approved laptop browser at **https://localhost:18761**, open **More → Jarvis**.
 2. Expand **Manage API key**, paste your OpenAI API key into the password field, and choose **Save key**. Do not put it in chat, source files, or Git. Saving confirms encrypted storage, not billing/model access. API billing is separate from ChatGPT subscriptions.
-3. With Jarvis off, choose **Laptop microphone**. For the current webcam, use **Microphone (Logi Webcam C920e)**. Tap refresh after connecting a microphone. Enable desktop microphone access in Windows Settings if necessary.
+3. With Jarvis off, choose **PC microphone**. For the current webcam, use **Microphone (Logi Webcam C920e)**. Tap refresh after connecting a microphone. Enable desktop microphone access in Windows Settings if necessary.
 4. Choose **Jarvis speaker**. **Auto · built-in speakers** prefers Realtek speakers independently of Windows' headphone output. Another listed speaker can be selected. Missing speakers produce an error rather than a headphone fallback.
 5. Choose **Preview voice**, then **Turn on Jarvis**.
 
@@ -243,7 +243,7 @@ Use the **approved owner browser at `https://localhost:18761/#devices`**. The Wi
 
 ### Jarvis cannot hear me or is silent
 
-Check the selected **Laptop microphone** and **Jarvis speaker**, not only Windows' defaults. Turn Jarvis off, reconnect/refresh devices, select them, preview the voice, and enable it. Check desktop microphone permissions. A saved key does not confirm API billing, internet access, or access to the configured models.
+Check the selected **PC microphone** and **Jarvis speaker**, not only Windows' defaults. Turn Jarvis off, reconnect/refresh devices, select them, preview the voice, and enable it. Check desktop microphone permissions. A saved key does not confirm API billing, internet access, or access to the configured models.
 
 ### App/game fails to open
 
@@ -278,7 +278,7 @@ Open **More → Rest & alarms**, **Clock → Rest & alarms**, or `/#rest`. Keep 
 1. Choose **Set alarm**, select the date/time and complete **It's time to…**, for example `wake up` or `join your meeting`. Time uses this device's timezone. One shared alarm is kept on the laptop; saving replaces the previous alarm and prevents ordinary idle sleep while armed.
 2. Choose **Jarvis spoken announcement** if the optional voice is installed. It uses the selected Jarvis speaker and says “Sir, it's time to wake up,” preceded by a chime. **Test Jarvis alarm** previews a fixed phrase for up to ten seconds. Neither needs an API key or internet, opens a microphone or enables listening. Preview and alarm firing stop conversational Jarvis to avoid overlapping audio; turn listening back on explicitly afterward. Rest entry keeps an already-enabled Jarvis session running.
 3. Tap **Enter Rest mode** and accept the confirmation. **Checking desk monitors through your dock…** may take several seconds; this step is read-only, and the off command follows only after it succeeds. The tablet shows a dim clock and next alarm; backgrounds and screen rotation pause. **Brighten controls** brightens the page for 15 seconds. Android hardware brightness is unchanged, and browser **Screen awake** can keep the tablet display on.
-4. Use **Wake laptop displays** to exit early. At the alarm time, the laptop requests monitor On and visible connected dashboards show **Snooze 5 min** / **Dismiss**. Voice can play with Windows locked and conversational Jarvis off. It repeats every 30 seconds and stops after ten minutes. **Cancel alarm** removes an armed alarm; snoozing does not automatically re-enter Rest.
+4. Use **Wake PC displays** to exit early. At the alarm time, the laptop requests monitor On and visible connected dashboards show **Snooze 5 min** / **Dismiss**. Voice can play with Windows locked and conversational Jarvis off. It repeats every 30 seconds and stops after ten minutes. **Cancel alarm** removes an armed alarm; snoozing does not automatically re-enter Rest.
 
 First try a two-minute alarm while at the desk. Confirm the monitors go off, the tablet remains connected with the lid closed, the alarm sounds and the monitors return. If a monitor cannot be restored through DDC/CI, use its power button. A process crash or cable change can lose its temporary handle. Manual Windows sleep prevents the laptop server/alarm from running; this feature cannot wake an actually sleeping system remotely.
 

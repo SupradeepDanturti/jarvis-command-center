@@ -21,13 +21,14 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
       if(request.method()==='POST'){
         assert.deepEqual(request.postDataJSON(),{id:candidate.id});
         if(catalog.length>=25)return route.fulfill({status:409,json:{detail:'You can keep up to 25 apps.'}});
-        catalog.push({...candidate,category:'Installed apps',color:'#a9bacf',available:true,running:false});
+        catalog.push({...candidate,artwork:`/api/apps/${candidate.id}/artwork`,category:'Installed apps',color:'#a9bacf',available:true,running:false});
       }else if(request.method()==='DELETE'){
         const id=request.url().split('/').pop();catalog.splice(catalog.findIndex(app=>app.id===id),1);
       }else throw new Error('Unexpected app registration method');
       return route.fulfill({json:catalog});
     };
     await page.route('**/api/apps/shortcuts',mutate);await page.route('**/api/apps/shortcuts/*',mutate);
+    await page.route(`**/api/apps/${candidate.id}/artwork`,route=>route.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aG6kAAAAASUVORK5CYII=','base64')}));
     await page.route('**/api/apps/launch',route=>{throw new Error('UI check must never launch apps')});
     await page.route('**/api/games',route=>route.fulfill({json:{games,warnings:[]}}));
     await page.goto('https://localhost:18761/#system');
@@ -49,6 +50,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     assert.equal(await page.locator('#app-shortcut-settings script').count(),0);
     await page.evaluate(()=>goPage('apps'));
     assert.equal(await page.locator('[data-app]').count(),25);
+    await page.waitForFunction(id=>document.querySelector(`[data-app="${id}"] img`)?.naturalWidth>0,candidate.id);
+    assert.match(await page.locator(`[data-app="${candidate.id}"] img`).getAttribute('src'),/\/api\/apps\/.+\/artwork$/);
     assert.match(await page.locator('.apps-surface').innerText(),/Editor <test>/);
     await page.evaluate(()=>goPage('system'));
     await page.locator(`[data-remove-app="${candidate.id}"]`).click();
@@ -72,7 +75,23 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     await page.screenshot({path:path.join(root,'artifacts/games-smaller.png'),fullPage:true});
     await page.evaluate(()=>goPage('system'));await page.locator('.app-settings').scrollIntoViewIfNeeded();
     await page.screenshot({path:path.join(root,'artifacts/app-picker-settings.png'),fullPage:true});
-    assert.deepEqual(writes.map(write=>write.method),['POST','DELETE']);assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>qaCsp),[]);
+    assert.deepEqual(writes.map(write=>write.method),['POST','DELETE']);
+    // Verify the owner's existing added apps read their real installed logos, without writes.
+    await page.unroute('**/api/apps');
+    await page.evaluate(async()=>{await refreshApps();goPage('apps')});
+    const installed=await page.evaluate(()=>state.apps.filter(app=>app.detected&&app.available));
+    for(const app of installed){
+      await page.waitForFunction(id=>document.querySelector(`[data-app="${id}"] img`)?.naturalWidth>0,app.id);
+      assert.match(await page.locator(`[data-app="${app.id}"] img`).getAttribute('src'),/\/api\/apps\/.+\/artwork$/);
+    }
+    await page.screenshot({path:path.join(root,'artifacts/jarvis-native-app-logos.png'),fullPage:true});
+    await page.unroute('**/api/apps/detected');
+    await page.evaluate(async()=>{goPage('system');appPickerLoaded=false;await loadDetectedApps(true)});
+    await page.waitForFunction(()=>appPickerLoaded&&!appPickerLoading);
+    const assistants=await page.evaluate(()=>detectedApps.filter(app=>/^(ChatGPT|Claude)$/.test(app.name)));
+    if(assistants.length){await page.locator('#app-shortcut-select').selectOption(assistants[0].id);await page.locator('.app-settings').scrollIntoViewIfNeeded();await page.screenshot({path:path.join(root,'artifacts/jarvis-native-assistant-picker.png'),fullPage:true})}
+    console.log(`Native installed logos checked: ${installed.map(app=>app.name).join(', ')||'no added apps on this PC'}; detected assistants: ${assistants.map(app=>app.name).join(', ')||'none installed on this PC'}.`);
+    assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>qaCsp),[]);
     console.log('App picker and game layout checks passed: owner controls, detected ID-only add/remove, 25-app limit, escaped names, tablet read-only guidance, 25 Apps tiles, and smaller covers at nine touch sizes. All app writes mocked.');
   }finally{
     await page.evaluate(async()=>{await fetch('/api/logout',{method:'POST',headers:{'Content-Type':'application/json'}})}).catch(()=>{});

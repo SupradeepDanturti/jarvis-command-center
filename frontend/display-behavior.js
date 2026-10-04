@@ -49,7 +49,7 @@ function tickDisplayBehavior(date=new Date()){
     focus:focusView&&state.page==='clock'&&['running','paused'].includes(focusState?.status),
     game:fresh&&performance.now()-activityReceipt<5000?activityState?.game:null,
     playing:fresh&&performance.now()-mediaReceipt<5000&&state.playback?.status==='playing',sessionId:state.playback?.sessionId});
-  if(target&&target!==state.page){goPage(target,'automatic');toast(target==='gaming'?'Showing your game performance.':target==='media'?'Showing Now playing.':'Display screen changed.')}
+  if(target&&target!==state.page){goPage(target,'automatic');toast(target==='gaming'?'Your game readings, sir.':target==='media'?'Your music, sir.':'As requested, sir.')}
   const status=document.querySelector('#display-behavior-status');if(status)status.textContent=displayBehavior.pinned?'Pinned until you choose Resume automatic display.':dim?'Night dimming active.':prefs.rotation||prefs.media||prefs.games?'Automatic display enabled. Manual controls take priority.':'Automatic navigation off.';
   document.querySelectorAll('[data-desk-pin]').forEach(button=>button.textContent=displayBehavior.pinned?'Resume automatic display':'Stay on this screen');
 }
@@ -66,7 +66,7 @@ function installDisplayBehavior(root){
     if(data.get('start')===data.get('end')){toast('Choose different start and end times.');return}
     if(selected.length<2){toast('Choose at least two rotation screens.');return}
     const prefs={night:data.has('night'),start:data.get('start'),end:data.get('end'),level:Number(data.get('level')),rotation:data.has('rotation'),dwell:Number(data.get('dwell')),pages:selected,media:data.has('media'),games:data.has('games')};
-    displayBehavior.configure(prefs);try{localStorage.setItem('g16-display-behavior',JSON.stringify(displayBehavior.preferences))}catch{}tickDisplayBehavior();toast('Display behavior saved on this browser.');
+    displayBehavior.configure(prefs);try{localStorage.setItem('g16-display-behavior',JSON.stringify(displayBehavior.preferences))}catch{}tickDisplayBehavior();toast('Display preferences saved, sir.');
   });
 }
 setInterval(tickDisplayBehavior,1000);

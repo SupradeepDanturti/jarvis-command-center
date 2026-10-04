@@ -301,6 +301,10 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     def apps():
         return registry.catalog()
 
+    @app.get('/api/apps/{app_id}/artwork', dependencies=[Depends(authenticate)])
+    def app_artwork(app_id: str):
+        return Response(registry.artwork(app_id), media_type='image/png')
+
     @app.get('/api/apps/detected', dependencies=[Depends(owner)])
     def detected_apps():
         return registry.discover()

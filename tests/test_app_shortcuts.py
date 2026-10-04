@@ -125,7 +125,7 @@ def test_discovery_filters_deduplicates_and_uses_fixed_shortcuts(tmp_path):
         path = tmp_path / name
         path.write_bytes(b'fixture')
         records.append({'name': name, 'target': str(path)})
-    with patch.object(app_discovery, 'shortcut_records', return_value=records), patch.object(app_discovery, 'app_path_records', return_value=[]):
+    with patch.object(app_discovery, 'shortcut_records', return_value=records), patch.object(app_discovery, 'app_path_records', return_value=[]), patch.object(app_discovery, 'packaged_records', return_value=[]):
         first = app_discovery.discover_apps()
         second = app_discovery.discover_apps()
     assert first == second
@@ -137,3 +137,99 @@ def test_discovery_filters_deduplicates_and_uses_fixed_shortcuts(tmp_path):
         assert app_discovery.shortcut_records() == []
         assert run.call_args.args[0][-1] == app_discovery.SHORTCUT_SCRIPT
         assert run.call_args.kwargs['timeout'] == 12
+
+
+@pytest.fixture
+def packaged(tmp_path):
+    root = tmp_path/'package'
+    root.mkdir()
+    (root/'AppxManifest.xml').write_text('<Package/>')
+    from backend.app_icons import png_chunk
+    import struct
+    import zlib
+    png = b'\x89PNG\r\n\x1a\n' + png_chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 8, 6, 0, 0, 0)) + png_chunk(b'IDAT', zlib.compress(b'\x00\xff\x80\x40\xff')) + png_chunk(b'IEND', b'')
+    logo = root/'logo.png'
+    logo.write_bytes(png)
+    return {'id': 'detected-'+'c'*24, 'name': 'Claude', 'aumid': 'Claude_pzs8sxrjxfjjc!Claude',
+            'target': 'shell:AppsFolder\\Claude_pzs8sxrjxfjjc!Claude', 'args': [], 'process': 'Claude.exe',
+            'packageRoot': str(root), 'logo': str(logo), 'kind': 'packaged', 'category': 'Installed apps',
+            'icon': 'apps', 'color': '#a9bacf', 'detected': True}
+
+
+def test_packaged_detection_registration_and_fixed_launch(tmp_path, packaged):
+    invalid = [dict(packaged, aumid='https://example.com/app'), dict(packaged, process='cmd.exe'),
+               dict(packaged, aumid='Claude_pzs8sxrjxfjjc!../cmd.exe'), dict(packaged, aumid=None)]
+    with patch.object(app_discovery, 'shortcut_records', return_value=[]), patch.object(app_discovery, 'app_path_records', return_value=[]), patch.object(app_discovery, 'packaged_records', return_value=[packaged, *invalid]):
+        apps = app_discovery.discover_apps()
+    assert len(apps) == 1 and apps[0]['name'] == 'Claude'
+    registry = AppRegistry(tmp_path/'selected.json')
+    registry.detected = {apps[0]['id']: apps[0]}
+    registry.discovered_at = time.monotonic()
+    catalog = registry.add(apps[0]['id'])
+    assert all(not {'target', 'args', 'aumid', 'packageRoot', 'logo'} & app.keys() for app in catalog)
+    with patch('backend.controllers.os.startfile') as start, patch('backend.controllers.subprocess.Popen') as popen:
+        registry.launch(apps[0]['id'])
+        start.assert_called_once_with('shell:AppsFolder\\Claude_pzs8sxrjxfjjc!Claude')
+        popen.assert_not_called()
+    restored = AppRegistry(tmp_path/'selected.json')
+    assert restored.apps[-1]['aumid'] == packaged['aumid']
+    (tmp_path/'package/AppxManifest.xml').unlink()
+    with patch('backend.controllers.os.startfile') as start:
+        with pytest.raises(HTTPException, match='could not be opened'):
+            restored.launch(apps[0]['id'])
+        start.assert_not_called()
+
+
+def test_app_icons_authenticated_cached_and_removed(tmp_path, detected):
+    app = create_app(pairing_code='ABCD1234')
+    with TestClient(app, client=('127.0.0.1', 50000)) as client:
+        url = '/api/apps/'+detected['id']+'/artwork'
+        assert client.get(url).status_code == 401
+        client.post('/api/pair', json={'code':'ABCD1234'}, headers=ORIGIN)
+        registry = app.state.registry
+        registry.detected = {detected['id']:detected}
+        registry.discovered_at = time.monotonic()
+        registry.add(detected['id'])
+        with patch('backend.controllers.installed_icon', return_value=b'fixture-icon') as icon:
+            result = client.get(url)
+            assert result.status_code == 200 and result.content == b'fixture-icon'
+            assert result.headers['content-type'] == 'image/png'
+            assert client.get(url).status_code == 200
+            icon.assert_called_once()
+        assert client.get('/api/apps/unknown/artwork').status_code == 404
+        registry.remove(detected['id'])
+        assert client.get(url).status_code == 404
+
+
+def test_package_logo_stays_inside_installation(packaged, tmp_path):
+    from backend.app_icons import installed_icon
+    assert installed_icon(packaged).startswith(b'\x89PNG')
+    outside = tmp_path/'outside.png'
+    outside.write_bytes(b'\x89PNG')
+    assert installed_icon(dict(packaged, logo=str(outside))) is None
+    assert installed_icon(dict(packaged, logo=packaged['packageRoot']+'/missing.png')) is None
+
+
+def test_transient_windows_save_lock_is_bounded(tmp_path, detected):
+    from pathlib import Path
+    registry = AppRegistry(tmp_path/'saved.json')
+    locked = PermissionError('temporary sharing violation')
+    locked.winerror = 32
+    replace = Path.replace
+    calls = 0
+
+    def retry(path, destination):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise locked
+        return replace(path, destination)
+
+    with patch.object(Path, 'replace', retry):
+        registry._save([detected])
+    assert calls == 2 and AppRegistry(tmp_path/'saved.json').apps == [detected]
+    with patch.object(Path, 'replace', side_effect=locked) as retry, patch('backend.controllers.time.sleep'):
+        with pytest.raises(HTTPException, match='unchanged'):
+            registry._save([])
+        assert retry.call_count == 5
+    assert registry.apps == [detected]

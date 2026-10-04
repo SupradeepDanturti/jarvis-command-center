@@ -46,7 +46,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     await page.locator('#device-name').fill('Jarvis UI QA');
     await page.locator('#pair-code').fill(fs.readFileSync(path.join(root,'.state/private/pairing-code.txt'),'utf8').trim());
     await page.locator('#pair-form button').click();
-    await page.waitForFunction(()=>state.paired&&document.querySelector('#voice-phase')?.textContent==='Standing by.');
+    await page.waitForFunction(()=>state.paired&&document.querySelector('#voice-phase')?.textContent==='Standing by, sir.');
     // Use Edge's real Windows trust store; the Node API context has a separate CA store.
     const readNative=endpoint=>page.evaluate(async endpoint=>{const r=await fetch(`/api/voice/${endpoint}`,{headers:{'X-G16-QA-Native':'1'}});return {status:r.status,body:await r.json()}},endpoint);
     const nativeStatus=await readNative('status');
@@ -86,7 +86,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     assert.equal(await page.locator('#voice-input').isDisabled(),true);
     assert.equal(await page.locator('#voice-followup').isDisabled(),true);
     current.phase='followup';current.message='Your turn · listening for your reply.';
-    await page.waitForFunction(()=>document.querySelector('#voice-phase').textContent==='Your turn.');
+    await page.waitForFunction(()=>document.querySelector('#voice-phase').textContent==='Your turn, sir.');
     assert.equal(await page.locator('#voice-preview').isDisabled(),true);
     await page.locator('#voice-toggle').click();
     await page.waitForFunction(()=>document.querySelector('#voice-toggle').textContent==='Turn on Jarvis');

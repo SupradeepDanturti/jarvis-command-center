@@ -10,7 +10,8 @@ import time
 
 import psutil
 from fastapi import HTTPException
-from .app_discovery import discover_apps, executable_path
+from .app_discovery import discover_apps, executable_path, package_available
+from .app_icons import installed_icon
 
 ROOT = Path(__file__).resolve().parents[1]
 URI_PREFIXES = ("steam://", "discord://", "spotify:", "microsoft-edge:", "ms-settings:")
@@ -25,6 +26,7 @@ class AppRegistry:
         self.lock = threading.RLock()
         self.selection_path = Path(selection_path) if selection_path else None
         self.detected = {}
+        self.icons = {}
         self.discovered_at = 0
         path = ROOT / "config/apps.local.json"
         if not path.exists():
@@ -49,7 +51,7 @@ class AppRegistry:
             processes = {app.get('process', '').casefold() for app in self.apps}
             return [{'id': app['id'], 'name': app['name']} for app in self.detected.values()
                     if app['id'] not in {a['id'] for a in self.apps} and app['target'].casefold() not in targets
-                    and app['process'].casefold() not in processes]
+                    and (not app.get('process') or app['process'].casefold() not in processes)]
 
     def _save(self, apps):
         if self.selection_path:
@@ -57,7 +59,15 @@ class AppRegistry:
                 self.selection_path.parent.mkdir(parents=True, exist_ok=True)
                 temporary = self.selection_path.with_suffix('.tmp')
                 temporary.write_text(json.dumps(apps, ensure_ascii=False), encoding='utf-8')
-                temporary.replace(self.selection_path)
+                for attempt in range(5):
+                    try:
+                        temporary.replace(self.selection_path)
+                        break
+                    except OSError as error:
+                        # Windows scanners can briefly hold a newly written file.
+                        if getattr(error, 'winerror', None) not in {5, 32, 33} or attempt == 4:
+                            raise
+                        time.sleep(.025 * 2**attempt)
             except OSError:
                 raise HTTPException(503, 'Could not save app shortcuts. Your shortcuts are unchanged.')
         self.apps = apps
@@ -69,10 +79,10 @@ class AppRegistry:
             if time.monotonic() - self.discovered_at > 120 or app_id not in self.detected:
                 raise HTTPException(409, 'Refresh detected apps and choose an app from the list.')
             app = self.detected[app_id]
-            if executable_path(app['target']) is None:
+            if not (package_available(app) if app.get('kind') == 'packaged' else executable_path(app['target'])):
                 raise HTTPException(409, 'This app is no longer installed. Refresh detected apps.')
             if any(a['id'] == app_id or str(self.resolve_executable(a['target'])).casefold() == app['target'].casefold()
-                   or a.get('process', '').casefold() == app['process'].casefold()
+                   or (app.get('process') and a.get('process', '').casefold() == app['process'].casefold())
                    for a in self.apps):
                 raise HTTPException(409, 'This app is already in your shortcuts.')
             self._save([*self.apps, dict(app)])
@@ -83,6 +93,7 @@ class AppRegistry:
             if app_id not in {app['id'] for app in self.apps}:
                 raise HTTPException(404, 'This app shortcut was already removed.')
             self._save([app for app in self.apps if app['id'] != app_id])
+            self.icons.pop(app_id, None)
             return self.catalog()
 
     def catalog(self):
@@ -94,9 +105,27 @@ class AppRegistry:
                 pass
         with self.lock:
             apps = list(self.apps)
-        return [{key: value for key, value in app.items() if key not in {"target", "args"}} |
+        return [{key: value for key, value in app.items() if key not in {"target", "args", "aumid", "packageRoot", "logo"}} |
                 {"running": app.get("process", "").lower() in processes,
+                 'artwork': f'/api/apps/{app["id"]}/artwork' if app.get('detected') else None,
                  "available": self.available(app)} for app in apps]
+
+    def artwork(self, app_id):
+        with self.lock:
+            app = next((a for a in self.apps if a['id'] == app_id and a.get('detected')), None)
+            if not app:
+                raise HTTPException(404, 'No icon for this app shortcut.')
+            if app_id in self.icons:
+                data = self.icons[app_id]
+            else:
+                try:
+                    data = installed_icon(app)
+                except (OSError, ValueError):
+                    data = None
+                self.icons[app_id] = data
+            if not data:
+                raise HTTPException(404, 'This app did not provide a local icon.')
+            return data
 
     @staticmethod
     def resolve_executable(target):
@@ -115,6 +144,8 @@ class AppRegistry:
 
     @staticmethod
     def available(app):
+        if app.get('kind') == 'packaged':
+            return package_available(app)
         target = app["target"]
         # A registered URI's handler is checked by Windows at launch time.
         return target.startswith(URI_PREFIXES) or Path(AppRegistry.resolve_executable(target)).is_file()
@@ -127,7 +158,11 @@ class AppRegistry:
             raise HTTPException(501, "Application launching requires Windows.")
         try:
             target = app["target"]
-            if target.startswith(URI_PREFIXES):
+            if app.get('kind') == 'packaged':
+                if not package_available(app):
+                    raise FileNotFoundError
+                os.startfile('shell:AppsFolder\\' + app['aumid'])
+            elif target.startswith(URI_PREFIXES):
                 os.startfile(target)
             else:
                 executable = self.resolve_executable(target)

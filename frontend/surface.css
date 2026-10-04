@@ -318,3 +318,5 @@ main {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+.surface-brand img,.dialog-mark img{object-fit:contain}

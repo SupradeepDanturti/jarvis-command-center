@@ -1,5 +1,13 @@
 # Foundation validation — 2026-10-03
 
+## Jarvis branding, packaged apps and local logos · 2026-10-04
+
+- **184 backend tests** pass on Windows/Python 3.14 using a fresh ignored `.state/` basetemp. Added coverage checks registered package identity validation, fixed AppsFolder launch dispatch, persistence/missing-package handling, authenticated icon reads/cache/removal, logo containment within the installed package, and bounded retries for transient Windows file locks. All app launches are mocked.
+- Native read-only Windows discovery finds **ChatGPT** and **Claude** through registered Start Menu package identities. Their installed PNG logos were read and inspected locally. Trusted Edge renders the owner's existing **DaVinci Resolve** shortcut with its extracted Windows icon; the picker includes both assistants. QA does not add/remove the owner's shortcuts or launch these apps.
+- README and repository description use **Jarvis Command Center**, with Windows PC/laptop and tablet browser support. Hardware-dependent readings and controls remain explicitly conditional; Dell G16/Redmi Pad Pro is the physically tested setup. Frontend branding, greetings, status text and guidance now use Jarvis's voice, while actual legacy setup/task filenames remain unchanged.
+- Trusted Edge app-picker, shared Jarvis-overlay, nine-size tablet layout, navigation/reconnection/background/wake-lock, HTTPS approval/revocation, Now playing/Focus and Rest/alarm checks pass. Writes and physical app/media/power/audio effects are mocked; QA revokes only its own credentials and never bypasses certificate validation. Revised Apps, Home, settings and overlay screenshots are inspected locally. JavaScript syntax and Git whitespace checks pass.
+- Backend changes were loaded through `scripts/restart-server.ps1`, preserving device approvals and CA trust. Jarvis starts off after restart. Reload the PC/tablet pages and enable Jarvis again to use it. Physical tablet appearance and actual launches of the newly detected assistants still require owner confirmation.
+
 ## Shared Jarvis overlay, app picker and smaller game covers · 2026-10-04
 
 - **180 backend tests** pass on Windows/Python 3.14 with a new ignored `.state/` basetemp. Registration coverage checks authentication/direct-loopback ownership, forwarded-peer rejection, same-origin writes, rejected path/argument input, unknown/expired/missing/duplicate detected IDs, the 25-app limit under concurrent additions, atomic save failure, persisted add/remove and argument-free launch dispatch. Discovery fixtures verify deduplication, safe executable filtering and the fixed bounded shortcut reader. Physical app launches are mocked.

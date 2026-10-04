@@ -17,7 +17,7 @@ const assert = require('node:assert/strict');
     await owner.goto('https://localhost:18761/#devices');
     await owner.waitForFunction(()=>state.auth?.local===true);
     await owner.locator('#device-name').fill('Security check laptop');
-    assert.match(await owner.locator('#pair-form button').innerText(),/Set up this laptop/);
+    assert.match(await owner.locator('#pair-form button').innerText(),/Set up this PC/);
     await owner.locator('#pair-code').fill('00000000');
     await owner.locator('#pair-form button').click();
     await owner.locator('#pair-error').filter({hasText:'Pairing code is incorrect.'}).waitFor();
