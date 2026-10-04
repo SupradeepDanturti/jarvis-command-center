@@ -5,6 +5,13 @@ const sandbox={};vm.runInNewContext(source+';this.policy=createDisplayPolicy;thi
 let time=0,policy=sandbox.policy(()=>time),context={page:'home',ready:true};
 assert.equal(policy.tick(context),null);time=1e7;assert.equal(policy.tick(context),null,'Defaults never navigate');
 assert.equal(sandbox.normalize({dwell:-1,pages:['evil'],night:true,start:'25:00'}).start,'22:00');
+let widgetTime=0,widgetPolicy=sandbox.policy(()=>widgetTime);
+widgetPolicy.configure({rotation:true,dwell:30,pages:['home','widgets','clock']});
+widgetPolicy.tick({page:'home',ready:true,widgetsEnabled:false});widgetTime=30000;
+assert.equal(widgetPolicy.tick({page:'home',ready:true,widgetsEnabled:false}),'clock','Disabled widgets are skipped');
+widgetPolicy=sandbox.policy(()=>widgetTime);widgetPolicy.configure({rotation:true,dwell:30,pages:['home','widgets']});
+widgetPolicy.tick({page:'home',ready:true,widgetsEnabled:true});widgetTime+=30000;
+assert.equal(widgetPolicy.tick({page:'home',ready:true,widgetsEnabled:true}),'widgets','Enabled widgets can rotate');
 const prefs={night:true,start:'22:00',end:'07:00'};
 for(const [hour,minute,dim] of [[21,59,false],[22,0,true],[0,0,true],[6,59,true],[7,0,false]])assert.equal(sandbox.night(prefs,new Date(2026,9,3,hour,minute)),dim);
 assert.equal(sandbox.night({...prefs,end:'22:00'},new Date(2026,9,3,23)),false);

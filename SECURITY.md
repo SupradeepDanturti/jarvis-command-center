@@ -86,3 +86,14 @@ The browser receives IDs/names only and submits a detected ID. Registration rech
 The Jarvis HUD now uses approved fresh voice status on every visible screen. Hidden, stale/disconnected, expired and unpaired views suppress activity; unpairing clears private cached voice state. Setup-only HTTP, browser approvals, credentials and CA trust are unchanged.
 
 Added-app logos are approved-only PNG responses selected by a saved app ID. Executable icons are extracted locally with Windows Shell/GDI; package logos must remain inside the registered installation directory, be bounded PNG files, and have bounded dimensions. No browser file path or remote image URL is accepted. Missing icons use a generic local glyph, and removing a shortcut removes access to its cached icon.
+
+
+## Optional read-only widget feeds
+
+Widget settings are harmless browser-local preferences, off by default. City search requires an explicit submission; Weather sends rounded selected-city coordinates only while viewed. No GPS permission, credentials or feed history are stored in browser preferences. The selected city/search text reaches Open-Meteo through the PC, whose public network address is visible to providers.
+
+All feed reads require approved HTTPS access. City search and coordinate requests require the dashboard origin and strict bounded inputs. Fixed HTTPS Open-Meteo/Jolpica endpoints accept no browser URLs, hosts, keys, paths, arguments or commands. The PC never forwards browser credentials, follows provider redirects, uses public CORS proxies or loads third-party frontend code. CSP remains same-origin; the setup-only HTTP listener gains no endpoints.
+
+Provider work is limited to four pending fetches, 30 new calls per minute, a 512 KiB reply cap and finite deadlines. Identical fetches share work; a 32-entry memory cache bounds retained results. Failures cool down and expose only generic states; provider exceptions/query strings are not logged. Cached failures are visibly stale and expire. Numeric/time validation and escaped text rendering reject or contain malformed upstream data. No remote images/markup/provider URLs are rendered or dispatched; widgets cannot invoke voice/control tools.
+
+Browser requests stop on leaving/hiding, disabling, Rest or unpairing, and late responses cannot repaint a replaced view. Already-started read-only PC fetches may finish into the bounded shared cache for other approved browsers; server shutdown cancels pending tasks and clears it. Existing owner management, approvals, cookies, CA trust, private-state protection and listening-off startup behavior remain intact. See [WIDGETS_SPEC.md](spec/WIDGETS_SPEC.md).

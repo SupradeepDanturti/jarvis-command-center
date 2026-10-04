@@ -297,3 +297,20 @@ Extra sensors are off by default. HWiNFO is not installed by the dashboard. If y
 In the approved owner browser at **https://localhost:18761**, open **More → Hardware → Extra sensor setup**. Turn extra sensors on, refresh the sensor list, and compare labels/current values against HWiNFO. Select the actual CPU package temperature, fan RPM entries, individual physical SSD temperature entries, and explicit CPU/GPU thermal-throttling flags. Save the mapping. Do not map a core temperature as CPU package or a power-limit flag as thermal throttling. Separate drive readings remain separate from partition usage. Mapping is laptop-private and uses stable sensor/reading identities.
 
 Missing, unmapped, stopped, expired or incompatible readings show Unavailable and stale values clear within five seconds. Fan control and thermal intervention are not implemented. This Dell's CPU/fan/SSD/throttle readings remain unverified until compared with a running provider; working NVIDIA readings continue independently.
+
+
+## Optional widgets
+
+After updating, use `scripts/restart-server.ps1` for the new backend endpoints and reload the tablet. Existing approvals and CA trust remain valid. Jarvis listening starts off after a backend restart; enable it again if wanted.
+
+Open **More → System & controls → Tablet settings → Optional widgets**. All widget switches start off in a new browser.
+
+- Check **Extra clock faces**, choose **Minimal**, **Analog** or **Moon phase**, then **Save optional widgets**. Open **Clock**; its **Clock face** selector switches among enabled faces and Flip. These faces work offline. Moon phase and illumination are approximate cycle calculations. Turning extras off restores Flip. Focus and Rest remain accessible.
+- For **Weather & air quality**, type a city in **Find a city**, tap **Find city**, select a matching result, check the Weather switch and save. Search sends the city query to Open-Meteo through the PC; viewing Weather sends the selected rounded city coordinates. It does not request GPS location. **More → Widgets → Weather & air** shows Celsius, wind in km/h, three forecast days, sunrise/sunset and modelled US AQI/PM values. AQI comes from CAMS models, not a local sensor. Open-Meteo's free service is for personal non-commercial use; source credits stay visible.
+- Check **F1 next race** and save. Open **More → Widgets → Next race** for the next scheduled race this season, optional qualifying and a countdown to the provider's start time. Displayed start times use your browser's timezone. Live laps/results/timing are unavailable.
+
+Choices and the city are remembered separately on each browser. **More → Widgets** appears only with an online widget enabled. Switching off both removes it; disabling one removes that tab. Add **Widgets** to **Display behavior → Slow screen rotation** along with another screen to rotate to your last-selected widget. Rotation stays opt-in and skips Widgets when both switches are off.
+
+Online feeds require PC internet access. Unavailable fields show an em dash. A failed update may retain labelled cached data for a bounded period before becoming unavailable; source/update times remain visible. The PC shares a bounded memory cache; there are no browser-to-provider requests, API key fields or saved feed history. Leaving/hiding Widgets or entering Rest stops its browser polling. Immersive view and screen keep-awake reuse the existing controls. Short windows may scroll; the bottom controls remain reachable above the dock.
+
+This release adds clock faces, Weather/AQI and F1 only. Sports scores, flights, transit, commute and restaurants are not yet implemented. See [WIDGETS_SPEC.md](spec/WIDGETS_SPEC.md) and [VALIDATION.md](VALIDATION.md) for limits and verified behavior.

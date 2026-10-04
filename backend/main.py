@@ -24,6 +24,7 @@ from .media import MediaMonitor
 from .security import Pairing, require_origin, same_origin
 from .telemetry import Telemetry
 from .voice import VoiceService, voice_router
+from .widgets import WidgetFeeds
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -114,6 +115,17 @@ class RestRequest(BaseModel):
     nonce: str = Field(pattern=r'^[0-9a-f]{24}$')
 
 
+class WidgetLocation(BaseModel):
+    model_config = ConfigDict(extra='forbid', allow_inf_nan=False)
+    latitude: float = Field(ge=-90, le=90, strict=True)
+    longitude: float = Field(ge=-180, le=180, strict=True)
+
+
+class WidgetSearch(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True, str_strip_whitespace=True)
+    query: str = Field(min_length=2, max_length=80, pattern=r'^[^\x00-\x1f\x7f]+$')
+
+
 def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=None, alarm_path=None, apps_path=None):
     state_dir = ROOT / '.state/private'
     code = pairing_code or secrets.token_hex(4).upper()
@@ -127,6 +139,7 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     voice = VoiceService(voice_dir or (state_dir / 'voice' if not pairing_code else None), registry, telemetry)
     focus = FocusTimer(focus_path or (None if pairing_code else state_dir / 'focus.json'), notify=voice.remind)
     activity = ActivityMonitor(games)
+    widgets = WidgetFeeds()
     alarm_audio = AlarmAudio(voice.directory, output=lambda: voice.output_id)
     rest = RestAlarms(DisplayPower(), alarm_audio, alarm_path or (None if pairing_code else state_dir / 'alarms.json'), before_ring=voice.stop)
     voice.rest = rest
@@ -143,6 +156,7 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
         rest_task = asyncio.create_task(rest.run())
         print(f"\nG16 Command Center | Laptop setup code: {code}\nApproved browsers are remembered for 180 days, including across restarts.\n", flush=True)
         yield
+        await widgets.close()
         rest_task.cancel()
         with suppress(asyncio.CancelledError):
             await rest_task
@@ -172,6 +186,7 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     app.state.focus = focus
     app.state.activity = activity
     app.state.rest = rest
+    app.state.widgets = widgets
 
     def local(request):
         return request.client is not None and request.client.host in {'127.0.0.1', '::1'}
@@ -198,6 +213,25 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
         return device
 
     app.include_router(voice_router(voice, authenticate, owner))
+
+    @app.post('/api/widgets/locations')
+    async def widget_locations(body: WidgetSearch, request: Request, device=Depends(authenticate)):
+        require_origin(request)
+        return await widgets.get('locations', query=body.query.strip())
+
+    @app.post('/api/widgets/weather')
+    async def widget_weather(body: WidgetLocation, request: Request, device=Depends(authenticate)):
+        require_origin(request)
+        return await widgets.get('weather', body.latitude, body.longitude)
+
+    @app.post('/api/widgets/air-quality')
+    async def widget_air_quality(body: WidgetLocation, request: Request, device=Depends(authenticate)):
+        require_origin(request)
+        return await widgets.get('air-quality', body.latitude, body.longitude)
+
+    @app.get('/api/widgets/f1')
+    async def widget_f1(device=Depends(authenticate)):
+        return await widgets.get('f1')
 
     @app.middleware("http")
     async def headers(request, call_next):

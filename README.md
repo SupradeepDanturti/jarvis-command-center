@@ -6,12 +6,14 @@ Run it on your Windows desktop or laptop and open it from a tablet browser over 
 
 **Compatibility:** designed for Windows PCs and laptops, with a responsive display for any tablet using a supported HTTPS browser. Available sensors, NVIDIA readings, monitor power controls, microphone/speaker choices and browser keep-awake depend on the machine and browser. Unsupported readings remain unavailable. Physical validation so far uses a Dell G16 and Redmi Pad Pro; that hardware is a tested setup, not a requirement.
 
-**Current build:** thirteen responsive pages with Jarvis branding and an interface written in Jarvis’s voice, a clock, Rest mode and an alarm, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, and Windows media keys. No cloud assets or frontend build step.
+**Current build:** fourteen responsive pages with Jarvis branding and an interface written in Jarvis’s voice, a clock, Rest mode and an alarm, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, and Windows media keys. No cloud assets or frontend build step.
 
 Read [the dashboard specification](spec/SPEC.md) for the complete target, implementation decisions, security model, and roadmap. All specifications and design plans are indexed in [spec/](spec/README.md).
 
 **Desk experience:** **More → Now playing** shows the Windows-selected Spotify/Brave session's artwork, title and artist, with session-specific playback controls and progress/seeking when supported. **Clock → Focus timer** adds a shared PC countdown. **More → System & controls → Tablet settings** holds opt-in night dimming, slow rotation, context switching and timer settings. **Hardware** has optional read-only HWiNFO sensor mapping; real extra readings remain unavailable until the owner enables and verifies the provider. See [SETUP.md](SETUP.md#now-playing-focus-and-automatic-display) and the original [experience plan](spec/EXPERIENCE_PLAN.md).
 
+
+**Optional widgets:** enable original Minimal, Analog and approximate Moon phase clock faces, Weather/AQI or an F1 race countdown in **More → System & controls → Tablet settings → Optional widgets**. All start off; choices stay on this browser. Extra faces appear on Clock, and enabled online screens open from **More → Widgets**. Online data is fetched and cached by the PC; all frontend code/artwork stays local. See [the how-to](SETUP.md#optional-widgets) and [widget specification](spec/WIDGETS_SPEC.md).
 
 **Installation and how-to:** follow [SETUP.md](SETUP.md) for the complete Windows, HTTPS, background startup, tablet pairing, everyday use, Jarvis, update, and troubleshooting walkthrough. Already installed? Go directly to [the update steps](SETUP.md#update-an-existing-installation).
 
