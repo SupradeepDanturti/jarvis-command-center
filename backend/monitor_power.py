@@ -74,7 +74,7 @@ class MonitorPower:
         self.targets, self.prepared_at = supported, time.monotonic()
         return supported
 
-    def display(self, on, expires):
+    def display(self, on, expires, allowed=lambda: True):
         if on:
             failed = []
             for handle in self.off_handles:
@@ -91,10 +91,10 @@ class MonitorPower:
         targets = self.targets if time.monotonic()-self.prepared_at < 60 else []
         if not targets:
             raise OSError('No supported DDC/CI monitor')
-        if time.monotonic() >= expires:
+        if time.monotonic() >= expires or not allowed():
             raise OSError('Monitor request expired')
         for handle in targets:
-            if time.monotonic() >= expires or not self.dx.SetVCPFeature(handle, 0xd6, 4):
+            if time.monotonic() >= expires or not allowed() or not self.dx.SetVCPFeature(handle, 0xd6, 4):
                 # Restore already-dispatched monitors on partial failure; retain failed handles.
                 try:
                     self.display(True, expires)
@@ -102,6 +102,12 @@ class MonitorPower:
                     pass
                 raise OSError('Monitor power-off unavailable')
             self.off_handles.append(handle)
+            if time.monotonic() >= expires or not allowed():
+                try:
+                    self.display(True, expires)
+                except OSError:
+                    pass
+                raise OSError('Monitor request cancelled or expired')
 
     def close(self):
         # Shutdown requests restoration only for displays explicitly turned off by this object.

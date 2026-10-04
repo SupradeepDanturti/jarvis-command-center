@@ -7,8 +7,7 @@ import os
 import re
 import time
 import wave
-
-from .voice_actions import respond
+from .voice_actions import respond, rest_entry_requested
 
 
 def desktop_unlocked():
@@ -75,6 +74,40 @@ def collect_utterance(stream, allowed, pre_roll=(), wait_seconds=3, on_speech=la
         if silent_frames >= 10 or len(recording) >= 125:
             return b''.join(recording[:125])
     return None
+
+
+def request_rest_entry(pipe, stop, text, speak, allowed, control=lambda message: None):
+    """Mic is already closed. Acknowledge, then wait without reopening it or using an LLM."""
+    if not rest_entry_requested(text) or not allowed():
+        return False
+    speak("I'll enter Rest mode, sir.")
+    if not allowed():
+        return False
+    pipe.send({'type': 'status', 'phase': 'thinking', 'message': 'Checking desk monitors for Rest mode.'})
+    pipe.send({'type': 'rest-entry', 'heard': text})
+    deadline = time.monotonic()+30
+    while not stop.is_set() and time.monotonic() < deadline:
+        if not desktop_unlocked():
+            pipe.send({'type': 'rest-cancel'})
+            return False
+        if pipe.poll(.1):
+            message = pipe.recv()
+            if message.get('type') == 'rest-result':
+                if message.get('ok') is True:
+                    return True
+                if allowed():
+                    reply = "I couldn't enter Rest mode, sir. " + str(message.get('message', 'Try the dashboard.'))[:200]
+                    pipe.send({'type': 'exchange', 'heard': text, 'reply': reply})
+                    speak(reply)
+                return False
+            control(message)
+    if not stop.is_set():
+        pipe.send({'type': 'rest-cancel'})
+        if allowed():
+            reply = 'The monitor check timed out, sir. Please try the dashboard.'
+            pipe.send({'type': 'exchange', 'heard': text, 'reply': reply})
+            speak(reply)
+    return False
 
 
 def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id=None,
@@ -242,10 +275,15 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                 try:
                     with pcm_wav(command) as audio:
                         transcript = client.audio.transcriptions.create(model='gpt-transcribe', file=audio,
-                            prompt='Laptop assistant command or conversational reply. App names: Steam, Discord, Spotify, Brave, YouTube, OBS.')
+                            prompt='Laptop assistant command or conversational reply. App names: Steam, Discord, Spotify, Brave, YouTube, OBS. Rest command: enter rest mode.')
                     command = None
                     text = transcript.text.strip()[:1000]
                     if not text or not allowed():
+                        continue
+                    if rest_entry_requested(text):
+                        if request_rest_entry(pipe, stop, text, speak, allowed, control):
+                            return
+                        stop.wait(.5)
                         continue
                     status('thinking', 'Working on your request.')
                     normalized = text.lower().strip().rstrip('.!?,')

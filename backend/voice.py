@@ -3,6 +3,8 @@ import importlib.util
 import json
 import multiprocessing
 import os
+import secrets
+import sqlite3
 from pathlib import Path
 import threading
 import time
@@ -12,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from .security import require_origin
 from .tls import dpapi
-from .voice_actions import execute_tool, voice_tools
+from .voice_actions import execute_tool, voice_tools, rest_entry_requested
 from .voice_history import VoiceHistory
 from .voice_alerts import HardwareAlerts
 
@@ -39,6 +41,8 @@ class VoiceService:
         self.output_id = None
         self.alerts_enabled = True
         self.pending_reminder = None
+        self.rest = None
+        self.pending_rest = None
         self.alert_policy = HardwareAlerts(self.directory / 'alerts.json' if self.directory else None)
         if self.directory and (self.directory / 'input.json').exists():
             try:
@@ -257,10 +261,74 @@ class VoiceService:
                 self.pending_reminder = None
                 self.phase, self.message = 'alert', 'Focus reminder.'
 
+    def _rest_allowed(self, request, process):
+        from .voice_worker import desktop_unlocked
+        with self.lock:
+            live = (request == self.pending_rest and request[0] == self.generation
+                    and time.monotonic() < request[2] and process is self.process and process.is_alive()
+                    and self.stop_event is not None and not self.stop_event.is_set() and desktop_unlocked())
+            if not live and self.pending_rest == request:
+                self.pending_rest = None
+            return bool(live)
+
+    def _enter_rest(self, request, process, pipe, heard):
+        allowed = lambda: self._rest_allowed(request, process)
+        try:
+            if not allowed():
+                return
+            device_id = 'voice:' + request[1]
+            prepared = self.rest.prepare(device_id)
+            if not allowed():
+                return
+            self.rest.enter(device_id, prepared['nonce'], self.rest.snapshot()['revision'], allowed=allowed)
+            with self.lock:
+                if request != self.pending_rest or request[0] != self.generation:
+                    return
+                try:
+                    self.history.add(heard, 'Rest mode entered, sir.',
+                        {'name': 'enter_rest_mode', 'arguments': {}, 'ok': True, 'message': 'Desk monitors powered off.'})
+                except (sqlite3.Error, OSError, ValueError):
+                    pass
+                try:
+                    pipe.send({'type': 'rest-result', 'ok': True})
+                finally:
+                    self.stop()
+        except (HTTPException, OSError) as error:
+            if allowed():
+                try:
+                    pipe.send({'type': 'rest-result', 'ok': False,
+                               'message': str(error.detail)[:200] if isinstance(error, HTTPException) else
+                                          'Check DDC/CI and the monitor connection, or try the dashboard.'})
+                except (EOFError, OSError):
+                    pass
+        finally:
+            with self.lock:
+                if self.pending_rest == request:
+                    self.pending_rest = None
+
+    def _request_rest(self, generation, process, pipe, event):
+        from .voice_worker import desktop_unlocked
+        with self.lock:
+            if (set(event) != {'type', 'heard'} or not rest_entry_requested(event.get('heard'))
+                or self.rest is None or self.pending_rest is not None or generation != self.generation
+                or self.phase != 'thinking' or self.stop_event is None or self.stop_event.is_set()
+                or process is not self.process or not process.is_alive() or not desktop_unlocked()):
+                pipe.send({'type': 'rest-result', 'ok': False, 'message': 'Rest voice entry is unavailable.'})
+                return
+            request = (generation, secrets.token_hex(12), time.monotonic()+25)
+            self.pending_rest = request
+            self.last_heard = event['heard'][:500]
+        threading.Thread(target=self._enter_rest, args=(request, process, pipe, event['heard']),
+                         daemon=True, name='voice-rest').start()
+
     def _monitor(self, generation, process, pipe):
         from .voice_worker import desktop_unlocked
         try:
             while process.is_alive() or pipe.poll():
+                with self.lock:
+                    pending_rest = self.pending_rest
+                if pending_rest is not None:
+                    self._rest_allowed(pending_rest, process)
                 self._check_alerts(generation, pipe)
                 self._check_reminders(generation, pipe)
                 if not pipe.poll(0.2):
@@ -269,9 +337,13 @@ class VoiceService:
                 with self.lock:
                     if generation != self.generation:
                         return
-                    if event.get('type') == 'action':
+                    if event.get('type') == 'rest-entry':
+                        self._request_rest(generation, process, pipe, event)
+                    elif event.get('type') == 'rest-cancel':
+                        self.pending_rest = None
+                    elif event.get('type') == 'action':
                         result = {'ok': False, 'message': 'Voice control is unavailable.'}
-                        if self.phase == 'thinking' and not self.stop_event.is_set() and desktop_unlocked():
+                        if self.phase == 'thinking' and self.pending_rest is None and not self.stop_event.is_set() and desktop_unlocked():
                             try:
                                 result = execute_tool(event.get('name'), event.get('arguments'), self.registry, self.telemetry)
                             except (ValueError, TypeError, HTTPException):
@@ -305,6 +377,7 @@ class VoiceService:
         with self.lock:
             self.generation += 1  # Reject all late actions and replies from the old worker.
             self.pending_reminder = None
+            self.pending_rest = None
             process, stop, pipe = self.process, self.stop_event, self.pipe
             self.process = self.pipe = self.stop_event = None
             self.phase, self.message = 'off', 'Microphone off.'

@@ -75,8 +75,8 @@ class WindowsDisplay:
             if not self.kernel.SetThreadExecutionState(CONTINUOUS):
                 raise OSError('Awake request failed')
 
-    def display(self, on, expires):
-        self.monitors.display(on, expires)
+    def display(self, on, expires, allowed):
+        self.monitors.display(on, expires, allowed)
 
     def probe(self):
         return len(self.monitors.inventory())
@@ -101,12 +101,14 @@ class DisplayPower:
         try:
             native = self.factory()
             while True:
-                action, value, future, expires = self.jobs.get()
+                action, value, future, expires, allowed = self.jobs.get()
                 if action == 'close':
                     break
                 if time.monotonic() > expires or future.cancelled():
                     continue
                 try:
+                    if not allowed():
+                        raise OSError('Display request cancelled')
                     result = True
                     if action == 'hold':
                         if value != self.held:
@@ -115,7 +117,7 @@ class DisplayPower:
                     elif action == 'probe':
                         result = native.probe()
                     else:
-                        native.display(value, expires)
+                        native.display(value, expires, allowed)
                     if not future.done():
                         future.set_result(result)
                 except OSError:
@@ -132,7 +134,7 @@ class DisplayPower:
                     pass
             self.held = False
 
-    def _call(self, action, value, timeout=5):
+    def _call(self, action, value, timeout=5, allowed=lambda: True):
         with self.lock:
             if self.closed:
                 raise OSError('Display control stopped')
@@ -141,7 +143,7 @@ class DisplayPower:
                 self.thread.start()
             future = Future()
             try:
-                self.jobs.put_nowait((action, value, future, time.monotonic() + timeout))
+                self.jobs.put_nowait((action, value, future, time.monotonic() + timeout, allowed))
             except queue.Full:
                 raise OSError('Display control is busy') from None
         try:
@@ -151,6 +153,8 @@ class DisplayPower:
             raise OSError('Display control did not respond') from None
 
     def hold(self, enabled):
+        if self.closed:
+            raise OSError('Display control stopped')
         if enabled == self.held:
             return True
         return self._call('hold', enabled)
@@ -158,8 +162,8 @@ class DisplayPower:
     def probe(self):
         return self._call('probe', None, timeout=20)
 
-    def off(self):
-        return self._call('display', False)
+    def off(self, allowed=lambda: True):
+        return self._call('display', False, allowed=allowed)
 
     def wake(self):
         return self._call('display', True)
@@ -169,14 +173,14 @@ class DisplayPower:
             self.closed = True
             while True:
                 try:
-                    _, _, future, _ = self.jobs.get_nowait()
+                    _, _, future, _, _ = self.jobs.get_nowait()
                 except queue.Empty:
                     break
                 if future is not None and not future.done():
                     future.set_exception(OSError('Display control stopped'))
             if self.thread and self.thread.is_alive():
                 try:
-                    self.jobs.put_nowait(('close', None, None, 0))
+                    self.jobs.put_nowait(('close', None, None, 0, None))
                 except queue.Full:
                     return
                 self.thread.join(timeout=6)

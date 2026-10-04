@@ -129,6 +129,7 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     activity = ActivityMonitor(games)
     alarm_audio = AlarmAudio(voice.directory, output=lambda: voice.output_id)
     rest = RestAlarms(DisplayPower(), alarm_audio, alarm_path or (None if pairing_code else state_dir / 'alarms.json'), before_ring=voice.stop)
+    voice.rest = rest
 
     @asynccontextmanager
     async def lifespan(app):

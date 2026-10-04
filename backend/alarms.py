@@ -184,8 +184,10 @@ class RestAlarms:
             self.audio.start('wake up', self.wall()+10)
             return self.snapshot()
 
-    def enter(self, device_id, nonce, revision):
+    def enter(self, device_id, nonce, revision, allowed=lambda: True):
         with self.lock:
+            if self.closed.is_set() or not allowed():
+                raise HTTPException(409, 'Rest entry was cancelled.')
             prepared = self.nonces.pop(device_id, None)
             if not prepared or prepared[1] <= self.monotonic() or not secrets.compare_digest(prepared[0], nonce):
                 raise HTTPException(409, 'Rest confirmation expired. Try again.')
@@ -195,7 +197,9 @@ class RestAlarms:
             try:
                 self.power.hold(True)
                 self._commit(self.alarm)
-                self.power.off()
+                if not allowed():
+                    raise HTTPException(409, 'Rest entry was cancelled.')
+                self.power.off(allowed=allowed)
                 self.rest, self.message = True, 'Desk monitor power-off requested. Laptop stays awake.'
             except OSError:
                 self._restore_hold()

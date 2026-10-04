@@ -41,7 +41,9 @@ class Power:
     def probe(self):
         return 2
 
-    def off(self):
+    def off(self, allowed=lambda: True):
+        if not allowed():
+            raise OSError('Cancelled')
         self.calls.append(('display', False))
 
     def wake(self):
@@ -167,7 +169,7 @@ def test_display_requests_and_lease_clear_use_one_thread():
     calls=[]
     class Native:
         def hold(self,value):calls.append(('hold',value,threading.get_ident()))
-        def display(self,value,expires):calls.append(('display',value,threading.get_ident()))
+        def display(self,value,expires,allowed):calls.append(('display',value,threading.get_ident()))
         def close(self):self.hold(False)
     power=DisplayPower(factory=Native)
     power.hold(True);power.off();power.wake();power.hold(False);power.close()
@@ -345,3 +347,17 @@ def test_slow_monitor_preparation_does_not_block_shared_state_or_issue_power_off
     rest.power.probe = Mock(return_value=0)
     with pytest.raises(HTTPException):rest.prepare('other')
     assert 'other' not in rest.nonces
+
+
+def test_cancelled_voice_guard_prevents_entry_and_rolls_back_partial_monitor_off():
+    rest, _ = service()
+    nonce = rest.prepare('voice')['nonce']
+    with pytest.raises(HTTPException):rest.enter('voice', nonce, rest.revision, allowed=lambda: False)
+    assert rest.power.calls == [] and not rest.rest
+    native = object.__new__(MonitorPower)
+    native.targets, native.prepared_at, native.off_handles = [11, 12], time.monotonic(), []
+    native.dx = SimpleNamespace(SetVCPFeature=Mock(return_value=True))
+    decisions = iter([True, True, False])
+    with pytest.raises(OSError):native.display(False, time.monotonic()+5, allowed=lambda: next(decisions))
+    assert [call.args for call in native.dx.SetVCPFeature.call_args_list] == [(11, 0xd6, 4), (11, 0xd6, 1)]
+    assert not native.off_handles

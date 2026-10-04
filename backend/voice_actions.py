@@ -11,6 +11,16 @@ from .controllers import MEDIA_KEYS, media_action
 VOICE_MODEL = 'gpt-6-luna'
 
 
+def rest_entry_requested(text):
+    """A literal spoken request, never a model tool or a quoted/web instruction."""
+    if not isinstance(text, str) or len(text) > 1000:
+        return False
+    command = re.sub(r'\s+', ' ', text.lower()).strip().rstrip('.!?,')
+    command = re.sub(r'^(?:hey[,.!?:\s]+)?jarvis[,.!?:\s]+', '', command).strip()
+    command = re.sub(r'[,\s]+jarvis$', '', command).strip()
+    return command in {'enter rest mode', 'please enter rest mode', 'enter rest mode please'}
+
+
 def voice_tools(registry):
     apps = [app for app in registry.catalog() if app['available']]
     tools = []
