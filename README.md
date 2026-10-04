@@ -8,6 +8,7 @@ Read [the dashboard specification](spec/SPEC.md) for the complete target, implem
 
 **Desk experience:** **More → Now playing** shows the Windows-selected Spotify/Brave session's artwork, title and artist, with session-specific playback controls and progress/seeking when supported. **Clock → Focus timer** adds a shared laptop countdown. **More → System & controls → Tablet settings** holds opt-in night dimming, slow rotation, context switching and timer settings. **Hardware** has optional read-only HWiNFO sensor mapping; real extra readings remain unavailable until the owner enables and verifies the provider. See [SETUP.md](SETUP.md#now-playing-focus-and-automatic-display) and the original [experience plan](spec/EXPERIENCE_PLAN.md).
 
+
 **Installation and how-to:** follow [SETUP.md](SETUP.md) for the complete Windows, HTTPS, background startup, Redmi pairing, everyday use, Jarvis, update, and troubleshooting walkthrough. Already installed? Go directly to [the update steps](SETUP.md#update-an-existing-installation).
 
 The display uses a small floating dock: **Home, Live (performance), Games, Apps, Clock, Ambient**. **More** opens Now playing, Hardware, Live graphs, System & controls, Device access, and Jarvis. Home gives the black-hole artwork the center, with a compact heading, one horizontal CPU/vitals/media strip, and launcher icons. Clock and Ambient fill the display; Games uses a sideways poster gallery. There is no permanent sidebar or overview card grid.
