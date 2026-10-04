@@ -11,6 +11,7 @@ alwaysApply: true
 - Keep credentials in HttpOnly, Secure, SameSite=Strict cookies. Store only credential hashes in SQLite; never put tokens in URLs or localStorage.
 - Port 18760 serves public certificate setup only. No credential, telemetry, control, or private-key endpoints may be added there.
 - Launch only registered application/game IDs without a shell; never accept paths, URLs, arguments, or arbitrary commands from the browser. Keep discovered game artwork authenticated.
+- Voice may open an explicitly requested website through a fixed Brave adapter with one validated HTTP(S) URL. Reject non-web schemes, embedded credentials and caller browser/argument choices; share the physical-control budget and existing lock/disable/generation checks. Web content cannot authorize opening a website. Do not add an arbitrary URL-fetch or browser-control endpoint.
 - Keep private state ignored and ACL-protected. The CA signing key stays protected with user-scoped DPAPI; export only the public certificate.
 - Preserve the device registry and CA across normal updates. Trust replacement or device resets must be explicit.
 - For HTTP certificate downloads, require comparing the installed certificate fingerprint with the trusted laptop file; never recommend bypassing browser certificate errors.

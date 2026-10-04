@@ -1,12 +1,15 @@
 """Trusted, laptop-side registrations only. No client-supplied executable or shell."""
 import ctypes
 import json
+import ipaddress
 import os
 from pathlib import Path
 import shutil
+import re
 import subprocess
 import threading
 import time
+from urllib.parse import urlsplit, urlunsplit
 
 import psutil
 from fastapi import HTTPException
@@ -17,6 +20,49 @@ ROOT = Path(__file__).resolve().parents[1]
 URI_PREFIXES = ("steam://", "discord://", "spotify:", "microsoft-edge:", "ms-settings:")
 MEDIA_KEYS = {"volume-up": 0xAF, "volume-down": 0xAE, "mute": 0xAD,
               "play-pause": 0xB3, "next": 0xB0, "previous": 0xB1}
+
+
+def website_url(url):
+    """Canonical browser navigation only; never an OS protocol, command or authenticated URL."""
+    if not isinstance(url, str) or not 1 <= len(url) <= 2048 or '\\' in url or any(c.isspace() or ord(c) < 32 or ord(c) == 127 for c in url):
+        raise ValueError('Use a complete HTTP or HTTPS website URL.')
+    try:
+        parsed = urlsplit(url)
+        if parsed.scheme not in {'http', 'https'} or not parsed.netloc or not parsed.hostname:
+            raise ValueError()
+        if parsed.username is not None or parsed.password is not None or '%' in parsed.hostname:
+            raise ValueError()
+        port = parsed.port
+        if port is not None and not 1 <= port <= 65535:
+            raise ValueError()
+        if ':' in parsed.hostname:
+            hostname = str(ipaddress.IPv6Address(parsed.hostname))
+            authority = '[' + hostname + ']'
+        else:
+            hostname = parsed.hostname.encode('idna').decode('ascii').lower()
+            domain = hostname[:-1] if hostname.endswith('.') else hostname
+            if len(domain) > 253 or not all(re.fullmatch(r'[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?', label) for label in domain.split('.')):
+                raise ValueError()
+            authority = hostname
+        if port is not None:
+            authority += ':' + str(port)
+        return urlunsplit((parsed.scheme, authority, parsed.path or '/', parsed.query, parsed.fragment)), hostname
+    except (ValueError, UnicodeError):
+        raise ValueError('Use a complete HTTP or HTTPS website URL without embedded credentials.') from None
+
+
+def open_website(url):
+    target, hostname = website_url(url)
+    if os.name != 'nt':
+        raise HTTPException(501, 'Website opening requires Windows.')
+    executable = AppRegistry.resolve_executable('brave.exe')
+    try:
+        if not Path(executable).is_file():
+            raise FileNotFoundError()
+        subprocess.Popen([executable, '--new-tab', target], cwd=str(Path(executable).parent), shell=False)
+    except OSError:
+        raise HTTPException(409, 'The website could not be opened. Check that Brave is installed.') from None
+    return {'ok': True, 'message': f'Opening {hostname} in Brave.'}
 
 
 class AppRegistry:

@@ -4,7 +4,7 @@ from pathlib import Path
 import re
 from urllib.parse import urlsplit
 
-from .controllers import MEDIA_KEYS, media_action
+from .controllers import MEDIA_KEYS, media_action, open_website
 from .ambient import ambient_options, load_ambient_scenes
 
 VOICE_MODEL = 'gpt-6-luna'
@@ -50,6 +50,11 @@ def voice_tools(registry):
          'strict': True, 'parameters': {'type': 'object', 'properties': {
              'id': {'type': 'string', 'description': 'Exact app ID returned by list_apps.'}},
              'required': ['id'], 'additionalProperties': False}},
+        {'type': 'function', 'name': 'open_website',
+         'description': 'Open one explicitly requested website in Brave. Supply its complete HTTP or HTTPS URL. This opens a browser tab, not a laptop network fetch or website interaction. No files, OS protocols, embedded credentials, executable paths, or browser arguments.',
+         'strict': True, 'parameters': {'type': 'object', 'properties': {
+             'url': {'type': 'string', 'description': 'Complete HTTP or HTTPS URL for the website requested by the user.'}},
+             'required': ['url'], 'additionalProperties': False}},
     ]
     for name, description, field, values in [
         ('media_control', 'Change laptop sound or control its current media player. Play-pause toggles playback.', 'action', list(MEDIA_KEYS)),
@@ -132,6 +137,8 @@ def execute_tool(name, arguments, registry, telemetry, navigate=None):
     # Treat model output as untrusted, even with strict API schemas.
     if not isinstance(arguments, dict):
         raise ValueError('Invalid action arguments.')
+    if name == 'open_website' and set(arguments) == {'url'}:
+        return open_website(arguments['url'])
     if name == 'list_apps' and not arguments:
         apps = registry.voice_catalog()
         return {'ok': bool(apps), 'apps': apps,

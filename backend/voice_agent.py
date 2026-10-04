@@ -76,7 +76,7 @@ async def _run_turn(client, instructions, text, tools, dispatch, allowed, histor
                 key = (spec['name'], json.dumps(arguments, sort_keys=True))
                 if key in completed:
                     return completed[key]  # Never repeat even a timed-out or failed physical request.
-                slot = ('physical' if spec['name'] in {'launch_app', 'media_control'} else
+                slot = ('physical' if spec['name'] in {'launch_app', 'media_control', 'open_website'} else
                         'screen' if spec['name'] in {'show_screen', 'show_ambient'} else
                         'scenes' if spec['name'] == 'list_ambient_scenes' else
                         'apps' if spec['name'] == 'list_apps' else 'read')
