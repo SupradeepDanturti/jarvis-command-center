@@ -209,10 +209,12 @@ class RestAlarms:
                 raise
             return self.snapshot()
 
-    def wake(self):
+    def wake(self, allowed=lambda: True):
         with self.lock:
+            if self.closed.is_set() or not allowed():
+                raise HTTPException(409, 'Display wake was cancelled.')
             try:
-                self.power.wake()
+                self.power.wake(allowed=allowed)
             except OSError:
                 raise HTTPException(503, 'Windows display wake request failed.') from None
             was_rest = self.rest

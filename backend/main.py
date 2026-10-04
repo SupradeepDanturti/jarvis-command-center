@@ -372,7 +372,6 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     @app.post('/api/rest/enter', dependencies=[Depends(require_origin)])
     def enter_rest(body: RestRequest, device=Depends(authenticate)):
         result = rest.enter(device['id'], body.nonce, body.revision)
-        voice.stop()
         return result
 
     @app.post('/api/rest/wake', dependencies=[Depends(authenticate), Depends(require_origin)])

@@ -46,7 +46,9 @@ class Power:
             raise OSError('Cancelled')
         self.calls.append(('display', False))
 
-    def wake(self):
+    def wake(self, allowed=lambda: True):
+        if not allowed():
+            raise OSError('Cancelled')
         self.calls.append(('display', True))
 
     def close(self):
@@ -184,6 +186,7 @@ def test_api_auth_origin_extra_fields_finite_time_and_confirmation():
     rest=app.state.rest
     # Inject hardware/audio adapters; QA never dispatches physical monitor or speaker actions.
     rest.power=Power();rest.audio=service()[0].audio
+    app.state.voice.stop = Mock()
     client=TestClient(app,base_url='https://testserver',client=('127.0.0.1',4000))
     for url in ['/api/alarms','/api/rest/prepare','/api/rest/enter','/api/rest/wake']:
         response=client.get(url) if url=='/api/alarms' else client.post(url,headers=ORIGIN,json={'revision':0,'nonce':'a'*24} if url.endswith('enter') else {})
@@ -199,6 +202,7 @@ def test_api_auth_origin_extra_fields_finite_time_and_confirmation():
     nonce=client.post('/api/rest/prepare',json={},headers=ORIGIN).json()['nonce']
     result=client.post('/api/rest/enter',json={'revision':1,'nonce':nonce},headers=ORIGIN)
     assert result.status_code==200 and result.json()['rest']
+    app.state.voice.stop.assert_not_called()
     assert client.post('/api/rest/wake',json={},headers={'origin':'https://evil.example'}).status_code==403
     client.post('/api/logout',headers=ORIGIN)
     assert client.get('/api/alarms').status_code==401
@@ -361,3 +365,25 @@ def test_cancelled_voice_guard_prevents_entry_and_rolls_back_partial_monitor_off
     with pytest.raises(OSError):native.display(False, time.monotonic()+5, allowed=lambda: next(decisions))
     assert [call.args for call in native.dx.SetVCPFeature.call_args_list] == [(11, 0xd6, 4), (11, 0xd6, 1)]
     assert not native.off_handles
+
+
+def test_voice_wake_cancellation_preserves_rest_alarm_and_remaining_handles():
+    rest, clock = service()
+    arm(rest, clock)
+    rest.enter('tablet', rest.prepare('tablet')['nonce'], rest.revision)
+    revision, alarm = rest.revision, dict(rest.alarm)
+    calls = list(rest.power.calls)
+    with pytest.raises(HTTPException):rest.wake(allowed=lambda: False)
+    assert rest.rest and rest.revision == revision and rest.alarm == alarm
+    assert rest.power.calls == calls
+    native = object.__new__(MonitorPower)
+    native.off_handles = [11, 12]
+    native.dx = SimpleNamespace(SetVCPFeature=Mock(return_value=True))
+    decisions = iter([True, False])
+    with pytest.raises(OSError):native.display(True, time.monotonic()+5, allowed=lambda: next(decisions))
+    assert [call.args for call in native.dx.SetVCPFeature.call_args_list] == [(11, 0xd6, 1)]
+    assert native.off_handles == [12]
+    native.dx.SetVCPFeature.reset_mock()
+    with pytest.raises(OSError):native.display(True, time.monotonic()-1)
+    native.dx.SetVCPFeature.assert_not_called()
+    assert native.off_handles == [12]

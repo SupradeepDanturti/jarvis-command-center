@@ -78,7 +78,7 @@ class MonitorPower:
         if on:
             failed = []
             for handle in self.off_handles:
-                if not self.dx.SetVCPFeature(handle, 0xd6, 1):
+                if time.monotonic() >= expires or not allowed() or not self.dx.SetVCPFeature(handle, 0xd6, 1):
                     failed.append(handle)
             self.off_handles = failed
             if failed:
@@ -97,14 +97,14 @@ class MonitorPower:
             if time.monotonic() >= expires or not allowed() or not self.dx.SetVCPFeature(handle, 0xd6, 4):
                 # Restore already-dispatched monitors on partial failure; retain failed handles.
                 try:
-                    self.display(True, expires)
+                    self.display(True, float('inf'))
                 except OSError:
                     pass
                 raise OSError('Monitor power-off unavailable')
             self.off_handles.append(handle)
             if time.monotonic() >= expires or not allowed():
                 try:
-                    self.display(True, expires)
+                    self.display(True, float('inf'))
                 except OSError:
                     pass
                 raise OSError('Monitor request cancelled or expired')

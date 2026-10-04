@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from .security import require_origin
 from .tls import dpapi
-from .voice_actions import execute_tool, voice_tools, rest_entry_requested
+from .voice_actions import execute_tool, voice_tools, rest_entry_requested, rest_wake_requested
 from .voice_history import VoiceHistory
 from .voice_alerts import HardwareAlerts
 
@@ -271,28 +271,31 @@ class VoiceService:
                 self.pending_rest = None
             return bool(live)
 
-    def _enter_rest(self, request, process, pipe, heard):
+    def _enter_rest(self, request, process, pipe, heard, waking=False):
         allowed = lambda: self._rest_allowed(request, process)
         try:
             if not allowed():
                 return
-            device_id = 'voice:' + request[1]
-            prepared = self.rest.prepare(device_id)
-            if not allowed():
-                return
-            self.rest.enter(device_id, prepared['nonce'], self.rest.snapshot()['revision'], allowed=allowed)
+            if waking:
+                self.rest.wake(allowed=allowed)
+            else:
+                device_id = 'voice:' + request[1]
+                prepared = self.rest.prepare(device_id)
+                if not allowed():
+                    return
+                self.rest.enter(device_id, prepared['nonce'], self.rest.snapshot()['revision'], allowed=allowed)
             with self.lock:
                 if request != self.pending_rest or request[0] != self.generation:
                     return
                 try:
-                    self.history.add(heard, 'Rest mode entered, sir.',
-                        {'name': 'enter_rest_mode', 'arguments': {}, 'ok': True, 'message': 'Desk monitors powered off.'})
+                    reply = 'Displays awake, sir.' if waking else 'Rest mode entered, sir.'
+                    self.last_heard, self.last_reply = heard[:500], reply
+                    self.history.add(heard, reply,
+                        {'name': 'wake_displays' if waking else 'enter_rest_mode', 'arguments': {}, 'ok': True,
+                         'message': 'Desk monitors powered on.' if waking else 'Desk monitors powered off.'})
                 except (sqlite3.Error, OSError, ValueError):
                     pass
-                try:
-                    pipe.send({'type': 'rest-result', 'ok': True})
-                finally:
-                    self.stop()
+                pipe.send({'type': 'rest-result', 'ok': True})
         except (HTTPException, OSError) as error:
             if allowed():
                 try:
@@ -308,8 +311,10 @@ class VoiceService:
 
     def _request_rest(self, generation, process, pipe, event):
         from .voice_worker import desktop_unlocked
+        waking = event.get('type') == 'rest-wake'
+        matches = rest_wake_requested if waking else rest_entry_requested
         with self.lock:
-            if (set(event) != {'type', 'heard'} or not rest_entry_requested(event.get('heard'))
+            if (set(event) != {'type', 'heard'} or event.get('type') not in {'rest-entry', 'rest-wake'} or not matches(event.get('heard'))
                 or self.rest is None or self.pending_rest is not None or generation != self.generation
                 or self.phase != 'thinking' or self.stop_event is None or self.stop_event.is_set()
                 or process is not self.process or not process.is_alive() or not desktop_unlocked()):
@@ -318,7 +323,7 @@ class VoiceService:
             request = (generation, secrets.token_hex(12), time.monotonic()+25)
             self.pending_rest = request
             self.last_heard = event['heard'][:500]
-        threading.Thread(target=self._enter_rest, args=(request, process, pipe, event['heard']),
+        threading.Thread(target=self._enter_rest, args=(request, process, pipe, event['heard'], waking),
                          daemon=True, name='voice-rest').start()
 
     def _monitor(self, generation, process, pipe):
@@ -337,7 +342,7 @@ class VoiceService:
                 with self.lock:
                     if generation != self.generation:
                         return
-                    if event.get('type') == 'rest-entry':
+                    if event.get('type') in {'rest-entry', 'rest-wake'}:
                         self._request_rest(generation, process, pipe, event)
                     elif event.get('type') == 'rest-cancel':
                         self.pending_rest = None

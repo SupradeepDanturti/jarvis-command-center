@@ -165,8 +165,8 @@ class DisplayPower:
     def off(self, allowed=lambda: True):
         return self._call('display', False, allowed=allowed)
 
-    def wake(self):
-        return self._call('display', True)
+    def wake(self, allowed=lambda: True):
+        return self._call('display', True, allowed=allowed)
 
     def close(self):
         with self.lock:
