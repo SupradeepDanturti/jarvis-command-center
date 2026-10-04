@@ -8,6 +8,7 @@ import re
 import time
 import wave
 from .voice_actions import respond, rest_entry_requested, rest_wake_requested
+from .voice_wake import WAKE_MODEL, WAKE_PHRASE, WAKE_THRESHOLD
 
 
 def desktop_unlocked():
@@ -190,7 +191,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                 play_on_speaker(audio, output_device, can_speak)
 
         if preview:
-            speak('Good evening, sir. All systems are ready. Just say Hey Jarvis, and tell me what you need.')
+            speak('Good evening, sir. All systems are ready. Just say Jarvis, pause briefly, and tell me what you need.')
             status('off', 'Voice preview finished. Microphone off.')
             return
 
@@ -199,7 +200,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
         input_device = resolve_input(input_id)
         from openai import OpenAI
         from openwakeword.model import Model
-        wake = Model(wakeword_models=[str(directory / 'hey_jarvis_v0.1.onnx')], inference_framework='onnx',
+        wake = Model(wakeword_models=[str(directory / WAKE_MODEL)], inference_framework='onnx',
                      melspec_model_path=str(directory / 'melspectrogram.onnx'),
                      embedding_model_path=str(directory / 'embedding_model.onnx'))
         client = OpenAI(api_key=key, base_url='https://api.openai.com/v1', timeout=15, max_retries=0)
@@ -258,7 +259,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                 command = None
                 status('followup' if followup else 'listening',
                        f'Your turn · listening for a reply for {followup_seconds} seconds.' if followup else
-                       'Listening for Hey Jarvis · ' + input_device['name'])
+                       'Listening for ' + WAKE_PHRASE + ' · ' + input_device['name'])
                 with sd.RawInputStream(device=input_device['index'], samplerate=16000, blocksize=1280, channels=1, dtype='int16') as stream:
                     if followup:
                         command = collect_utterance(stream, allowed, wait_seconds=followup_seconds,
@@ -272,7 +273,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                         chunk = bytes(audio)
                         frames.append(chunk)
                         score = wake.predict(np.frombuffer(chunk, dtype=np.int16))
-                        if max(score.values(), default=0) < 0.6:
+                        if max(score.values(), default=0) < WAKE_THRESHOLD:
                             continue
                         status('recording', 'Listening to your command.')
                         command = collect_utterance(stream, allowed, pre_roll=frames)

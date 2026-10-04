@@ -8,15 +8,18 @@ ROOT = Path(__file__).resolve().parents[1]
 DESTINATION = ROOT / '.state/private/voice/models'
 JARVIS = 'https://huggingface.co/jgkawell/jarvis/resolve/main/en/en_GB/jarvis/medium/'
 WAKE = 'https://github.com/dscripka/openWakeWord/releases/download/v0.5.1/'
+JARVIS_WAKE = 'https://raw.githubusercontent.com/fwartner/home-assistant-wakewords-collection/8bcd2f20bb7b76c351b2eff871fa1ce873fe9be2/'
 FILES = {'jarvis-medium.onnx': JARVIS + 'jarvis-medium.onnx',
          'jarvis-medium.onnx.json': JARVIS + 'jarvis-medium.onnx.json',
-         'hey_jarvis_v0.1.onnx': WAKE + 'hey_jarvis_v0.1.onnx',
+         'jarvis_v1.onnx': JARVIS_WAKE + 'en/jarvis/jarvis_v1.onnx',
+         'jarvis-wake-LICENSE.txt': JARVIS_WAKE + 'LICENSE',
          'melspectrogram.onnx': WAKE + 'melspectrogram.onnx',
          'embedding_model.onnx': WAKE + 'embedding_model.onnx'}
 SHA256 = {
     'jarvis-medium.onnx': '3f6534bd4050931b4c7d16ef777bafa2d90eb1e7baa8af9358623ffe609506da',
     'jarvis-medium.onnx.json': 'f2c2d77f64ed6e771fc7d2defa59cd47d6bd03c3e7602c732d63ea46954f2553',
-    'hey_jarvis_v0.1.onnx': '94a13cfe60075b132f6a472e7e462e8123ee70861bc3fb58434a73712ee0d2cb',
+    'jarvis_v1.onnx': '32171d04d3e4b6fdb8907412ab060c486a2b0a8bc6cff0703212a812b5dd5056',
+    'jarvis-wake-LICENSE.txt': 'd0355b2ffd8e81211b62e9529518b26e2e6f048c220809ea675142bcf40367fa',
     'melspectrogram.onnx': 'ba2b0e0f8b7b875369a2c89cb13360ff53bac436f2895cced9f479fa65eb176f',
     'embedding_model.onnx': '70d164290c1d095d1d4ee149bc5e00543250a7316b59f31d056cff7bd3075c1f',
 }

@@ -216,10 +216,11 @@ def test_full_worker_enters_rest_stays_running_and_wakes_without_llm(monkeypatch
         wav.writeframes(silence)
     piper.load.return_value.synthesize_wav.side_effect = synthesize
     monkeypatch.setitem(sys.modules, 'piper', SimpleNamespace(PiperVoice=piper))
-    wake = Mock();wake.predict.return_value = {'hey_jarvis': .9}
-    monkeypatch.setitem(sys.modules, 'openwakeword.model', SimpleNamespace(Model=Mock(return_value=wake)))
+    wake = Mock();wake.predict.return_value = {'jarvis_v1': .9}
+    wake_factory = Mock(return_value=wake)
+    monkeypatch.setitem(sys.modules, 'openwakeword.model', SimpleNamespace(Model=wake_factory))
     client = Mock();client.__enter__ = Mock(return_value=client);client.__exit__ = Mock(return_value=False)
-    client.audio.transcriptions.create.side_effect = [SimpleNamespace(text='Hey, Jarvis. Enter rest mode.'),
+    client.audio.transcriptions.create.side_effect = [SimpleNamespace(text='Jarvis. Enter rest mode.'),
                                                     SimpleNamespace(text='Jarvis, wake up.')]
     monkeypatch.setitem(sys.modules, 'openai', SimpleNamespace(OpenAI=Mock(return_value=client)))
     parent, child = multiprocessing.Pipe()
@@ -269,7 +270,7 @@ def test_full_worker_enters_rest_stays_running_and_wakes_without_llm(monkeypatch
             piper.load.assert_called_once()
             history = voice.history.recent()
             assert len(history) == 2 and all(item['action']['ok'] for item in history)
-            assert history[0]['heard'] == 'Hey, Jarvis. Enter rest mode.'
+            assert history[0]['heard'] == 'Jarvis. Enter rest mode.'
             assert history[1]['action']['name'] == 'wake_displays'
         finally:
             stop.set();worker.join(2);monitor.join(2)
@@ -277,3 +278,4 @@ def test_full_worker_enters_rest_stays_running_and_wakes_without_llm(monkeypatch
     client.responses.create.assert_not_called()
     assert client.audio.transcriptions.create.call_count == 2
     assert microphone.RawInputStream.call_count == 3
+    assert wake_factory.call_args.kwargs['wakeword_models'] == [str(tmp_path / 'jarvis_v1.onnx')]

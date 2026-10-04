@@ -133,7 +133,9 @@ Audio selection is also in **More → System & controls**. Turn Jarvis off befor
 
 ### Conversation, alerts, and history
 
-Try **“Hey Jarvis, open YouTube,” “open Steam,” “how much memory am I using?”**, or **“search NASA for a recent mission update.”** After a reply, speak again within **15 seconds** without repeating the wake phrase. Follow-up listening offers Off, 15, or 30 seconds. Silence or a closing phrase such as “thank you” returns it to wake listening.
+Try **“Jarvis, open YouTube,” “open Steam,” “how much memory am I using?”**, or **“search NASA for a recent mission update.”** After a reply, speak again within **15 seconds** without repeating the wake phrase. Follow-up listening offers Off, 15, or 30 seconds. Silence or a closing phrase such as “thank you” returns it to wake listening.
+
+Say **Jarvis**, pause briefly, then give the command. The dedicated local model also accepts **Hey Jarvis**. Rapid name-plus-command speech can be missed; your room, microphone and pronunciation still affect recognition.
 
 This app uses `gpt-transcribe` for recognition and `gpt-6-luna` for interpretation/replies. Wake detection and Piper speech run locally. Command audio and conversation context go to OpenAI; web search returns clickable sources. Audio is not saved. The latest **500 text exchanges** persist privately; the latest six conversation exchanges provide context. Only the localhost owner can **Clear history**, which also stops Jarvis.
 
@@ -165,6 +167,8 @@ After backend/dependency changes:
 ```powershell
 .\scripts\restart-server.ps1
 ```
+
+For an installed Jarvis, this update adds the Jarvis wake model. Before restarting, run `.\.venv\Scripts\python.exe scripts/install-voice.py` to install its checksum-verified model and license. This preserves the saved key, voice preferences, history and device approvals.
 
 For frontend/documentation-only updates, reload the browser without restarting the server. Reload both laptop/tablet pages after updating; re-enable Jarvis after a server restart. Normal updates preserve approvals, certificates, encrypted key, preferences, and conversation history.
 
@@ -272,7 +276,7 @@ Open **More → Rest & alarms**, **Clock → Rest & alarms**, or `/#rest`. Keep 
 
 First try a two-minute alarm while at the desk. Confirm the monitors go off, the tablet remains connected with the lid closed, the alarm sounds and the monitors return. If a monitor cannot be restored through DDC/CI, use its power button. A process crash or cable change can lose its temporary handle. Manual Windows sleep prevents the laptop server/alarm from running; this feature cannot wake an actually sleeping system remotely.
 
-With **Jarvis on** and Windows unlocked, say **“Hey Jarvis, enter rest mode.”** Jarvis first says “I'll enter Rest mode, sir,” checks the monitors and enters the same shared Rest mode. It keeps its models loaded and resumes wake listening, including after button entry. Say **“Hey Jarvis, wake up”** to restore the monitors and the tablet's previous page; Jarvis then says “Displays awake, sir” and continues listening. Both commands preserve your alarm. The installed detector expects **Hey Jarvis**; bare “Jarvis” is not a separate wake detector. Optional “please,” wake-phrase punctuation and a trailing “Jarvis” are accepted in recognized command text. Failed requests explain why in **Jarvis → History**. Off, Windows lock, worker replacement or expiry cancel pending actions. Windows lock pauses listening; voice wake does not unlock Windows or resume an actually sleeping laptop. A server restart leaves Jarvis off until you enable it again. Normal command transcription still needs your configured API key and internet.
+With **Jarvis on** and Windows unlocked, say **“Jarvis, enter rest mode.”** Jarvis first says “I'll enter Rest mode, sir,” checks the monitors and enters the same shared Rest mode. It keeps its models loaded and resumes wake listening, including after button entry. Say **“Jarvis, wake up”** to restore the monitors and the tablet's previous page; Jarvis then says “Displays awake, sir” and continues listening. Both commands preserve your alarm. Say **Jarvis**, pause briefly, then say the command. The dedicated local Jarvis model also recognizes the older Hey Jarvis phrase. Optional “please,” wake-phrase punctuation and a trailing “Jarvis” are accepted in recognized command text. Failed requests explain why in **Jarvis → History**. Off, Windows lock, worker replacement or expiry cancel pending actions. Windows lock pauses listening; voice wake does not unlock Windows or resume an actually sleeping laptop. A server restart leaves Jarvis off until you enable it again. Normal command transcription still needs your configured API key and internet.
 
 Reloads retain the laptop alarm; future alarms also survive server restarts. Overdue/ringing recovery is silent and shows **Missed**. Clock changes show **Paused** for review. Review and save a new time after either state. The private file is `.state/private/alarms.json`; normal updates preserve it. See [REST_ALARM_SPEC.md](spec/REST_ALARM_SPEC.md) for detailed behavior.
 

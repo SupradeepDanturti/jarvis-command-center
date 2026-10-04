@@ -52,6 +52,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     const nativeStatus=await readNative('status');
     assert.equal(nativeStatus.status,200);
     const native=nativeStatus.body;
+    assert.equal(native.wakePhrase,'Jarvis');
+    assert.match(await page.locator('.voice-intro').innerText(),/Say “Jarvis”, pause, then ask/);
     assert.equal(typeof native.keyConfigured,'boolean');
     assert.equal(Object.hasOwn(native,'key'),false);
     const nativeInputs=await readNative('inputs');

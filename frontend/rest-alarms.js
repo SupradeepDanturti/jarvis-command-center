@@ -64,7 +64,7 @@ function installRestAlarms(){
     if(button.hasAttribute('data-alarm-close')){document.querySelector('#alarm-editor').close();return}
     if(button.hasAttribute('data-alarm-editor')){openAlarmEditor();return}
     if(button.hasAttribute('data-enter-rest')){
-      if(!restReady()||restPending||restPreparing||!confirm('Turn off your DDC/CI desk monitors and dim this tablet? The laptop stays awake. If Jarvis is on, say “Hey Jarvis, wake up” to restore the screens, or use Wake laptop displays.'))return;
+      if(!restReady()||restPending||restPreparing||!confirm('Turn off your DDC/CI desk monitors and dim this tablet? The laptop stays awake. If Jarvis is on, say “Jarvis”, pause, then “wake up” to restore the screens, or use Wake laptop displays.'))return;
       restPreparing=true;paintRest();
       try{const prepared=await api('/api/rest/prepare',{method:'POST',signal:AbortSignal.timeout(22000)});await changeRest('/api/rest/enter','POST',{nonce:prepared.nonce,revision:restState.revision})}catch(error){toast(error.name==='TimeoutError'?'Monitor check timed out. No monitor-off request was sent.':error.message)}finally{restPreparing=false;paintRest()}return;
     }

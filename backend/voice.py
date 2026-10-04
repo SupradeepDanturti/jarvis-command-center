@@ -17,8 +17,9 @@ from .tls import dpapi
 from .voice_actions import execute_tool, voice_tools, rest_entry_requested, rest_wake_requested
 from .voice_history import VoiceHistory
 from .voice_alerts import HardwareAlerts
+from .voice_wake import WAKE_MODEL, WAKE_PHRASE
 
-MODEL_FILES = ('jarvis-medium.onnx', 'jarvis-medium.onnx.json', 'hey_jarvis_v0.1.onnx',
+MODEL_FILES = ('jarvis-medium.onnx', 'jarvis-medium.onnx.json', WAKE_MODEL,
                'melspectrogram.onnx', 'embedding_model.onnx')
 DEPENDENCIES = ('piper', 'openwakeword', 'sounddevice', 'openai')
 
@@ -80,7 +81,7 @@ class VoiceService:
                     'busy': alive, 'keyConfigured': configured, 'modelsInstalled': installed,
                     'dependenciesInstalled': dependencies, 'ready': installed and dependencies and configured,
                     'lastHeard': self.last_heard, 'lastReply': self.last_reply,
-                    'wakePhrase': 'Hey Jarvis', 'inputId': self.input_id,
+                    'wakePhrase': WAKE_PHRASE, 'inputId': self.input_id,
                     'followupSeconds': self.followup_seconds, 'history': self.history.recent(12),
                     'outputId': self.output_id, 'alertsEnabled': self.alerts_enabled}
 

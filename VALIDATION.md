@@ -1,5 +1,12 @@
 # Foundation validation — 2026-10-03
 
+## Jarvis-only primary wake phrase · 2026-10-04
+
+- Changed the worker's selected classifier to community `jarvis_v1.onnx`, its reported wake phrase to **Jarvis**, and the UI/preview/how-tos accordingly. The detector still accepts Hey Jarvis. Sensitivity remains 0.6; optional dependencies still load only in the enabled child, startup remains off and lock/disable cancellation is unchanged.
+- The model was downloaded from immutable revision `8bcd2f20bb7b76c351b2eff871fa1ce873fe9be2`, matched the upstream Git blob, and is pinned in the installer by SHA-256 `32171d04d3e4b6fdb8907412ab060c486a2b0a8bc6cff0703212a812b5dd5056`. Its MIT license is downloaded with its own pinned hash; the private manifest records provenance. Existing models, credentials and approvals are preserved.
+- `scripts/voice-wake-smoke.py` passes using deterministic local Piper synthesis in memory: three positive clips including bare Jarvis and six unrelated negatives, minimum positive 0.9877 and maximum negative 0.0010 at threshold 0.6. No microphone, playback, cloud request or audio file. Initial stochastic synthesis showed a miss, and rapid name-plus-command samples were unreliable; the reproducible check does not establish accuracy across voices. Say Jarvis, pause briefly, then the command. Actual room recognition and false-activation frequency still require owner acceptance.
+- All **175 backend tests** and changed JavaScript syntax checks pass. The full synthetic Rest/wake worker test asserts the new model path and Jarvis-prefixed commands; approved status reports the new wake phrase. The installed backend was loaded through `scripts/restart-server.ps1`; fresh trusted Edge Jarvis checks verify the live wake phrase and updated prompt, and nine-size Rest checks pass with all physical effects mocked. QA revokes only its own credentials; listening starts off after restart.
+
 ## Continuous Jarvis in Rest and voice wake · 2026-10-04
 
 - The owner confirmed the corrected spoken Rest entry works. Entry now preserves an enabled worker after voice or button entry, resumes wake detection and keeps models loaded. The new fixed “Hey Jarvis, wake up” restores monitor handles and shared tablet state, preserves the alarm, speaks after restoration and resumes listening. Startup remains off and Windows lock pauses capture; scheduled alarm ringing/preview still stop conversation listening to avoid audio overlap.
