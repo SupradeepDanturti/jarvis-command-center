@@ -2,7 +2,7 @@
 
 A local touchscreen dashboard for a Dell G16, opened in a Redmi Pad Pro browser. The laptop runs the backend; the tablet displays telemetry and sends registered controls over Wi-Fi.
 
-**Current build:** ten responsive pages with a custom G16 identity, a clock, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, and Windows media keys. No cloud assets or frontend build step.
+**Current build:** eleven responsive pages with a custom G16 identity, a clock, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, and Windows media keys. No cloud assets or frontend build step.
 
 Read [SPEC.md](SPEC.md) for the complete target, implementation decisions, security model, and roadmap.
 
@@ -139,11 +139,15 @@ Choose a **Laptop microphone**, **Preview voice**, then **Turn on Jarvis**. The 
 
 Say “Hey Jarvis, open YouTube,” “open Discord,” “turn the volume down,” or “how much memory am I using?” Wake detection and the synthetic Jarvis-style voice run locally on the CPU. Only the short command clip/text is sent to OpenAI. Registered app launches, media controls and hardware status are supported; no arbitrary shell, URLs, shutdown or smart-home control.
 
-OpenAI uses **GPT Transcribe** (`gpt-transcribe`) for speech recognition and **GPT-6 Luna** (`gpt-6-luna`, reasoning effort `none`) for command interpretation and replies. Piper generates the final voice locally. The system prompt asks for Jarvis-style British phrasing and dry wit. Native OpenAI **web search** handles searches and current information; clickable sources appear beside the answer rather than being read aloud.
+OpenAI uses **GPT Transcribe** (`gpt-transcribe`) for speech recognition and **GPT-6 Luna** (`gpt-6-luna`, reasoning effort `none`) for command interpretation and replies. Piper generates the final voice locally, routed to the **Jarvis speaker** independently of Windows’ default output. **Auto · built-in speakers** selects the Realtek speaker endpoint rather than headphones. You can select another detected speaker on Jarvis or System & controls; changing it requires Jarvis to be off. If the speaker disappears, Jarvis reports an error instead of switching to headphones. The system prompt asks for Jarvis-style British phrasing and dry wit. Native OpenAI **web search** handles searches and current information; clickable sources appear beside the answer rather than being read aloud.
 
 After Jarvis replies, speak again within **15 seconds** without another “Hey Jarvis”. **Follow-up listening** offers Off, 15 or 30 seconds; turn Jarvis off before changing it. Silence or “thank you” returns to wake-word listening.
 
-**Your conversations** saves the latest 500 text exchanges, action results and sources privately on this laptop across restarts. The latest six exchanges accompany each OpenAI turn so follow-up answers retain context. Audio is not saved. Scroll the history or choose **Earlier conversations**; the localhost owner can choose **Clear history**, which also turns Jarvis off.
+**Jarvis** now has an Iron Man theme with a red/gold Iron Man helmet image and cyan reactor rings. On Home, a small armed indicator expands into a transparent activity HUD after the wake word: listening, understanding, processing, speaking, follow-up or hardware warning. It shows the current reply and actual CPU/RAM/GPU readings without blocking sound or launcher controls. It hides on disconnect, expired voice status or unpairing; motion respects reduced-motion settings.
+
+**Alerts on / Alerts off** controls local spoken hardware warnings while Jarvis is running. CPU or memory at **90%**, or GPU temperature at **70°C**, must appear in three fresh readings. Warnings wait until Jarvis is listening for its wake word, then speak through the dedicated speaker using Piper without an OpenAI request. All warnings share a **one-hour cooldown** stored on this laptop across worker/server restarts; if readings remain high, another warning may sound after that hour. Switching alerts off cancels pending warning audio without turning Jarvis off. No alerts run while Jarvis is off or Windows is locked.
+
+**Your conversations** saves the latest 500 text exchanges, action results and sources privately on this laptop across restarts. The latest six conversation exchanges (excluding automatic hardware warnings) accompany each OpenAI turn so follow-up answers retain context. Audio is not saved. Scroll the history or choose **Earlier conversations**; the localhost owner can choose **Clear history**, which also turns Jarvis off.
 
 Closing the webpage keeps Jarvis running. **Turn off Jarvis** releases the microphone and models. Listening pauses while Windows is locked and while processing/speaking. A server restart always starts with Jarvis off. Any approved browser can toggle it; only an approved direct-localhost owner can save or remove the key. OpenAI API billing is separate from ChatGPT subscriptions.
 

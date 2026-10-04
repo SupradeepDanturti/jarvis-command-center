@@ -78,15 +78,24 @@ def collect_utterance(stream, allowed, pre_roll=(), wait_seconds=3, on_speech=la
 
 
 def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id=None,
-                followup_seconds=15, history=None):
+                followup_seconds=15, history=None, output_id=None, alerts_enabled=True):
     # Imported only in this child; disabled Jarvis adds no inference RAM to the server.
     for variable in ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS'):
         os.environ[variable] = '1'
     from pathlib import Path
-    import winsound
+    pending_alerts = deque(maxlen=1)
 
     def status(phase, message):
         pipe.send({'type': 'status', 'phase': phase, 'message': message})
+
+    def control(message):
+        nonlocal alerts_enabled
+        if message.get('type') == 'alerts':
+            alerts_enabled = message.get('enabled') is True
+            if not alerts_enabled:
+                pending_alerts.clear()
+        if message.get('type') == 'alert' and alerts_enabled:
+            pending_alerts.append(str(message.get('text', ''))[:500])
 
     def allowed():
         if stop.is_set() or not desktop_unlocked():
@@ -94,7 +103,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
         # EOF becomes readable when the dashboard disappears, including a forced restart.
         if pipe.poll():
             try:
-                pipe.recv()
+                control(pipe.recv())
             except (EOFError, OSError):
                 stop.set()
                 return False
@@ -103,18 +112,26 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
     try:
         import numpy as np
         from piper import PiperVoice
+        from .voice_audio import resolve_output, play_on_speaker
+        try:
+            output_device = resolve_output(output_id)
+        except ValueError:
+            status('error', 'Jarvis speaker unavailable. Choose a connected speaker in Jarvis settings.')
+            return
         directory = Path(model_directory)
         voice = PiperVoice.load(directory / 'jarvis-medium.onnx')
 
-        def speak(text):
-            if not allowed():
+        def speak(text, alert=False):
+            can_speak = lambda: allowed() and (not alert or alerts_enabled)
+            if not can_speak():
                 return
-            status('preview' if preview else 'speaking', 'Speaking on your laptop.')
+            status('preview' if preview else 'alert' if alert else 'speaking',
+                   'Speaking through ' + output_device['name'] + '.')
             audio = io.BytesIO()
             with wave.open(audio, 'wb') as wav:
                 voice.synthesize_wav(text[:500], wav)
-            if allowed():
-                winsound.PlaySound(audio.getvalue(), winsound.SND_MEMORY)
+            if can_speak():
+                play_on_speaker(audio, output_device, can_speak)
 
         if preview:
             speak('Good evening, sir. All systems are ready. Just say Hey Jarvis, and tell me what you need.')
@@ -144,19 +161,32 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                     message = pipe.recv()
                     if message.get('type') == 'result':
                         return message['result']
+                    control(message)
             return {'ok': False, 'message': 'Voice control timed out.'}
 
         with client:
             while not stop.is_set():
                 if not desktop_unlocked():
+                    pending_alerts.clear()
                     followup = False
                     status('locked', 'Laptop locked. Microphone paused.')
                     while not stop.wait(0.5) and not allowed():
                         # allowed also detects a lost parent; lock itself does not stop the worker.
                         if pipe.poll():
-                            pipe.recv()
+                            control(pipe.recv())
                     if stop.is_set():
                         break
+                    pending_alerts.clear()
+                if not allowed():
+                    continue
+                if pending_alerts:
+                    text = pending_alerts.pop()
+                    pipe.send({'type': 'turn'})
+                    pipe.send({'type': 'exchange', 'heard': 'Hardware alert', 'reply': text, 'kind': 'alert'})
+                    speak(text, alert=True)
+                    stop.wait(0.5)
+                    followup = False
+                    continue
                 wake.reset()
                 frames = deque(maxlen=3)
                 command = None
@@ -167,7 +197,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                     if followup:
                         command = collect_utterance(stream, allowed, wait_seconds=followup_seconds,
                                                     on_speech=lambda: status('recording', 'Listening to your reply.'))
-                    while not followup and allowed():
+                    while not followup and allowed() and not pending_alerts:
                         audio, overflow = stream.read(1280)
                         if overflow:
                             wake.reset()

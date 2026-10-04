@@ -6,7 +6,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   const browser=await chromium.launch({channel:'msedge',headless:true});
   const context=await browser.newContext({viewport:{width:1280,height:800}}),page=await context.newPage();
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  const current={phase:'off',message:'Microphone off.',busy:false,enabled:false,keyConfigured:false,modelsInstalled:true,dependenciesInstalled:true,ready:false,lastHeard:'',lastReply:'',inputId:'webcam',followupSeconds:15,history:[]};
+  await page.addInitScript(()=>{window.qaCsp=[];document.addEventListener('securitypolicyviolation',e=>qaCsp.push(e.violatedDirective))});
+  const current={phase:'off',message:'Microphone off.',busy:false,enabled:false,keyConfigured:false,modelsInstalled:true,dependenciesInstalled:true,ready:false,lastHeard:'',lastReply:'',inputId:'webcam',outputId:null,alertsEnabled:true,followupSeconds:15,history:[]};
   const history=[{id:1,created:Date.now()/1000,heard:'Open that app.',reply:'Which app would you like, sir?',action:null,sources:[]},{id:2,created:Date.now()/1000,heard:'Steam.',reply:'Opening Steam, sir.',action:{name:'launch_app',arguments:{id:'steam'},ok:true,message:'Opening Steam'},sources:[]},{id:3,created:Date.now()/1000,heard:'Search NASA.',reply:'Here is the update, sir.',action:null,sources:[{url:'https://www.nasa.gov/example',title:'NASA <script>source</script>'},{url:'javascript:alert(1)',title:'Bad source'}]}];
   current.history=history;
   const sent=[];
@@ -18,6 +19,9 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
       if(endpoint==='history'&&request.method()==='GET')return route.fulfill({json:history});
       if(endpoint==='history'&&request.method()==='DELETE'){history.length=0;current.history=[];return route.fulfill({json:{ok:true}})}
       if(endpoint==='followup'){current.followupSeconds=request.postDataJSON().seconds;return route.fulfill({json:current})}
+      if(endpoint==='outputs')return route.fulfill({json:[{id:'laptop-speaker',name:'Speakers (Realtek Audio)'}]});
+      if(endpoint==='output'){current.outputId=request.postDataJSON().id;return route.fulfill({json:current})}
+      if(endpoint==='alerts'){current.alertsEnabled=request.postDataJSON().enabled;return route.fulfill({json:current})}
       if(endpoint==='inputs')return route.fulfill({json:[{id:'webcam',name:'Webcam microphone'},{id:'headset',name:'Headset microphone'}]});
       sent.push({endpoint,method:request.method()});
       if(endpoint==='input'){current.inputId=request.postDataJSON().id;return route.fulfill({json:current})}
@@ -84,6 +88,52 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     await page.waitForFunction(()=>voiceState.inputId==='webcam');
     await page.locator('[data-go="voice"]').click();
     await page.waitForFunction(()=>document.querySelector('#voice-input')?.value==='webcam');
+    await page.locator('#voice-output').selectOption('laptop-speaker');
+    await page.waitForFunction(()=>voiceState.outputId==='laptop-speaker');
+    await page.locator('#voice-alert-toggle').click();
+    await page.waitForFunction(()=>voiceState.alertsEnabled===false);
+    await page.locator('#voice-alert-toggle').click();
+    await page.waitForFunction(()=>voiceState.alertsEnabled===true);
+    assert.equal(await page.locator('.jarvis-mask').count(),1);
+    assert.equal(await page.locator('.jarvis-mask').getAttribute('src'),'/static/assets/iron-man-helmet.png');
+    await page.waitForFunction(()=>document.querySelector('.jarvis-mask')?.naturalWidth===393);
+    await page.route('**/api/media/**',route=>route.request().method()==='POST'?route.fulfill({json:{ok:true}}):route.continue());
+    current.enabled=true;current.busy=true;current.phase='listening';
+    await page.locator('[data-page="home"]').click();
+    await page.waitForFunction(()=>document.querySelector('#jarvis-home')?.dataset.active==='false'&&!document.querySelector('#jarvis-home').hidden);
+    for(const phase of ['recording','transcribing','thinking','speaking','followup','alert']){
+      current.phase=phase;current.message=phase==='thinking'?'Working on your request.':'Voice activity.';current.lastReply='At your service, sir. Your laptop is within reach.';
+      await page.waitForFunction(phase=>document.querySelector('#jarvis-home')?.dataset.phase===phase,phase);
+      assert.equal(await page.locator('#jarvis-home').isVisible(),true);
+      assert.equal(await page.locator('#surface-background').getAttribute('data-scene'),'blackhole');
+      assert.equal(await page.locator('#jarvis-home').evaluate(el=>getComputedStyle(el).pointerEvents),'none');
+    }
+    for(const [width,height] of [[1280,800],[1280,720],[1024,600],[960,600],[412,915],[640,400]]){
+      await page.setViewportSize({width,height});
+      current.phase='speaking';
+      await page.waitForFunction(()=>document.querySelector('#jarvis-home')?.dataset.phase==='speaking');
+      const layout=await page.evaluate(()=>{
+        const hud=document.querySelector('.jarvis-home-active').getBoundingClientRect(),telemetry=document.querySelector('.orbit-telemetry').getBoundingClientRect(),dock=document.querySelector('.surface-dock').getBoundingClientRect();
+        const button=document.querySelector('[data-media="volume-up"]'),r=button.getBoundingClientRect();
+        const elements=[...document.querySelectorAll('.jarvis-home-center,.jarvis-home-copy h3,.jarvis-core,.jarvis-readings')].filter(el=>getComputedStyle(el).display!=='none');const contentsFit=elements.every(el=>{const r=el.getBoundingClientRect();return r.top>=hud.top-2&&r.bottom<=hud.bottom+2});
+        return {fit:contentsFit&&hud.left>=0&&hud.right<=innerWidth+1&&hud.bottom<=telemetry.top+1&&hud.bottom<dock.top,tappable:button.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))};
+      });
+      assert.equal(layout.fit,true,`Home HUD fits ${width}×${height}`);
+      if(width>=960)assert.equal(layout.tappable,true,'HUD does not capture sound-control taps');
+    }
+    await page.setViewportSize({width:1280,height:800});
+    await page.screenshot({path:path.join(root,'artifacts/jarvis-home-speaking.png'),fullPage:true});
+    await page.locator('[data-media="volume-up"]').click();
+    assert.equal(await page.evaluate(()=>{const wasStale=state.stale;state.stale=true;paintJarvisHome();const hidden=document.querySelector('#jarvis-home').hidden;state.stale=wasStale;paintJarvisHome();return hidden}),true,'Disconnected HUD cannot show old activity');
+    await page.emulateMedia({reducedMotion:'reduce'});
+    assert.equal(await page.locator('.jarvis-ring-outer').evaluate(el=>getComputedStyle(el).animationName),'none');
+    await page.emulateMedia({reducedMotion:'no-preference'});
+    current.busy=false;current.enabled=false;current.phase='off';
+    await page.waitForFunction(()=>document.querySelector('#jarvis-home').hidden);
+    await page.locator('#more-toggle').click();await page.locator('[data-page="voice"]').click();
+    await page.waitForFunction(()=>document.querySelector('#voice-output')?.value==='laptop-speaker');
+    await page.screenshot({path:path.join(root,'artifacts/jarvis-landscape.png'),fullPage:true});
+    assert.equal(await page.evaluate(()=>document.querySelector('.voice-setup').getBoundingClientRect().bottom<document.querySelector('.surface-dock').getBoundingClientRect().top),true,'Speaker controls fit above the dock');
     await page.locator('#voice-key-details summary').click();
     await page.locator('#voice-delete-key').click();
     await page.waitForFunction(()=>document.querySelector('#voice-toggle').disabled);
@@ -92,9 +142,16 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     await page.waitForFunction(()=>document.querySelectorAll('.voice-history-turn').length===0);
     assert.equal(sent.filter(x=>x.endpoint==='input').length,2);
     assert.deepEqual(errors,[]);
-    console.log('Jarvis browser checks passed: setup, private key field, microphone dropdowns, toggle and navigation. All voice writes mocked. History, safe inline citations, follow-up settings and clear-history checked.');
+    assert.deepEqual(await page.evaluate(()=>window.qaCsp),[]);
+    await page.locator('[data-page="home"]').click();
+    current.busy=true;current.enabled=true;current.phase='speaking';
+    await page.waitForFunction(()=>!document.querySelector('#jarvis-home').hidden);
+    assert.equal(await page.evaluate(()=>{jarvisStatusFreshAt=Date.now()-6000;paintJarvisHome();return document.querySelector('#jarvis-home').hidden}),true,'Expired voice snapshots hide the HUD');
+    await page.evaluate(()=>showPairing());
+    assert.equal(await page.locator('#jarvis-home').isHidden(),true,'Unpairing removes private voice activity');
+    console.log('Jarvis browser checks passed: setup, private key field, microphone dropdowns, toggle and navigation. All voice writes mocked. History, citations, follow-up, speaker/alert preferences, Iron Man theme and actual-phase Home HUD lifecycle/layout checked.');
   }finally{
-    await page.evaluate(async()=>{if(state.paired)await fetch('/api/logout',{method:'POST',headers:{'Content-Type':'application/json'}})}).catch(()=>{});
+    await page.evaluate(async()=>{await fetch('/api/logout',{method:'POST',headers:{'Content-Type':'application/json'}})}).catch(()=>{});
     await context.close();await browser.close();
   }
 })().catch(error=>{console.error(String(error.message).split('\n')[0]);process.exitCode=1});

@@ -169,16 +169,18 @@ def test_voice_worker_preview_does_not_touch_microphone_or_cloud(monkeypatch, tm
     voice.synthesize_wav.side_effect = synthesize
     engine = Mock()
     engine.load.return_value = voice
-    speaker = Mock(SND_MEMORY=4)
+    speaker = Mock()
     microphone = Mock()
     monkeypatch.setitem(sys.modules, 'piper', SimpleNamespace(PiperVoice=engine))
-    monkeypatch.setitem(sys.modules, 'winsound', speaker)
     monkeypatch.setitem(sys.modules, 'sounddevice', microphone)
     pipe, stop = Mock(), Mock()
     pipe.poll.return_value = False
     stop.is_set.return_value = False
-    with patch('backend.voice_worker.desktop_unlocked', return_value=True):
+    with patch('backend.voice_worker.desktop_unlocked', return_value=True), \
+         patch('backend.voice_audio.resolve_output', return_value={'index': 12, 'name': 'Laptop speakers'}), \
+         patch('backend.voice_audio.play_on_speaker', speaker):
         worker_main(pipe, stop, str(tmp_path), None, [], preview=True)
-    speaker.PlaySound.assert_called_once()
+    speaker.assert_called_once()
+    assert speaker.call_args.args[1] == {'index': 12, 'name': 'Laptop speakers'}
     microphone.RawInputStream.assert_not_called()
     assert pipe.send.call_args.args[0]['phase'] == 'off'

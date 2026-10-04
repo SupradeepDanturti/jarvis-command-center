@@ -134,7 +134,7 @@ def test_worker_accepts_followup_without_second_wake_and_uses_previous_question(
         plays.append(args)
         if len(plays) == 2:
             stop.set()
-    speaker.PlaySound.side_effect = play
+    speaker.side_effect = play
     monkeypatch.setitem(sys.modules, 'winsound', speaker)
     wake = Mock()
     wake.predict.return_value = {'hey_jarvis': 0.9}
@@ -159,7 +159,9 @@ def test_worker_accepts_followup_without_second_wake_and_uses_previous_question(
     pipe.poll.side_effect = lambda *args: bool(result_pending)
     pipe.recv.side_effect = lambda: result_pending.pop(0)
     with patch('backend.voice_worker.desktop_unlocked', return_value=True), \
-         patch('backend.voice_audio.resolve_input', return_value={'index': 1, 'name': 'Webcam'}):
+         patch('backend.voice_audio.resolve_input', return_value={'index': 1, 'name': 'Webcam'}), \
+         patch('backend.voice_audio.resolve_output', return_value={'index': 12, 'name': 'Laptop speakers'}), \
+         patch('backend.voice_audio.play_on_speaker', speaker):
         worker_main(pipe, stop, str(tmp_path), 'sk-qa-only', [], followup_seconds=15)
     assert len(plays) == 2
     assert wake.predict.call_count == 1

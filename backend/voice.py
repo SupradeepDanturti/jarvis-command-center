@@ -14,6 +14,7 @@ from .security import require_origin
 from .tls import dpapi
 from .voice_actions import execute_tool, voice_tools
 from .voice_history import VoiceHistory
+from .voice_alerts import HardwareAlerts
 
 MODEL_FILES = ('jarvis-medium.onnx', 'jarvis-medium.onnx.json', 'hey_jarvis_v0.1.onnx',
                'melspectrogram.onnx', 'embedding_model.onnx')
@@ -35,6 +36,9 @@ class VoiceService:
         self.history = VoiceHistory(self.directory)
         self.followup_seconds = 15
         self.last_action = None
+        self.output_id = None
+        self.alerts_enabled = True
+        self.alert_policy = HardwareAlerts(self.directory / 'alerts.json' if self.directory else None)
         if self.directory and (self.directory / 'input.json').exists():
             try:
                 self.input_id = json.loads((self.directory / 'input.json').read_text(encoding='utf-8')).get('id')
@@ -45,6 +49,15 @@ class VoiceService:
                 seconds = json.loads((self.directory / 'settings.json').read_text(encoding='utf-8')).get('followupSeconds')
                 if type(seconds) is int and seconds in {0, 15, 30}:
                     self.followup_seconds = seconds
+                alerts = json.loads((self.directory / 'settings.json').read_text(encoding='utf-8')).get('alertsEnabled')
+                if type(alerts) is bool:
+                    self.alerts_enabled = alerts
+            except (OSError, ValueError):
+                pass
+
+        if self.directory and (self.directory / 'output.json').exists():
+            try:
+                self.output_id = json.loads((self.directory / 'output.json').read_text(encoding='utf-8')).get('id')
             except (OSError, ValueError):
                 pass
 
@@ -63,7 +76,8 @@ class VoiceService:
                     'dependenciesInstalled': dependencies, 'ready': installed and dependencies and configured,
                     'lastHeard': self.last_heard, 'lastReply': self.last_reply,
                     'wakePhrase': 'Hey Jarvis', 'inputId': self.input_id,
-                    'followupSeconds': self.followup_seconds, 'history': self.history.recent(12)}
+                    'followupSeconds': self.followup_seconds, 'history': self.history.recent(12),
+                    'outputId': self.output_id, 'alertsEnabled': self.alerts_enabled}
 
     def set_followup(self, seconds):
         if type(seconds) is not int or seconds not in {0, 15, 30}:
@@ -71,19 +85,44 @@ class VoiceService:
         with self.lock:
             self.stop()
             self.followup_seconds = seconds
+            self._save_settings()
+
+    def _save_settings(self):
+        if self.directory:
+            self.directory.mkdir(parents=True, exist_ok=True)
+            (self.directory / 'settings.json').write_text(json.dumps({
+                'followupSeconds': self.followup_seconds, 'alertsEnabled': self.alerts_enabled}), encoding='utf-8')
+
+    def set_alerts(self, enabled):
+        with self.lock:
+            self.alerts_enabled = enabled
+            self._save_settings()
+            if self.pipe and self.process and self.process.is_alive():
+                try:
+                    self.pipe.send({'type': 'alerts', 'enabled': enabled})
+                except (EOFError, OSError):
+                    pass
+
+    def set_output(self, identity):
+        if identity is not None and identity not in {item['id'] for item in self.audio_inputs(output=True)}:
+            raise HTTPException(400, 'Choose a speaker from this laptop.')
+        with self.lock:
+            self.stop()
+            self.output_id = identity
             if self.directory:
-                (self.directory / 'settings.json').write_text(json.dumps({'followupSeconds': seconds}), encoding='utf-8')
+                self.directory.mkdir(parents=True, exist_ok=True)
+                (self.directory / 'output.json').write_text(json.dumps({'id': identity}), encoding='utf-8')
 
     def clear_history(self):
         with self.lock:
             self.stop()
             self.history.clear()
 
-    def audio_inputs(self):
+    def audio_inputs(self, output=False):
         from .voice_audio import enumerate_in_child
         context = multiprocessing.get_context('spawn')
         parent, child = context.Pipe(duplex=False)
-        process = context.Process(target=enumerate_in_child, args=(child,), daemon=True)
+        process = context.Process(target=enumerate_in_child, args=(child, output), daemon=True)
         try:
             process.start()
             child.close()
@@ -149,8 +188,9 @@ class VoiceService:
             stop = context.Event()
             process = context.Process(target=worker_main,
                 args=(child, stop, str(self.directory / 'models'), key, voice_tools(self.registry), preview, self.input_id,
-                      self.followup_seconds, self.history.context()),
+                      self.followup_seconds, self.history.context(), self.output_id, self.alerts_enabled),
                 daemon=True, name='G16 Jarvis')
+            self.alert_policy = HardwareAlerts(self.directory / 'alerts.json' if self.directory else None)
             self.generation += 1
             generation = self.generation
             self.phase = 'preview' if preview else 'starting'
@@ -169,10 +209,23 @@ class VoiceService:
             self.last_started = time.monotonic()
             threading.Thread(target=self._monitor, args=(generation, process, parent), daemon=True).start()
 
+    def _check_alerts(self, generation, pipe):
+        from .voice_worker import desktop_unlocked
+        with self.lock:
+            if generation != self.generation or not self.alerts_enabled or self.phase != 'listening':
+                return
+            if self.stop_event.is_set() or not desktop_unlocked():
+                return
+            text = self.alert_policy.evaluate(self.telemetry.latest)
+            if text:
+                pipe.send({'type': 'alert', 'text': text})
+                self.phase, self.message = 'alert', 'Hardware threshold reached.'
+
     def _monitor(self, generation, process, pipe):
         from .voice_worker import desktop_unlocked
         try:
             while process.is_alive() or pipe.poll():
+                self._check_alerts(generation, pipe)
                 if not pipe.poll(0.2):
                     continue
                 event = pipe.recv()
@@ -195,7 +248,8 @@ class VoiceService:
                     elif event.get('type') == 'exchange':
                         self.last_heard = str(event.get('heard', ''))[:500]
                         self.last_reply = str(event.get('reply', ''))[:500]
-                        self.history.add(event.get('heard', ''), self.last_reply, self.last_action, event.get('sources'))
+                        self.history.add(event.get('heard', ''), self.last_reply, self.last_action, event.get('sources'),
+                                         kind='alert' if event.get('kind') == 'alert' else 'conversation')
                         self.last_action = None
                     elif event.get('type') == 'turn':
                         self.last_action = None
@@ -272,6 +326,20 @@ def voice_router(service, authenticate, owner):
     @router.get('/inputs', dependencies=[Depends(authenticate)])
     def inputs():
         return service.audio_inputs()
+
+    @router.get('/outputs', dependencies=[Depends(authenticate)])
+    def outputs():
+        return service.audio_inputs(output=True)
+
+    @router.put('/output', dependencies=[Depends(authenticate), Depends(require_origin)])
+    def output_device(body: InputRequest):
+        service.set_output(body.id)
+        return service.status()
+
+    @router.put('/alerts', dependencies=[Depends(authenticate), Depends(require_origin)])
+    def alerts(body: EnableRequest):
+        service.set_alerts(body.enabled)
+        return service.status()
 
     @router.put('/input', dependencies=[Depends(authenticate), Depends(require_origin)])
     def input_device(body: InputRequest):

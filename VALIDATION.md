@@ -1,5 +1,13 @@
 # Foundation validation — 2026-10-03
 
+## Iron Man Jarvis HUD, dedicated speakers and hardware alerts
+
+- 70 backend checks pass, including concrete speaker selection independent of headphone/default routing, selected-output PCM playback and cancellation, speaker/alerts origin/auth validation and persistence, combined exact thresholds, stale/invalid/duplicate sample rejection, global one-hour cooldown across policy reload/restart, idle/unlocked/enabled generation guards, system-alert history separation and spontaneous/cancelled warning playback without wake/STT/LLM calls.
+- Trusted Edge voice checks pass for the sourced PNG helmet, red/gold controls, dedicated speaker preference, alerts switch, six active Home phases, idle/off lifecycle, black-hole preservation, live-readout layout, pointer-transparent media controls, fresh/disconnected/unpaired guards and reduced motion. All UI voice/media mutations are mocked; only QA credentials are revoked. Screenshots at 1280×800 are inspected locally.
+- Home HUD content fits at 1280×800, 1280×720, 1024×600, 960×600, 412×915 and 640×400; configured voice controls fit above the 1280×800 dock. Browser checks record no page errors or CSP violations. The bars/rings visualize state and are not audio-spectrum measurements.
+- Actual native enumeration detected the separate Speakers (2- Realtek(R) Audio) endpoint at the time of testing. Piper generated a short spoken preview in memory and the new explicit-endpoint helper completed playback on that speaker without changing Windows default output. Physical audibility still needs user confirmation.
+- The server is restarted through the existing helper to load backend changes, preserving approvals, key and private history. Original navigation/background checks pass. Physical Redmi appearance, spontaneous threshold warnings and the alerts button during a live conversation still need acceptance after reloading and enabling Jarvis.
+
 ## Conversational Jarvis and native web search
 
 - 61 backend checks pass, including persistence/pagination/500-record retention, six-exchange context across restart, approved history reads and owner deletion, revoked-device refusal, follow-up settings validation, speech timeout/cancellation/overflow and a complete mocked two-turn worker conversation with only one wake detection.
