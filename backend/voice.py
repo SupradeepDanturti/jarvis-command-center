@@ -165,7 +165,7 @@ class VoiceService:
                     elif event.get('type') == 'exchange':
                         self.last_heard = str(event.get('heard', ''))[:500]
                         self.last_reply = str(event.get('reply', ''))[:500]
-        except (EOFError, OSError):
+        except (EOFError, OSError, ValueError):
             pass
         finally:
             with self.lock:

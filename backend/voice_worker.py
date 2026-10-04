@@ -159,6 +159,8 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                                 break
                         if recording and voice_seen:
                             command = b''.join(recording)
+                        recording.clear()
+                        frames.clear()
                         break
                 # Input device is closed before network calls or speaker playback.
                 if not command or not allowed():
