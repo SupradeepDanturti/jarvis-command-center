@@ -2,7 +2,7 @@
 
 A local touchscreen dashboard for a Dell G16, opened in a Redmi Pad Pro browser. The laptop runs the backend; the tablet displays telemetry and sends registered controls over Wi-Fi.
 
-**Current build:** twelve responsive pages with a custom G16 identity, a clock, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, and Windows media keys. No cloud assets or frontend build step.
+**Current build:** thirteen responsive pages with a custom G16 identity, a clock, Rest mode and an alarm, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, and Windows media keys. No cloud assets or frontend build step.
 
 Read [the dashboard specification](spec/SPEC.md) for the complete target, implementation decisions, security model, and roadmap. All specifications and design plans are indexed in [spec/](spec/README.md).
 
@@ -10,6 +10,8 @@ Read [the dashboard specification](spec/SPEC.md) for the complete target, implem
 
 
 **Installation and how-to:** follow [SETUP.md](SETUP.md) for the complete Windows, HTTPS, background startup, Redmi pairing, everyday use, Jarvis, update, and troubleshooting walkthrough. Already installed? Go directly to [the update steps](SETUP.md#update-an-existing-installation).
+
+**Rest & alarms:** open it from More or Clock. Enter Rest mode turns supported DDC/CI desk monitors off, keeps the laptop/server awake and leaves a dim tablet clock. One shared laptop alarm can restore monitors and say “Sir, it's time to wake up,” with five-minute snooze and dismissal. Alarm speech uses the installed Jarvis voice without a microphone, cloud request or API key, including while Windows is locked. See [the how-to](SETUP.md#rest-mode-and-alarm) and [specification](spec/REST_ALARM_SPEC.md).
 
 The display uses a small floating dock: **Home, Live (performance), Games, Apps, Clock, Ambient**. **More** opens Now playing, Hardware, Live graphs, System & controls, Device access, and Jarvis. Home gives the black-hole artwork the center, with a compact heading, one horizontal CPU/vitals/media strip, and launcher icons. Clock and Ambient fill the display; Games uses a sideways poster gallery. There is no permanent sidebar or overview card grid.
 

@@ -1,0 +1,31 @@
+# Rest mode and laptop-owned alarm
+
+## Display behavior
+
+**More → Rest & alarms**, **Clock → Rest & alarms**, and `/#rest` open a clock composition with next-alarm information and explicit controls. Shared Rest state temporarily covers the selected page on approved browsers. Exit restores their previous pages. Rest pauses scene playback and automatic navigation, hides the dock and dims the clock/controls. Brighten controls lasts 15 seconds. Android still controls physical tablet brightness; browser screen keep-awake remains independent.
+
+Entering requires browser confirmation, a read-only monitor preparation step and an approved-device-bound, single-use 30-second nonce. USB-C dock capability queries can be slow: preparation permits 20 seconds without holding shared alarm state. Eligible handles are cached for 60 seconds, so the subsequent five-second off action never performs discovery or starts after an expired preparation. It stops conversational Jarvis. A dedicated native thread holds temporary Windows DisplayRequired, SystemRequired and ExecutionRequired requests and continuous display/system execution state. Supported external monitors receive only fixed DDC/CI power writes: VCP `0xD6`, soft Off `0x04`, On `0x01`. Targets must advertise both values and report On. Handles are retained for waking; partial failure attempts restoration. Graceful shutdown restores this object's powered-off monitors and releases requests/handles.
+
+The owner's Dell physically entered Modern Standby and disconnected Wi-Fi when the initial implementation used Windows `SC_MONITORPOWER`, despite its system-only awake lease. That broadcast is removed completely. Direct monitor power keeps Windows' logical display active and avoids this system transition. Unsupported DDC/CI fails without a sleep fallback. The owner confirmed corrected monitor-off through the Dell USB-C dock; monitor return and real alarm speech remain physical acceptance checks. API success reports a request rather than proof of panel state. After a crash, cable change or failed wake, a monitor power button may be needed.
+
+There is no system suspend, shutdown, input injection, unlock, registry edit or power-plan change. Awake requests cannot override intentional Windows Sleep, a sleep-producing lid-close policy, low battery, firmware or forced shutdown. Keep the laptop plugged in, signed in and the server running for desk alarms. Windows limits system/execution requests during Modern Standby on battery. This feature keeps Windows' logical display active while powering physical monitors off; it cannot execute or remotely wake itself after actual system sleep.
+
+## Shared alarm and recovery
+
+One next alarm is persisted in ignored, ACL-protected `.state/private/alarms.json`. Saving replaces the previous alarm. Browser-local date/time become an absolute epoch; nonexistent local DST times are rejected. The server accepts five seconds through 31 days ahead, a printable 1–80-character label and explicit speech preference. Strict revisions prevent conflicting writes. Reads and WebSocket snapshots have no alarm effects. A half-second laptop task advances state independently of browser visibility, connectivity or closure.
+
+At due time, persist Ringing before dispatch, exit Rest, stop conversational Jarvis, request monitor On and start optional speech. Visible connected approved browsers show the ringing dialog. Snooze uses a fixed five minutes; Dismiss and Cancel stop audio. Speech repeats every 30 seconds for at most ten minutes. Future alarms survive restart; overdue/ringing alarms recovered at restart are Missed, silently. Clock jumps pause for review; delivery over 60 seconds late becomes Missed. Storage failures prevent new unpersisted effects. Wake still exits the ephemeral dim screen if disk writes fail.
+
+## Local alarm speech
+
+Speech is opt-in per alarm. Test Jarvis alarm says “Sir, it's time to wake up.” Scheduled speech says “Sir, it's time to {label}.” An independent subprocess lazily loads installed Piper voice files and the existing selected Jarvis speaker adapter, playing a local chime and phrase. It opens no microphone, wake detector, OpenAI client, tool dispatcher, credentials or conversation history. No labels/audio are logged or saved as speech files; no API key or internet is required after installation. Missing voice files permit visual-only alarms; speaker failure is shown without headphone fallback.
+
+Explicitly scheduled alarm audio can play with Windows locked and conversational Jarvis off. It never unlocks Windows or enables listening. Entering Rest, ringing and preview stop conversational Jarvis to avoid overlapping audio; re-enable listening explicitly afterward. Cancellation is checked before playback, after synthesis and between chunks. Replacement, snooze, dismissal, cancellation and shutdown stop the child. Preview expires after ten seconds and does not change alarm or monitor state. Existing conversation and Focus lock checks are preserved.
+
+## Access and checks
+
+Approved HTTPS/WSS is required for reads; writes additionally require the dashboard origin. Rest confirmation is device-bound, expiring and consumed once. Labels render as text. No arbitrary command, URL, path, VCP value or speaker ID is accepted by browser power requests. Port 18760 remains public-certificate-only.
+
+Backend tests use fake clocks, native APIs, speakers and synthesis. `scripts/rest-alarms-smoke.cjs` pairs a fresh trusted Edge profile, reads the real endpoint and mocks every alarm/power/audio write. It checks hash routing, page restoration, confirmed entry, dimming, fixed preview, escaping, snooze/dismiss/cancel, reload, DST rejection, freshness and nine touch sizes, revoking only its QA credentials. See [VALIDATION.md](../VALIDATION.md) for evidence and physical limitations.
+
+References: [Windows power requests](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-powersetrequest), [thread execution state](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setthreadexecutionstate), [DDC/CI VCP writes](https://learn.microsoft.com/en-us/windows/win32/api/lowlevelmonitorconfigurationapi/nf-lowlevelmonitorconfigurationapi-setvcpfeature).

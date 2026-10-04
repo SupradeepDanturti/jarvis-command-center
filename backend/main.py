@@ -16,6 +16,9 @@ from .devices import COOKIE, DEVICE_TTL, PENDING_TTL, DeviceStore
 from .display import DisplayReports
 from .focus import FocusTimer
 from .activity import ActivityMonitor
+from .alarm_audio import AlarmAudio
+from .alarms import RestAlarms
+from .display_power import DisplayPower
 from .games import GameLibrary
 from .media import MediaMonitor
 from .security import Pairing, require_origin, same_origin
@@ -91,7 +94,27 @@ class ThermalSettings(BaseModel):
     drives: list[str] = Field(default_factory=list, max_length=16)
 
 
-def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=None):
+class AlarmRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True, allow_inf_nan=False)
+    revision: int = Field(ge=0, le=2**53-1)
+    dueAt: float = Field(gt=0, lt=32503680000)
+    label: str = Field(min_length=1, max_length=80, pattern=r'^[^\x00-\x1f\x7f]+$')
+    speech: bool
+
+
+class AlarmCommand(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    revision: int = Field(ge=0, le=2**53-1)
+    action: Literal['snooze', 'dismiss', 'cancel']
+
+
+class RestRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    revision: int = Field(ge=0, le=2**53-1)
+    nonce: str = Field(pattern=r'^[0-9a-f]{24}$')
+
+
+def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=None, alarm_path=None):
     state_dir = ROOT / '.state/private'
     code = pairing_code or secrets.token_hex(4).upper()
     pairing = Pairing(code)
@@ -104,6 +127,8 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     voice = VoiceService(voice_dir or (state_dir / 'voice' if not pairing_code else None), registry, telemetry)
     focus = FocusTimer(focus_path or (None if pairing_code else state_dir / 'focus.json'), notify=voice.remind)
     activity = ActivityMonitor(games)
+    alarm_audio = AlarmAudio(voice.directory, output=lambda: voice.output_id)
+    rest = RestAlarms(DisplayPower(), alarm_audio, alarm_path or (None if pairing_code else state_dir / 'alarms.json'), before_ring=voice.stop)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -114,8 +139,12 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
         media_task = asyncio.create_task(media_monitor.run())
         focus_task = asyncio.create_task(focus.run())
         activity_task = asyncio.create_task(activity.run())
+        rest_task = asyncio.create_task(rest.run())
         print(f"\nG16 Command Center | Laptop setup code: {code}\nApproved browsers are remembered for 180 days, including across restarts.\n", flush=True)
         yield
+        rest_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await rest_task
         await asyncio.to_thread(voice.stop)
         task.cancel()
         media_task.cancel()
@@ -141,6 +170,7 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     app.state.voice = voice
     app.state.focus = focus
     app.state.activity = activity
+    app.state.rest = rest
 
     def local(request):
         return request.client is not None and request.client.host in {'127.0.0.1', '::1'}
@@ -315,6 +345,39 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
         voice.cancel_reminder()
         return result
 
+    @app.get('/api/alarms', dependencies=[Depends(authenticate)])
+    def alarm_state():
+        return rest.snapshot()
+
+    @app.put('/api/alarms', dependencies=[Depends(authenticate), Depends(require_origin)])
+    def set_alarm(body: AlarmRequest):
+        try:
+            return rest.arm(body.revision, body.dueAt, body.label, body.speech)
+        except ValueError:
+            raise HTTPException(422, 'Choose a short alarm message without control characters.') from None
+
+    @app.post('/api/alarms/command', dependencies=[Depends(authenticate), Depends(require_origin)])
+    def alarm_command(body: AlarmCommand):
+        return rest.command(body.revision, body.action)
+
+    @app.post('/api/alarms/preview', dependencies=[Depends(authenticate), Depends(require_origin)])
+    def preview_alarm():
+        return rest.preview()
+
+    @app.post('/api/rest/prepare', dependencies=[Depends(require_origin)])
+    def prepare_rest(device=Depends(authenticate)):
+        return rest.prepare(device['id'])
+
+    @app.post('/api/rest/enter', dependencies=[Depends(require_origin)])
+    def enter_rest(body: RestRequest, device=Depends(authenticate)):
+        result = rest.enter(device['id'], body.nonce, body.revision)
+        voice.stop()
+        return result
+
+    @app.post('/api/rest/wake', dependencies=[Depends(authenticate), Depends(require_origin)])
+    def wake_displays():
+        return rest.wake()
+
     @app.get('/api/thermals', dependencies=[Depends(authenticate)])
     def thermal_state():
         return telemetry.thermals.snapshot()
@@ -358,6 +421,7 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
             while devices.valid(ws.cookies.get(COOKIE)):
                 await ws.send_json({"type": "telemetry", "data": telemetry.latest, "errors": telemetry.errors,
                                     "media": media_monitor.latest, "focus": focus.snapshot(), "activity": activity.latest,
+                                    "rest": await asyncio.to_thread(rest.snapshot),
                                     "serverTime": datetime.now(timezone.utc).timestamp() * 1000})
                 await asyncio.sleep(1)
             await ws.close(code=1008)
