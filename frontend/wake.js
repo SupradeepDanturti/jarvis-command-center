@@ -1,4 +1,4 @@
-// Screen wake locks belong to this visible, approved browser, not the laptop server.
+// Screen wake locks belong to this visible, approved browser, not the PC server.
 let keepAwake=true;
 try{keepAwake=localStorage.getItem('g16-keep-awake')!=='false'}catch{}
 let screenWakeLock=null,wakeRequest=null,wakeRetryTimer=null,wakeGeneration=0;

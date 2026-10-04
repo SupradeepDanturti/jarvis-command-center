@@ -4,12 +4,12 @@ function homeDeskLinks(){return `<div class="desk-shortcuts"><button data-go="me
 function mediaTime(value){const s=Math.max(0,Math.floor(value||0));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`}
 function nowPlayingScreen(){return `<article class="media-surface desk-screen">
   <img id="media-haze" class="media-haze" alt="" aria-hidden="true" hidden><div class="media-wash" aria-hidden="true"></div>
-  <div class="media-heading"><span class="surface-overline">G16 / NOW PLAYING</span><span class="media-player-badge"><img id="media-player-icon" alt="" hidden><span id="media-player">Your laptop</span></span></div>
-  <div class="media-composition"><div class="media-art-stage"><div class="media-cover"><img id="media-art" alt="Current album or video artwork" hidden><div id="media-art-fallback" aria-hidden="true">${glyph('play')}</div></div><span class="media-art-caption">SOUNDTRACK TO YOUR DESK</span></div>
-  <div class="media-story"><span id="media-status" class="media-status">READY WHEN YOU ARE</span><h2 id="media-title">No player selected</h2><p id="media-artist"></p><p id="media-album" class="reading-detail"></p>
+  <div class="media-heading"><span class="surface-overline">JARVIS / NOW PLAYING</span><span class="media-player-badge"><img id="media-player-icon" alt="" hidden><span id="media-player">Your PC</span></span></div>
+  <div class="media-composition"><div class="media-art-stage"><div class="media-cover"><img id="media-art" alt="Current album or video artwork" hidden><div id="media-art-fallback" aria-hidden="true">${glyph('play')}</div></div><span class="media-art-caption">YOUR MUSIC, SIR</span></div>
+  <div class="media-story"><span id="media-status" class="media-status">AWAITING YOUR SELECTION</span><h2 id="media-title">No player selected, sir</h2><p id="media-artist"></p><p id="media-album" class="reading-detail"></p>
   <div id="media-timeline" hidden><label for="media-seek" class="visually-hidden">Playback position</label><input id="media-seek" type="range" step="1" min="0" max="1" value="0" disabled><div class="media-times"><span id="media-position">0:00</span><span id="media-duration">0:00</span></div></div>
   <div class="session-controls" role="group" aria-label="Current player controls">${[['previous','previous','Previous track'],['play-pause','play','Play or pause'],['next','next','Next track']].map(([id,icon,label])=>`<button data-session-action="${id}" aria-label="${label}" disabled>${glyph(icon)}</button>`).join('')}</div>
-  <div class="media-volume" role="group" aria-label="Laptop volume"><span>LAPTOP VOLUME</span><div>${[['volume-down','volume-down','Volume down'],['mute','mute','Mute or unmute'],['volume-up','volume-up','Volume up']].map(([id,icon,label])=>`<button data-media="${id}" aria-label="${label}">${glyph(icon)}</button>`).join('')}</div></div>
+  <div class="media-volume" role="group" aria-label="PC volume"><span>PC VOLUME</span><div>${[['volume-down','volume-down','Volume down'],['mute','mute','Mute or unmute'],['volume-up','volume-up','Volume up']].map(([id,icon,label])=>`<button data-media="${id}" aria-label="${label}">${glyph(icon)}</button>`).join('')}</div></div>
   <p id="media-note" class="reading-detail"></p></div></div>
   <div class="media-footer"><button data-desk-pin>Stay on this screen</button>${screenActions()}</div><button class="exit-immersive" data-screen-exit>${glyph('arrow')}<span>Back to display</span></button></article>`}
 function cancelMediaInteraction(){mediaDrag=null;mediaPending?.abort();mediaPending=null}
@@ -19,13 +19,13 @@ function paintNowPlaying(){
   const available=fresh&&data?.available;
   document.querySelectorAll('[data-now-playing-title]').forEach(el=>el.textContent=available?(data.title||'Track details unavailable'):'Now playing');
   const title=document.querySelector('#media-title');if(!title)return;
-  title.textContent=available?(data.title||'Track details unavailable'):'No player selected';
+  title.textContent=available?(data.title||'Track details unavailable'):'No player selected, sir';
   document.querySelector('#media-artist').textContent=available?(data.artist||''):'';
   document.querySelector('#media-album').textContent=available?(data.album||''):'';
-  const player=available?(data.player||'Your laptop'):'Your laptop',brand=/spotify/i.test(player)?'spotify':/brave/i.test(player)?'brave':null;
+  const player=available?(data.player||'Your PC'):'Your PC',brand=/spotify/i.test(player)?'spotify':/brave/i.test(player)?'brave':null;
   document.querySelector('#media-player').textContent=brand==='spotify'?'Spotify':brand==='brave'?'Brave':player;
   const icon=document.querySelector('#media-player-icon');icon.hidden=!brand;if(brand)icon.src=`/static/assets/icons/${brand}.svg`;else icon.removeAttribute('src');
-  document.querySelector('#media-status').textContent=available?data.status==='playing'?'NOW PLAYING':data.status==='paused'?'ON PAUSE':'ON YOUR LAPTOP':'READY WHEN YOU ARE';
+  document.querySelector('#media-status').textContent=available?data.status==='playing'?'NOW PLAYING':data.status==='paused'?'ON PAUSE':'ON YOUR PC':'AWAITING YOUR SELECTION';
   document.querySelector('.media-surface').classList.toggle('is-playing',!!available&&data.status==='playing');
   const art=document.querySelector('#media-art'),src=available&&validMediaArtwork(data.artwork)?data.artwork:null;
   const haze=document.querySelector('#media-haze');
@@ -55,7 +55,7 @@ function paintNowPlaying(){
     document.querySelector('#media-position').textContent=mediaTime((mediaDrag?Number(slider.value):position)-timeline.start);
     document.querySelector('#media-duration').textContent=mediaTime(timeline.end-timeline.start);
   }
-  document.querySelector('#media-note').textContent=!fresh?'Reconnect to see your current player.':!available?'Start music or a video on your laptop.':!timeline?'This player has no track timeline.':!data.controls?.seek?'This player does not support seeking.':data.status==='playing'?'Playing on your laptop':'Paused or stopped on your laptop';
+  document.querySelector('#media-note').textContent=!fresh?'Reconnect to see your current player.':!available?'Start music or a video on your PC.':!timeline?'This player has no track timeline.':!data.controls?.seek?'This player does not support seeking.':data.status==='playing'?'Playing on your PC':'Paused or stopped on your PC';
 }
 function mediaIdentity(){const data=state.playback;return data?.sessionId&&data.trackRevision?{sessionId:data.sessionId,trackRevision:data.trackRevision}:null}
 function installNowPlaying(root){

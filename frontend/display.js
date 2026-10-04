@@ -23,10 +23,10 @@ function updateDisplayDetails() {
 }
 async function copyDisplayDetails() {
   const size = displayDetails();
-  const text = `G16 display details\nDisplay size: ${size.width} × ${size.height} CSS px\nVisible area: ${size.visibleWidth} × ${size.visibleHeight} CSS px\nMode: ${size.orientation} · ${size.mode}\nPixel scale: ${size.scale}×`;
+  const text = `Jarvis display details\nDisplay size: ${size.width} × ${size.height} CSS px\nVisible area: ${size.visibleWidth} × ${size.visibleHeight} CSS px\nMode: ${size.orientation} · ${size.mode}\nPixel scale: ${size.scale}×`;
   if (!navigator.clipboard?.writeText) throw new Error(`Copy is unavailable. Display size: ${size.width} × ${size.height}.`);
   await navigator.clipboard.writeText(text);
-  toast('Display details copied. Paste them into the chat.');
+  toast('Display details copied, sir. Paste them into the chat.');
 }
 let displayReportTimer;
 async function reportDisplayDetails() {

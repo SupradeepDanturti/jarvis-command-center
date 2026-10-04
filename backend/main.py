@@ -114,13 +114,13 @@ class RestRequest(BaseModel):
     nonce: str = Field(pattern=r'^[0-9a-f]{24}$')
 
 
-def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=None, alarm_path=None):
+def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=None, alarm_path=None, apps_path=None):
     state_dir = ROOT / '.state/private'
     code = pairing_code or secrets.token_hex(4).upper()
     pairing = Pairing(code)
     devices = DeviceStore(device_db or (':memory:' if pairing_code else state_dir / 'devices.sqlite3'))
     telemetry = Telemetry(None if pairing_code else state_dir / 'thermal.json')
-    registry = AppRegistry()
+    registry = AppRegistry(apps_path or (None if pairing_code else state_dir / 'apps.json'))
     games = GameLibrary()
     display_reports = DisplayReports()
     media_monitor = MediaMonitor()
@@ -300,6 +300,22 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     @app.get("/api/apps", dependencies=[Depends(authenticate)])
     def apps():
         return registry.catalog()
+
+    @app.get('/api/apps/{app_id}/artwork', dependencies=[Depends(authenticate)])
+    def app_artwork(app_id: str):
+        return Response(registry.artwork(app_id), media_type='image/png')
+
+    @app.get('/api/apps/detected', dependencies=[Depends(owner)])
+    def detected_apps():
+        return registry.discover()
+
+    @app.post('/api/apps/shortcuts', dependencies=[Depends(owner), Depends(require_origin)])
+    def add_app(body: LaunchRequest):
+        return registry.add(body.id)
+
+    @app.delete('/api/apps/shortcuts/{app_id}', dependencies=[Depends(owner), Depends(require_origin)])
+    def remove_app(app_id: str):
+        return registry.remove(app_id)
 
     @app.post("/api/apps/launch", dependencies=[Depends(authenticate), Depends(require_origin)])
     def launch(body: LaunchRequest):

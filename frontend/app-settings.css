@@ -1,0 +1,8 @@
+.app-picker-label{display:block;margin:16px 0 8px;font-size:13px;color:var(--text)}
+.app-picker{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.app-picker select{flex:1 1 180px;min-width:0;max-width:100%;min-height:44px;padding:9px;background:#151b18;color:var(--text);border:1px solid var(--border);border-radius:6px;font:inherit;font-size:13px}
+.app-picker button,.app-shortcut-list button{min-height:44px;padding:8px 12px;font-size:12px}
+.app-shortcut-list{list-style:none;padding:0;margin:16px 0 0;max-height:300px;overflow:auto;scrollbar-width:thin}
+.app-shortcut-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--border);padding:5px 0;font-size:13px}
+.app-shortcut-list li span{min-width:0;overflow-wrap:anywhere}
+.app-shortcut-list button{flex-shrink:0}

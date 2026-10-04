@@ -1,10 +1,10 @@
-# G16 Command Center — implementation specification
+# Jarvis Command Center — implementation specification
 
-Version 0.3 • 2026-10-03 • Dell G16 host + Redmi Pad Pro touch surface
+Version 0.3 • 2026-10-03 • Windows PC/laptop host + tablet browser surface; Dell G16/Redmi physically validated
 
 ## Product contract
 
-The tablet is an independent browser control surface connected to the laptop over a private LAN. The laptop collects telemetry, launches configured apps, and performs supported controls. No desktop streaming, display extension, cloud server, or Corsair branding is involved. The interface feels like a dedicated desk display: screen-level compositions, bold typography, large live readings, a floating dock, full-screen clock/artwork, and a poster gallery. A permanent sidebar, overview card grid, and repeated status strips are absent.
+The tablet is an independent browser control surface connected to a Windows PC or laptop over a private LAN. The PC collects telemetry, launches configured apps, and performs supported controls. No desktop streaming, display extension, cloud server, or Corsair branding is involved. The interface feels like a dedicated desk display: screen-level compositions, bold typography, large live readings, a floating dock, full-screen clock/artwork, and a poster gallery. A permanent sidebar, overview card grid, and repeated status strips are absent.
 
 Primary layout is landscape, with a responsive portrait layout. Support current Chromium-based Android browsers and Windows Edge/Chrome. Design around flexible viewport dimensions rather than assuming the tablet's panel resolution equals its CSS viewport.
 
@@ -32,7 +32,7 @@ The target comprises 12 feature pages. Seven feature pages plus Clock, Ambient, 
 2. **Gaming:** GPU and CPU clocks/power/temperatures/load, RAM/VRAM, FPS/frame time/1% lows. RTSS data must be associated with the active process; unsupported games show unavailable.
 3. **Hardware:** per-core CPU readings, effective clocks, power/limits/throttling, GPU hotspot/controllers/limits/fans, RAM capacity/cache/speed, each drive's temperature/health/capacity/activity. Every sensor shows its source and timestamp.
 4. **Live graphs:** selectable range and metrics, bounded payloads, gaps for missing samples. Long ranges aggregate server-side. Initial history lasts one hour in RAM; durable storage is optional later.
-5. **Apps:** categories, names, icons, installation/launch errors, process state. Initial configuration is laptop-side JSON. A later laptop-only editor validates executable paths and arguments before registration.
+5. **Apps:** categories, names, icons, installation/launch errors, process state. Initial configuration is laptop-side JSON. The approved Windows owner can add detected desktop or packaged app IDs or remove shortcuts in System settings, with a 25-app total limit and private atomic persistence. The picker never accepts browser-supplied paths or arguments.
 6. **Games:** trusted executable/launcher/Steam App ID registrations, arguments, artwork, running state. Never accept executable paths from the tablet launch request.
 7. **Media:** Windows Global System Media Transport Controls for title/artist/artwork/playback/seek. Spotify-specific integration only if system media APIs do not meet needs. No Spotify cloud account required for basic keys.
 8. **OBS:** local OBS WebSocket authentication, scenes/sources/audio, recording/stream state/duration/bitrate/drops. Store OBS secret only on the laptop. Show disconnected states and require confirmation before starting a stream.
