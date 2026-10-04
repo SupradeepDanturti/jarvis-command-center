@@ -14,9 +14,11 @@ import time
 
 import psutil
 
+from .thermals import ThermalMonitor
+
 
 class Telemetry:
-    def __init__(self):
+    def __init__(self, thermal_path=None):
         self.latest = None
         self.history = deque(maxlen=3600)
         self.previous = None
@@ -24,6 +26,8 @@ class Telemetry:
         self.gpu_checked = 0
         self.nvidia = shutil.which("nvidia-smi")
         self.errors = []
+        self.thermals = ThermalMonitor(thermal_path)
+        self.thermal_checked = 0
         psutil.cpu_percent(interval=None)
         psutil.cpu_percent(interval=None, percpu=True)
 
@@ -61,6 +65,10 @@ class Telemetry:
                 read = max(0, disk.read_bytes - old_disk.read_bytes) / elapsed
                 write = max(0, disk.write_bytes - old_disk.write_bytes) / elapsed
         self.previous = now, net, disk
+        if now - self.thermal_checked >= 2:
+            self.thermals.sample()
+            self.thermal_checked = now
+        thermal = self.thermals.snapshot()
         if now - self.gpu_checked >= 2:
             self.gpu = self.gpu_sample()
             self.gpu_checked = now
@@ -84,7 +92,7 @@ class Telemetry:
                 "cpu": {"usage": psutil.cpu_percent(interval=None),
                         "cores": psutil.cpu_percent(interval=None, percpu=True),
                         "clock": frequency.current if frequency else None,
-                        "temperature": None, "power": None},
+                        "temperature": (thermal['cpuTemperature'] or {}).get('value'), "power": None},
                 "gpu": self.gpu,
                 "memory": {"used": memory.used, "total": memory.total, "percent": memory.percent},
                 "storage": {"drives": partitions, "read": read, "write": write, "temperature": None},
@@ -92,9 +100,9 @@ class Telemetry:
                 "battery": {"percent": battery.percent, "charging": battery.power_plugged} if battery else None,
                 "system": {"hostname": socket.gethostname(), "os": platform.platform(),
                            "uptime": time.time() - psutil.boot_time(), "logical_cores": psutil.cpu_count()},
-                "fps": None, "fans": None,
+                "fps": None, "fans": thermal['fans'] or None, "thermals": thermal,
                 "integrations": {"windows": "connected", "nvidia": "connected" if self.gpu else "unavailable",
-                                 "hwinfo": "not configured", "rtss": "not configured", "obs": "not configured"}}
+                                 "hwinfo": thermal['reason'], "rtss": "not configured", "obs": "not configured"}}
 
     async def run(self):
         while True:

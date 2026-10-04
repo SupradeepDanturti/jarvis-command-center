@@ -191,3 +191,9 @@ The remaining external dependency decision is the thermal provider and any licen
 - [HWiNFO license matrix](https://www.hwinfo.com/licenses/): shared-memory runtime limits and manual re-enabling requirement.
 
 References reviewed while preparing this plan. Native media metadata/seek behavior and HWiNFO shared-memory layout still require implementation-time verification.
+
+## Implementation status · 2026-10-03
+
+The owner subsequently authorized the build. Media, Focus and display behavior were implemented as one integrated increment on the implementation feature branch, preserving this plan as the design record. The optional read-only thermal adapter and owner mapping UI are delivered, but HWiNFO is not installed/running on this laptop and no new physical sensors are claimed verified. Native Brave title/artist/artwork were read successfully; the owner confirmed image/title display. Brave supplied a 150 × 83 thumbnail and an unknown duration, so the UI preserves image proportions and hides unsupported seeking. Spotify-specific physical verification remains outstanding.
+
+See SETUP.md for current controls and VALIDATION.md for final automated/native/physical evidence. Separate per-phase PRs were consolidated after the build request; the feature PR remains for human review, without merging.

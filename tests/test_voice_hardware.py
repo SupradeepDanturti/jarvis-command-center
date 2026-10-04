@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import io
 import threading
+import time
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 import wave
@@ -149,7 +150,8 @@ def test_hardware_alerts_are_saved_but_excluded_from_conversation_context(tmp_pa
 
 
 @pytest.mark.parametrize('cancelled', [False, True])
-def test_worker_speaks_spontaneous_alert_locally_without_wake_or_cloud(monkeypatch, tmp_path, cancelled):
+@pytest.mark.parametrize('kind', ['alert', 'reminder'])
+def test_worker_speaks_spontaneous_alert_locally_without_wake_or_cloud(monkeypatch, tmp_path, cancelled, kind):
     import sys
     stop, pending = threading.Event(), []
     pipe = Mock()
@@ -158,9 +160,9 @@ def test_worker_speaks_spontaneous_alert_locally_without_wake_or_cloud(monkeypat
         if event.get('phase') == 'listening':
             listening_count.append(True)
             if len(listening_count) == 1:
-                pending.append({'type': 'alert', 'text': 'Sir, memory usage is at 92 percent.'})
+                pending.append({'type': kind, 'text': 'Sir, your focus session is complete.', 'id': 'phase-one', 'expires': time.time()+60})
                 if cancelled:
-                    pending.append({'type': 'alerts', 'enabled': False})
+                    pending.append({'type': 'alerts', 'enabled': False} if kind == 'alert' else {'type': 'reminder-cancel'})
             elif cancelled:
                 stop.set()
     pipe.send.side_effect = send
@@ -195,4 +197,6 @@ def test_worker_speaks_spontaneous_alert_locally_without_wake_or_cloud(monkeypat
     wake.predict.assert_not_called()
     client.audio.transcriptions.create.assert_not_called()
     client.responses.create.assert_not_called()
-    assert any(call.args[0].get('kind') == 'alert' for call in pipe.send.call_args_list) is not cancelled
+    assert any(call.args[0].get('kind') == 'alert' for call in pipe.send.call_args_list) is (kind == 'alert' and not cancelled)
+    if kind == 'reminder':
+        assert not any(call.args[0].get('type') == 'exchange' for call in pipe.send.call_args_list)

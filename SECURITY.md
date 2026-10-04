@@ -58,3 +58,13 @@ The background process also serves a setup-only HTTP listener on port 18760, con
 To remove Windows trust later, locate **G16 Command Center Local CA** in the current user's Trusted Root Certification Authorities and remove only that certificate. Remove the corresponding installed CA on Android too. Do not delete private state while the server is running.
 
 References: [WebAuthn](https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API), [browser cookies](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie), [Web Bluetooth](https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API).
+
+## Media, focus and optional sensor data
+
+Media snapshots/artwork and focus state require approved HTTPS access. Media controls and timer changes also require the dashboard origin; session controls validate opaque current-session and track revisions before dispatch. Seeking accepts only a finite in-track position. Artwork is a bounded, validated PNG/JPEG/WebP from the selected Windows session, held in memory and served under an opaque revision, with no remote URL/path input or artwork history. Track text is rendered as text. Approved browsers can see the current track; it is not recorded in logs or the device database.
+
+Timer state/settings are held in ignored `.state/private/focus.json`; browsers receive shared state with a revision to prevent conflicting changes. Fixed local completion phrases are bounded, expire after 60 seconds, wait for an idle Jarvis worker, and are cancelled on replacement/reset/skip, lock or disable. They do not enable listening, invoke an OpenAI request or enter conversation history.
+
+Foreground activity reads only the current process executable and matches trusted game records. It sends a bounded matched game ID/name and observation timestamp; it does not capture window titles, command lines or screenshots. Display preferences are harmless browser-local settings.
+
+Optional HWiNFO reads a fixed named mapping with read-only access under the provider mutex. Header/version/offset/count/size/timestamp/unit checks reject incompatible or stale data. Sensor selection/inventory is direct-loopback-owner-only, with same-origin writes, and persists in ignored `.state/private/thermal.json`. No browser paths, provider names, memory addresses or hardware-write commands are accepted. Fixtures never become live readings. Existing setup-only HTTP, approvals, CA trust and voice-key protections remain unchanged.

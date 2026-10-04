@@ -101,7 +101,7 @@ Use trusted-local-network firewall access only. No automatic firewall changes, r
 
 ## Milestones
 
-The next owner-selected increments are detailed in [EXPERIENCE_PLAN.md](EXPERIENCE_PLAN.md): Now playing, Focus, display automation and deeper sensors. That document records proposed behavior and acceptance criteria, not delivered features, and orders these increments around their dependencies.
+The next owner-selected increments are detailed in [EXPERIENCE_PLAN.md](EXPERIENCE_PLAN.md): Now playing, Focus, display automation and deeper sensors. That document preserves the original acceptance criteria. Media, timer and display behavior are now implemented together; the optional sensor adapter still needs owner setup and comparison with this Dell's actual HWiNFO readings.
 
 **M1 — Foundation (this build):** local server, pairing, real psutil/NVIDIA data, touch UI, graphs/reconnection, registered launcher, basic media keys, tests, repository/CI.
 
@@ -128,3 +128,13 @@ The next owner-selected increments are detailed in [EXPERIENCE_PLAN.md](EXPERIEN
 Exact Dell G16 CPU/GPU/model and sensor access; installed HWiNFO/RTSS/OBS versions and permissions; preferred Android browser and kiosk approach; trusted app/game paths; desired macros; local HTTPS name/certificate strategy; whether long-term history is useful. These do not block the foundation.
 
 Technical references: [FastAPI WebSockets](https://fastapi.tiangolo.com/advanced/websockets/), [FastAPI static files](https://fastapi.tiangolo.com/tutorial/static-files/), [psutil](https://psutil.io/).
+
+## Delivered desk experience
+
+Now playing is a screen-level composition with original-aspect artwork, artwork haze, player identity, large title/artist, supported session controls, optional timeline/seek, laptop volume keys, screen pin and immersive view. A shared Windows monitor emits bounded text, current-only validated artwork, capability flags and a clamped timeline. Native metadata may lack a useful timeline or offer a tiny thumbnail; the dashboard does not fabricate either. Seek/transport revalidate the selected session and track before dispatch.
+
+Focus is a mode on Clock, owned/persisted by the laptop with monotonic live timing, wall-clock restart recovery, revision conflicts and exactly-once completion. Defaults are 25/5/15 minutes, a long break after four completed focuses, manual phase starts and no speech. Optional idle local Jarvis announcements are cancellable and excluded from conversation history.
+
+Display behavior is browser-local and opt-in: scheduled night scene dimming, 30–600-second rotation (default 120), a two-minute manual hold, explicit pin and stable media/game transitions. Settings, dialogs, touch/seek/commands, presentation, active Focus view, visibility and freshness gate automatic navigation. Foreground executable matching uses trusted game installations/exact registrations, rejects helpers and ambiguity, and never infers gaming from load or launch.
+
+Hardware supports an optional bounded HWiNFO SM2 read-only adapter, owner mapping by stable reading IDs, recognized units, freshness and explicit throttling flags. CPU/fan/physical-drive readings remain null until mapped against a verified provider inventory. HWiNFO installation, licensing and this Dell's native sensor comparison remain owner setup; FPS and hardware control remain outside this update.

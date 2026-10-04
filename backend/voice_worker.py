@@ -84,18 +84,26 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
         os.environ[variable] = '1'
     from pathlib import Path
     pending_alerts = deque(maxlen=1)
+    pending_reminder = None
+    reminder_id = None
+    reminder_expiry = 0
 
     def status(phase, message):
         pipe.send({'type': 'status', 'phase': phase, 'message': message})
 
     def control(message):
-        nonlocal alerts_enabled
+        nonlocal alerts_enabled, pending_reminder, reminder_id, reminder_expiry
         if message.get('type') == 'alerts':
             alerts_enabled = message.get('enabled') is True
             if not alerts_enabled:
                 pending_alerts.clear()
         if message.get('type') == 'alert' and alerts_enabled:
             pending_alerts.append(str(message.get('text', ''))[:500])
+        if message.get('type') == 'reminder-cancel':
+            pending_reminder = reminder_id = None
+        if message.get('type') == 'reminder' and message.get('expires', 0) > time.time():
+            pending_reminder = message
+            reminder_id, reminder_expiry = message.get('id'), message['expires']
 
     def allowed():
         if stop.is_set() or not desktop_unlocked():
@@ -121,11 +129,13 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
         directory = Path(model_directory)
         voice = PiperVoice.load(directory / 'jarvis-medium.onnx')
 
-        def speak(text, alert=False):
-            can_speak = lambda: allowed() and (not alert or alerts_enabled)
+        def speak(text, alert=False, reminder=False):
+            identity = reminder_id
+            can_speak = lambda: allowed() and (not alert or alerts_enabled) and (
+                not reminder or (identity is not None and identity == reminder_id and time.time() < reminder_expiry))
             if not can_speak():
                 return
-            status('preview' if preview else 'alert' if alert else 'speaking',
+            status('preview' if preview else 'alert' if alert or reminder else 'speaking',
                    'Speaking through ' + output_device['name'] + '.')
             audio = io.BytesIO()
             with wave.open(audio, 'wb') as wav:
@@ -168,6 +178,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
             while not stop.is_set():
                 if not desktop_unlocked():
                     pending_alerts.clear()
+                    pending_reminder = reminder_id = None
                     followup = False
                     status('locked', 'Laptop locked. Microphone paused.')
                     while not stop.wait(0.5) and not allowed():
@@ -177,6 +188,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                     if stop.is_set():
                         break
                     pending_alerts.clear()
+                    pending_reminder = reminder_id = None
                 if not allowed():
                     continue
                 if pending_alerts:
@@ -185,6 +197,14 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                     pipe.send({'type': 'exchange', 'heard': 'Hardware alert', 'reply': text, 'kind': 'alert'})
                     speak(text, alert=True)
                     stop.wait(0.5)
+                    followup = False
+                    continue
+                if pending_reminder:
+                    reminder = pending_reminder
+                    pending_reminder = None
+                    if time.time() < reminder['expires']:
+                        speak(reminder['text'], reminder=True)
+                    reminder_id = None
                     followup = False
                     continue
                 wake.reset()
@@ -197,7 +217,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                     if followup:
                         command = collect_utterance(stream, allowed, wait_seconds=followup_seconds,
                                                     on_speech=lambda: status('recording', 'Listening to your reply.'))
-                    while not followup and allowed() and not pending_alerts:
+                    while not followup and allowed() and not pending_alerts and not pending_reminder:
                         audio, overflow = stream.read(1280)
                         if overflow:
                             wake.reset()

@@ -17,6 +17,8 @@ const glyphPaths={
   previous:'<path d="M5 5v14m14-14L8 12l11 7Z"/>',
   next:'<path d="M19 5v14M5 5l11 7-11 7Z"/>',
   mute:'<path d="M10 4 5 9H2v6h3l5 5Zm5 5 6 6m0-6-6 6"/>',
+  'volume-down':'<path d="m11 5-5 4H3v6h3l5 4Z"/><path d="M16 9a5 5 0 0 1 0 6"/>',
+  'volume-up':'<path d="m11 5-5 4H3v6h3l5 4Z"/><path d="M16 9a5 5 0 0 1 0 6m3-10a9 9 0 0 1 0 14"/>',
   minus:'<path d="M5 12h14"/>',
   plus:'<path d="M5 12h14m-7-7v14"/>',
   arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>'

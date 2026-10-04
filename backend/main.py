@@ -14,6 +14,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from .controllers import AppRegistry, media_action
 from .devices import COOKIE, DEVICE_TTL, PENDING_TTL, DeviceStore
 from .display import DisplayReports
+from .focus import FocusTimer
+from .activity import ActivityMonitor
 from .games import GameLibrary
 from .media import MediaMonitor
 from .security import Pairing, require_origin, same_origin
@@ -50,17 +52,58 @@ class DisplayRequest(BaseModel):
     orientation: Literal['Landscape', 'Portrait']
 
 
-def create_app(pairing_code=None, device_db=None, voice_dir=None):
+class MediaSessionRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    sessionId: str = Field(pattern=r'^[0-9a-f]{24}$')
+    trackRevision: str = Field(pattern=r'^[0-9a-f]{24}$')
+    action: Literal['play-pause', 'previous', 'next']
+
+
+class SeekRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid', allow_inf_nan=False)
+    sessionId: str = Field(pattern=r'^[0-9a-f]{24}$')
+    trackRevision: str = Field(pattern=r'^[0-9a-f]{24}$')
+    position: float = Field(ge=0, le=2592000)
+
+
+class FocusCommand(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    action: Literal['start', 'pause', 'resume', 'reset', 'skip']
+    revision: int = Field(ge=0, le=2**53-1, strict=True)
+
+
+class FocusSettings(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    revision: int = Field(ge=0, le=2**53-1)
+    focus: int = Field(ge=1, le=180)
+    short: int = Field(ge=1, le=180)
+    long: int = Field(ge=1, le=180)
+    announcements: bool
+
+
+class ThermalSettings(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    enabled: bool
+    cpuTemperature: str | None = Field(default=None, pattern=r'^[0-9a-f]{8}-[0-9a-f]{8}-[0-9a-f]{8}$')
+    cpuThrottle: str | None = Field(default=None, pattern=r'^[0-9a-f]{8}-[0-9a-f]{8}-[0-9a-f]{8}$')
+    gpuThrottle: str | None = Field(default=None, pattern=r'^[0-9a-f]{8}-[0-9a-f]{8}-[0-9a-f]{8}$')
+    fans: list[str] = Field(default_factory=list, max_length=16)
+    drives: list[str] = Field(default_factory=list, max_length=16)
+
+
+def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=None):
     state_dir = ROOT / '.state/private'
     code = pairing_code or secrets.token_hex(4).upper()
     pairing = Pairing(code)
     devices = DeviceStore(device_db or (':memory:' if pairing_code else state_dir / 'devices.sqlite3'))
-    telemetry = Telemetry()
+    telemetry = Telemetry(None if pairing_code else state_dir / 'thermal.json')
     registry = AppRegistry()
     games = GameLibrary()
     display_reports = DisplayReports()
     media_monitor = MediaMonitor()
     voice = VoiceService(voice_dir or (state_dir / 'voice' if not pairing_code else None), registry, telemetry)
+    focus = FocusTimer(focus_path or (None if pairing_code else state_dir / 'focus.json'), notify=voice.remind)
+    activity = ActivityMonitor(games)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -69,15 +112,23 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None):
             (state_dir / "pairing-code.txt").write_text(code, encoding="utf-8")
         task = asyncio.create_task(telemetry.run())
         media_task = asyncio.create_task(media_monitor.run())
+        focus_task = asyncio.create_task(focus.run())
+        activity_task = asyncio.create_task(activity.run())
         print(f"\nG16 Command Center | Laptop setup code: {code}\nApproved browsers are remembered for 180 days, including across restarts.\n", flush=True)
         yield
         await asyncio.to_thread(voice.stop)
         task.cancel()
         media_task.cancel()
+        focus_task.cancel()
+        activity_task.cancel()
         with suppress(asyncio.CancelledError):
             await task
         with suppress(asyncio.CancelledError):
             await media_task
+        with suppress(asyncio.CancelledError):
+            await focus_task
+        with suppress(asyncio.CancelledError):
+            await activity_task
 
     app = FastAPI(title="G16 Command Center", lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.pairing = pairing
@@ -88,6 +139,8 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None):
     app.state.display_reports = display_reports
     app.state.media = media_monitor
     app.state.voice = voice
+    app.state.focus = focus
+    app.state.activity = activity
 
     def local(request):
         return request.client is not None and request.client.host in {'127.0.0.1', '::1'}
@@ -221,6 +274,22 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None):
     def launch(body: LaunchRequest):
         return registry.launch(body.id)
 
+    @app.post('/api/media/session-action', dependencies=[Depends(authenticate), Depends(require_origin)])
+    async def session_action(body: MediaSessionRequest):
+        return await media_monitor.command(body.sessionId, body.trackRevision, body.action)
+
+    @app.post('/api/media/seek', dependencies=[Depends(authenticate), Depends(require_origin)])
+    async def seek(body: SeekRequest):
+        return await media_monitor.command(body.sessionId, body.trackRevision, 'seek', body.position)
+
+    @app.get('/api/media/artwork/{revision}', dependencies=[Depends(authenticate)])
+    async def media_artwork(revision: str):
+        media_monitor.sample()
+        if revision != media_monitor.revision or not media_monitor.artwork:
+            raise HTTPException(404, 'Artwork unavailable.')
+        data, mime = media_monitor.artwork
+        return Response(data, media_type=mime)
+
     @app.post("/api/media/{action}", dependencies=[Depends(authenticate), Depends(require_origin)])
     def media(action: str):
         return media_action(action)
@@ -228,6 +297,40 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None):
     @app.get('/api/media/state', dependencies=[Depends(authenticate)])
     async def media_state():
         return media_monitor.sample()
+
+    @app.get('/api/focus', dependencies=[Depends(authenticate)])
+    def focus_state():
+        return focus.snapshot()
+
+    @app.post('/api/focus/command', dependencies=[Depends(authenticate), Depends(require_origin)])
+    def focus_command(body: FocusCommand):
+        result = focus.command(body.action, body.revision)
+        if body.action in {'start', 'resume', 'reset', 'skip'}:
+            voice.cancel_reminder()
+        return result
+
+    @app.put('/api/focus/settings', dependencies=[Depends(authenticate), Depends(require_origin)])
+    def focus_settings(body: FocusSettings):
+        result = focus.command('settings', body.revision, body.model_dump(exclude={'revision'}))
+        voice.cancel_reminder()
+        return result
+
+    @app.get('/api/thermals', dependencies=[Depends(authenticate)])
+    def thermal_state():
+        return telemetry.thermals.snapshot()
+
+    @app.get('/api/thermals/inventory', dependencies=[Depends(owner)])
+    def thermal_inventory():
+        telemetry.thermals.sample()
+        return telemetry.thermals.discovery()
+
+    @app.put('/api/thermals/settings', dependencies=[Depends(owner), Depends(require_origin)])
+    def thermal_settings(body: ThermalSettings):
+        try:
+            result = telemetry.thermals.configure(body.model_dump())
+        except ValueError:
+            raise HTTPException(422, 'Choose valid sensor identities.') from None
+        return result
 
     @app.get('/api/games', dependencies=[Depends(authenticate)])
     def game_catalog():
@@ -254,7 +357,8 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None):
         try:
             while devices.valid(ws.cookies.get(COOKIE)):
                 await ws.send_json({"type": "telemetry", "data": telemetry.latest, "errors": telemetry.errors,
-                                    "media": media_monitor.latest})
+                                    "media": media_monitor.latest, "focus": focus.snapshot(), "activity": activity.latest,
+                                    "serverTime": datetime.now(timezone.utc).timestamp() * 1000})
                 await asyncio.sleep(1)
             await ws.close(code=1008)
         except (WebSocketDisconnect, RuntimeError, OSError):

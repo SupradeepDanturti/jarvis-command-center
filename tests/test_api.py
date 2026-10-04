@@ -70,7 +70,9 @@ def test_live_websocket_and_logout_revocation(client):
         assert data['data']['source'] == 'live'
         assert data['data']['cpu']['temperature'] is None
         assert data['data']['memory']['total'] > 0
-        assert set(data['media']) == {'status', 'available', 'sampledAt'}
+        assert {'status', 'available', 'sampledAt'} <= set(data['media'])
+        assert data['focus']['status'] in {'ready', 'running', 'paused', 'complete'}
+        assert 'sampledAt' in data['activity']
     assert client.post('/api/logout', headers=ORIGIN).status_code == 200
     assert client.get('/api/apps').status_code == 401
 
