@@ -33,14 +33,22 @@
 <li>“Jarvis, turn the volume down.” Sends one Windows volume step.</li>
 <li>“Jarvis, pause the music.” Toggles the current player once.</li>
 <li>“Jarvis, how much memory am I using?”</li>
+<li>“Jarvis, I want to play games.” Opens the game library without launching a game.</li>
+<li>“Jarvis, change the screen to Ambient mode, Event horizon.” Also ask for Black hole or another available scene. Jarvis discovers the current options before selecting; your motion/pause preference is kept.</li>
+<li>“Jarvis, what is the weather?” Opens your enabled Weather &amp; air quality view.</li>
+<li>“Jarvis, show the next F1 race.” Opens your enabled F1 countdown.</li>
+<li>“Jarvis, show the clock.” Also ask for Home, Live performance, Apps, Hardware, graphs, Focus timer, Ambient, Now playing, settings, Device access, Rest &amp; alarms, Widgets or Jarvis.</li>
 <li>“Jarvis, enter rest mode.” Jarvis acknowledges, checks desk monitors, enters Rest and keeps listening.</li>
 <li>“Jarvis, wake up.” Restores the desk monitors and your tablet's previous screen, preserving your alarm.</li>
 <li>“Jarvis, search NASA for a recent mission update.”</li>
 </ul>
-<p>One registered PC action per request. Arbitrary commands, URLs, installation, shutdown, and smart-home controls are not supported. Native web search supplies current information; sources appear as links beside replies.</p>
+<p>Ask “Open Steam, show games and read my CPU” to combine a PC control, a screen request and a hardware read. Each turn permits one of each; physical controls run one at a time. Ask “Open Wikipedia” or give a web address to open a website in Brave without saving a shortcut. Jarvis can find an uncertain official address or ask which site you mean. It requests one tab; it does not interact with website accounts or forms. Arbitrary commands, installation, shutdown, and smart-home controls are not supported. Native web search supplies current information; sources appear as links beside replies.</p>
+<p>Screen changes reach already connected, visible approved dashboards. They do not launch apps/games, start timers, change settings or enter Rest. Enable Weather/F1 and select your weather city under <strong>System &amp; controls → Tablet settings → Optional widgets</strong> first; missing setup opens that area. Voice choices hold automatic rotation for two minutes. Requests expire after ten seconds and do not replay on reload, return from hiding or reconnect. Finish an open dialog first; in active Rest say “Jarvis, wake up.” Reload both displays after updating and re-enable Jarvis after a backend restart.</p>
 <p>Rest entry and wake use those fixed phrases while Jarvis is on and Windows is unlocked. Allow a few seconds for a USB-C dock check. Locking Windows or turning Jarvis off cancels pending actions. Set your alarm first in <strong>More → Rest &amp; alarms</strong>; both commands keep it. Button entry also keeps an enabled Jarvis session running. Say <strong>“Jarvis, wake up”</strong> to leave Rest, or use <strong>Wake PC displays</strong>. The wake detector expects “Jarvis.” Windows lock pauses listening; voice wake does not unlock Windows.</p>
 <p>If entry fails, Jarvis explains why; the exchange appears in <strong>History</strong>. Punctuation around “Jarvis,” optional “please,” and “enter rest mode, Jarvis” are accepted.</p>
+<p>Jarvis can open any available app in the detected Windows list, even if it is not selected for the Apps screen. Ask “Jarvis, open ChatGPT” or “open Claude.” It reads the current available names first; opening an app does not add a shortcut. If several names match, Jarvis asks which one.</p>
 <h2>Continue naturally</h2>
+<p>Say “Jarvis, introduce yourself” or “play your introduction” to hear the saved introduction through your selected speaker. It plays only when requested, while Jarvis is enabled and Windows is unlocked. Turning Jarvis off or locking cancels playback.</p>
 <p>After a reply, answer within <strong>15 seconds</strong> without another “Jarvis.” With Jarvis off, choose <strong>Follow-up listening</strong>: Off, 15, or 30 seconds. Silence or a closing phrase such as “thanks,” “that's all,” or “goodbye” returns to wake listening.</p>
 <p>This app uses <strong>gpt-transcribe</strong> for recognition and <strong>gpt-6-luna</strong> for interpretation/replies. Wake detection and Piper speech run locally on the CPU. After activation, a command clip of up to ten seconds goes to OpenAI, followed by text and context. Input closes during processing/speech. Audio is not saved.</p>
 <h2>Hardware alerts and the activity overlay</h2>

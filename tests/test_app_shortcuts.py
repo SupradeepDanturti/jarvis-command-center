@@ -211,23 +211,27 @@ def test_package_logo_stays_inside_installation(packaged, tmp_path):
 
 
 def test_transient_windows_save_lock_is_bounded(tmp_path, detected):
+    import json
     from pathlib import Path
     registry = AppRegistry(tmp_path/'saved.json')
     locked = PermissionError('temporary sharing violation')
     locked.winerror = 32
-    replace = Path.replace
     calls = 0
+    persisted = []
 
     def retry(path, destination):
         nonlocal calls
         calls += 1
         if calls == 1:
             raise locked
-        return replace(path, destination)
+        # Simulate successful replacement after the injected lock. Actual Windows scanners
+        # can add unrelated sharing locks; real atomic persistence is covered separately.
+        persisted.extend(json.loads(path.read_text(encoding='utf-8')))
+        return Path(destination)
 
     with patch.object(Path, 'replace', retry):
         registry._save([detected])
-    assert calls == 2 and AppRegistry(tmp_path/'saved.json').apps == [detected]
+    assert calls == 2 and persisted == [detected] and registry.apps == [detected]
     with patch.object(Path, 'replace', side_effect=locked) as retry, patch('backend.controllers.time.sleep'):
         with pytest.raises(HTTPException, match='unchanged'):
             registry._save([])

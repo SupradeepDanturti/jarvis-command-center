@@ -14,14 +14,15 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from .security import require_origin
 from .tls import dpapi
-from .voice_actions import execute_tool, voice_tools, rest_entry_requested, rest_wake_requested
+from .voice_actions import execute_tool, voice_tools, rest_entry_requested, rest_wake_requested, VOICE_SCREENS
 from .voice_history import VoiceHistory
 from .voice_alerts import HardwareAlerts
 from .voice_wake import WAKE_MODEL, WAKE_PHRASE
+from .ambient import load_ambient_scenes
 
 MODEL_FILES = ('jarvis-medium.onnx', 'jarvis-medium.onnx.json', WAKE_MODEL,
                'melspectrogram.onnx', 'embedding_model.onnx')
-DEPENDENCIES = ('piper', 'openwakeword', 'sounddevice', 'openai')
+DEPENDENCIES = ('piper', 'openwakeword', 'sounddevice', 'openai', 'agents')
 
 
 class VoiceService:
@@ -39,11 +40,13 @@ class VoiceService:
         self.history = VoiceHistory(self.directory)
         self.followup_seconds = 15
         self.last_action = None
+        self.last_actions = []
         self.output_id = None
         self.alerts_enabled = True
         self.pending_reminder = None
         self.rest = None
         self.pending_rest = None
+        self.navigation = None
         self.alert_policy = HardwareAlerts(self.directory / 'alerts.json' if self.directory else None)
         if self.directory and (self.directory / 'input.json').exists():
             try:
@@ -83,7 +86,34 @@ class VoiceService:
                     'lastHeard': self.last_heard, 'lastReply': self.last_reply,
                     'wakePhrase': WAKE_PHRASE, 'inputId': self.input_id,
                     'followupSeconds': self.followup_seconds, 'history': self.history.recent(12),
-                    'outputId': self.output_id, 'alertsEnabled': self.alerts_enabled}
+                    'outputId': self.output_id, 'alertsEnabled': self.alerts_enabled,
+                    'navigation': self._navigation_snapshot(), 'serverTime': time.time() * 1000}
+
+    def _navigation_snapshot(self):
+        from .voice_worker import desktop_unlocked
+        if self.navigation and (self.navigation['expiresAt'] <= time.time() * 1000
+            or not self.process or not self.process.is_alive() or self.stop_event is None
+            or self.stop_event.is_set() or self.phase in {'off', 'preview', 'locked', 'error'}
+            or not desktop_unlocked()):
+            self.navigation = None
+        return dict(self.navigation) if self.navigation else None
+
+    def _show_screen(self, screen, scene=None):
+        # Called under the parent lock after checking the live worker generation.
+        # Read the flag without acquiring Rest's lock: alarm delivery calls voice.stop under that lock.
+        if self.rest is not None and self.rest.rest:
+            return {'ok': False, 'message': 'Wake the displays before changing screens, sir.'}
+        label = VOICE_SCREENS[screen]
+        if scene is not None:
+            available = load_ambient_scenes()
+            if screen != 'ambient' or scene not in available:
+                raise ValueError('This Ambient scene is unavailable.')
+            label += ' · ' + available[scene]['name']
+        self.navigation = {'id': secrets.token_hex(12), 'screen': screen, 'expiresAt': time.time() * 1000 + 10000}
+        if scene is not None:
+            self.navigation['scene'] = scene
+        return {'ok': True, 'message': f'Requested {label} on active dashboard screens.',
+                'delivery': 'Visible connected browsers only; disabled widgets open their settings.'}
 
     def set_followup(self, seconds):
         if type(seconds) is not int or seconds not in {0, 15, 30}:
@@ -203,6 +233,8 @@ class VoiceService:
             self.message = 'Preparing the local voice.' if preview else 'Starting Jarvis on your laptop.'
             self.last_heard = self.last_reply = ''
             self.last_action = None
+            self.last_actions = []
+            self.navigation = None
             try:
                 process.start()
             except Exception:
@@ -340,6 +372,19 @@ class VoiceService:
                 if not pipe.poll(0.2):
                     continue
                 event = pipe.recv()
+                app_inventory = None
+                if event.get('type') == 'action' and event.get('name') == 'list_apps':
+                    # Windows enumeration is read-only and may take seconds. Keep stop/lock/status responsive.
+                    with self.lock:
+                        if generation != self.generation:
+                            return
+                        discover = (self.phase == 'thinking' and self.pending_rest is None
+                                    and not self.stop_event.is_set() and desktop_unlocked())
+                    if discover:
+                        try:
+                            app_inventory = execute_tool('list_apps', event.get('arguments'), self.registry, self.telemetry)
+                        except (ValueError, TypeError, HTTPException):
+                            app_inventory = {'ok': False, 'message': 'Available apps could not be read. Try again shortly.'}
                 with self.lock:
                     if generation != self.generation:
                         return
@@ -351,23 +396,37 @@ class VoiceService:
                         result = {'ok': False, 'message': 'Voice control is unavailable.'}
                         if self.phase == 'thinking' and self.pending_rest is None and not self.stop_event.is_set() and desktop_unlocked():
                             try:
-                                result = execute_tool(event.get('name'), event.get('arguments'), self.registry, self.telemetry)
-                            except (ValueError, TypeError, HTTPException):
+                                if event.get('name') == 'list_apps':
+                                    result = app_inventory or result
+                                else:
+                                    result = execute_tool(event.get('name'), event.get('arguments'), self.registry,
+                                                          self.telemetry, navigate=self._show_screen)
+                            except (OSError, ValueError, TypeError, HTTPException):
                                 result = {'ok': False, 'message': 'This action could not be carried out.'}
-                        pipe.send({'type': 'result', 'result': result})
+                        pipe.send({'type': 'result', 'id': event.get('id'), 'result': result})
                         self.last_action = {'name': event.get('name'), 'arguments': event.get('arguments'),
                                             'ok': bool(result.get('ok')), 'message': result.get('message', '')[:200]}
+                        self.last_actions.append(self.last_action)
+                        if len(self.last_actions) > 1:
+                            self.last_action = {'name': 'parallel_tools', 'arguments': {},
+                                'ok': all(action['ok'] for action in self.last_actions),
+                                'message': ' · '.join(action['message'] for action in self.last_actions)[:200],
+                                'actions': list(self.last_actions)}
                     elif event.get('type') == 'status':
                         self.phase = event['phase']
                         self.message = event['message'][:200]
+                        if self.phase in {'off', 'preview', 'locked', 'error'}:
+                            self.navigation = None
                     elif event.get('type') == 'exchange':
                         self.last_heard = str(event.get('heard', ''))[:500]
                         self.last_reply = str(event.get('reply', ''))[:500]
                         self.history.add(event.get('heard', ''), self.last_reply, self.last_action, event.get('sources'),
                                          kind='alert' if event.get('kind') == 'alert' else 'conversation')
                         self.last_action = None
+                        self.last_actions = []
                     elif event.get('type') == 'turn':
                         self.last_action = None
+                        self.last_actions = []
         except (EOFError, OSError, ValueError):
             pass
         finally:
@@ -376,6 +435,7 @@ class VoiceService:
                     if self.phase not in {'off', 'error'}:
                         self.phase, self.message = 'error', 'Voice worker stopped. You can restart it.'
                     self.process = self.pipe = self.stop_event = None
+                    self.navigation = None
             pipe.close()
             process.join(timeout=0.5)
 
@@ -384,10 +444,13 @@ class VoiceService:
             self.generation += 1  # Reject all late actions and replies from the old worker.
             self.pending_reminder = None
             self.pending_rest = None
+            self.navigation = None
             process, stop, pipe = self.process, self.stop_event, self.pipe
             self.process = self.pipe = self.stop_event = None
             self.phase, self.message = 'off', 'Microphone off.'
             self.last_heard = self.last_reply = ''
+            self.last_action = None
+            self.last_actions = []
             if stop:
                 stop.set()
         if process:

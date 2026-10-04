@@ -25,6 +25,7 @@ from .security import Pairing, require_origin, same_origin
 from .telemetry import Telemetry
 from .voice import VoiceService, voice_router
 from .widgets import WidgetFeeds
+from .ambient import ambient_script
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -481,6 +482,11 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     @app.get("/")
     def index():
         return FileResponse(ROOT / "frontend/index.html")
+
+    @app.get('/static/ambient-scenes.js')
+    def ambient_scene_asset():
+        # Public local artwork metadata, like the existing static assets; no control or private data.
+        return Response(ambient_script(), media_type='application/javascript', headers={'Cache-Control': 'no-cache'})
 
     app.mount("/static", StaticFiles(directory=ROOT / "frontend"), name="static")
     return app

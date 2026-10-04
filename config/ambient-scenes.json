@@ -1,0 +1,30 @@
+{
+  "horizon": {
+    "name": "Event horizon",
+    "description": "Starlight, dust, and a golden accretion disk.",
+    "file": "event-horizon",
+    "type": "video/webm",
+    "credit": ""
+  },
+  "grid": {
+    "name": "Neon drift",
+    "description": "Light trails into an endless electric horizon.",
+    "file": "neon-drift",
+    "type": "video/webm",
+    "credit": ""
+  },
+  "aurora": {
+    "name": "Aurora",
+    "description": "Northern lights above a sleeping alpine lake.",
+    "file": "aurora",
+    "type": "video/webm",
+    "credit": ""
+  },
+  "blackhole": {
+    "name": "Black hole",
+    "description": "Gravity bends the light. The disk keeps turning.",
+    "file": "nasa-black-hole",
+    "type": "video/mp4",
+    "credit": "NASA’s Goddard Space Flight Center / Jeremy Schnittman"
+  }
+}
