@@ -3,6 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import threading
 from unittest.mock import Mock, patch
+import pytest
 
 from fastapi.testclient import TestClient
 
@@ -14,6 +15,8 @@ from backend.voice_worker import collect_utterance, worker_main
 ORIGIN = {'origin': 'https://testserver'}
 SILENCE = b'\0\0' * 1280
 SPEECH = array('h', [800] * 1280).tobytes()
+
+pytestmark = pytest.mark.usefixtures('jarvis_sdk_transport')
 
 
 def test_saved_history_retention_pagination_context_restart_and_clear(tmp_path):
@@ -91,7 +94,7 @@ def test_native_web_search_citations_and_jarvis_prompt_with_conversation():
     assert 'sir' in reply
     request = client.responses.create.call_args.kwargs
     assert request['input'][:2] == history
-    assert 'Jarvis from Iron Man' in request['instructions']
+    assert "You are Jarvis, the user's laptop assistant" in request['instructions']
     assert 'untrusted data' in request['instructions']
     cite.assert_called_once_with([{'url': annotation.url, 'title': 'NASA'}])
     dispatch.assert_not_called()
@@ -104,7 +107,8 @@ def test_native_web_search_citations_and_jarvis_prompt_with_conversation():
     client.responses.create.side_effect = [response, final]
     dispatch.return_value = {'ok': True, 'message': 'Opening Steam'}
     cite.reset_mock()
-    assert respond(client, 'Search, then open Steam.', [], dispatch, cite=cite) == final.output_text
+    apps.catalog.return_value = [{'id': 'steam', 'name': 'Steam', 'available': True}]
+    assert respond(client, 'Search, then open Steam.', voice_tools(apps), dispatch, cite=cite) == final.output_text
     cite.assert_called_once_with([{'url': annotation.url, 'title': 'NASA'}])
 
 
@@ -154,7 +158,7 @@ def test_worker_accepts_followup_without_second_wake_and_uses_previous_question(
     result_pending = []
     def send(event):
         if event['type'] == 'action':
-            result_pending.append({'type': 'result', 'result': {'ok': True, 'message': 'Opening Steam'}})
+            result_pending.append({'type': 'result', 'id': event['id'], 'result': {'ok': True, 'message': 'Opening Steam'}})
     pipe.send.side_effect = send
     pipe.poll.side_effect = lambda *args: bool(result_pending)
     pipe.recv.side_effect = lambda: result_pending.pop(0)
@@ -162,7 +166,9 @@ def test_worker_accepts_followup_without_second_wake_and_uses_previous_question(
          patch('backend.voice_audio.resolve_input', return_value={'index': 1, 'name': 'Webcam'}), \
          patch('backend.voice_audio.resolve_output', return_value={'index': 12, 'name': 'Laptop speakers'}), \
          patch('backend.voice_audio.play_on_speaker', speaker):
-        worker_main(pipe, stop, str(tmp_path), 'sk-qa-only', [], followup_seconds=15)
+        apps = Mock()
+        apps.catalog.return_value = [{'id': 'steam', 'name': 'Steam', 'available': True}]
+        worker_main(pipe, stop, str(tmp_path), 'sk-qa-only', voice_tools(apps), followup_seconds=15)
     assert len(plays) == 2
     assert wake.predict.call_count == 1
     assert microphone.RawInputStream.call_count == 2

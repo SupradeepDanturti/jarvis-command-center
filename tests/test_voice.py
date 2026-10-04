@@ -8,6 +8,8 @@ from backend.main import create_app
 from backend.voice import MODEL_FILES, VoiceService
 from backend.voice_actions import execute_tool, respond, voice_tools
 
+pytestmark = pytest.mark.usefixtures('jarvis_sdk_transport')
+
 ORIGIN = {'origin': 'https://testserver'}
 
 
@@ -110,21 +112,23 @@ def tool_response(arguments='{"id":"youtube"}'):
 def test_cloud_reply_failure_never_repeats_completed_action():
     client, dispatch = Mock(), Mock(return_value={'ok': True, 'message': 'Opening YouTube'})
     client.responses.create.side_effect = [tool_response(), RuntimeError('network failed')]
-    assert respond(client, 'open youtube', [], dispatch) == 'Opening YouTube'
+    assert respond(client, 'open youtube', voice_tools(registry()), dispatch) == 'Opening YouTube'
     dispatch.assert_called_once_with('launch_app', {'id': 'youtube'})
     assert all(call.kwargs['store'] is False for call in client.responses.create.call_args_list)
     assert all(call.kwargs['model'] == 'gpt-6-luna' for call in client.responses.create.call_args_list)
 
 
-def test_stop_during_cloud_request_blocks_action_and_multiple_calls_rejected():
+def test_stop_during_cloud_request_blocks_action_and_duplicate_calls_are_deduplicated():
     client, dispatch = Mock(), Mock()
     response = tool_response()
     client.responses.create.return_value = response
     assert respond(client, 'open youtube', [], dispatch, allowed=lambda: False) == ''
     dispatch.assert_not_called()
     response.output *= 2
-    assert 'one laptop command' in respond(client, 'open youtube', [], dispatch)
-    dispatch.assert_not_called()
+    client.responses.create.side_effect = [response, RuntimeError('follow-up failed')]
+    dispatch.return_value = {'ok': True, 'message': 'Opening YouTube'}
+    assert respond(client, 'open youtube', voice_tools(registry()), dispatch) == 'Opening YouTube'
+    dispatch.assert_called_once()
 
 
 def test_microphone_resolution_excludes_stereo_mix_and_prefers_array():

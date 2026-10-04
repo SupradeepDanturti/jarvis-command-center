@@ -5,6 +5,7 @@ from ctypes import wintypes
 import io
 import os
 import re
+import secrets
 import time
 import wave
 from .voice_actions import respond, rest_entry_requested, rest_wake_requested
@@ -42,6 +43,21 @@ def pcm_wav(pcm):
     data.seek(0)
     data.name = 'command.wav'
     return data
+
+
+def request_tool_action(pipe, stop, name, arguments, allowed, control):
+    if not allowed():
+        return {'ok': False, 'message': 'Voice control was stopped.'}
+    identity = secrets.token_hex(12)
+    pipe.send({'type': 'action', 'id': identity, 'name': name, 'arguments': arguments})
+    deadline = time.monotonic() + 5
+    while not stop.is_set() and time.monotonic() < deadline:
+        if pipe.poll(0.08):
+            message = pipe.recv()
+            if message.get('type') == 'result' and message.get('id') == identity:
+                return message['result']
+            control(message)
+    return {'ok': False, 'message': 'Voice control timed out.'}
 
 
 def collect_utterance(stream, allowed, pre_roll=(), wait_seconds=3, on_speech=lambda: None):
@@ -209,17 +225,7 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
         followup = False
 
         def dispatch(name, arguments):
-            if not allowed():
-                return {'ok': False, 'message': 'Voice control was stopped.'}
-            pipe.send({'type': 'action', 'name': name, 'arguments': arguments})
-            deadline = time.monotonic() + 5
-            while not stop.is_set() and time.monotonic() < deadline:
-                if pipe.poll(0.08):
-                    message = pipe.recv()
-                    if message.get('type') == 'result':
-                        return message['result']
-                    control(message)
-            return {'ok': False, 'message': 'Voice control timed out.'}
+            return request_tool_action(pipe, stop, name, arguments, allowed, control)
 
         with client:
             while not stop.is_set():

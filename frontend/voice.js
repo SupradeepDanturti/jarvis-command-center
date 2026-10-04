@@ -1,5 +1,35 @@
 // Jarvis is a laptop service. This screen never requests browser microphone access.
 let voiceState=null, voicePolling=false, voicePending=false, voiceInputLoading=false,voiceHistoryRows=[],voiceHistoryCursor=null,voiceHistoryLoading=false,voiceHistoryMark=null;
+let voiceNavigationReady=false,voiceNavigationId=null;
+function resetVoiceNavigation(){voiceNavigationReady=false;voiceNavigationId=null}
+function acceptVoiceNavigation(status){
+  if(!state.paired||state.stale||state.socket?.readyState!==WebSocket.OPEN||document.visibilityState!=='visible'){
+    resetVoiceNavigation();return;
+  }
+  const request=status?.navigation;
+  // First snapshot is a baseline: reloads, new browsers and return from hiding never replay a request.
+  const baseline=voiceNavigationReady;voiceNavigationReady=true;
+  if(!request)return;
+  const previous=voiceNavigationId;voiceNavigationId=request.id;
+  if(!baseline||request.id===previous||typeof request.id!=='string'||!/^\w{24}$/.test(request.id))return;
+  if(!status.enabled||['off','preview','locked','error'].includes(status.phase)||restState?.rest
+    ||!Number.isFinite(status.serverTime)||!Number.isFinite(request.expiresAt)
+    ||request.expiresAt<=status.serverTime||request.expiresAt-status.serverTime>10000)return;
+  let target=request.screen;
+  if(!['weather','f1','focus'].includes(target)&&!Object.hasOwn(pages,target))return;
+  if(document.querySelector('dialog[open]')){toast('Finish the open dialog, then ask Jarvis again.');return}
+  setPresentation(false);
+  if(['weather','f1'].includes(target)){
+    if(!widgetPreferences[target]||(target==='weather'&&!widgetPreferences.location)){
+      goPage('system');document.querySelector('#widget-settings')?.scrollIntoView({block:'center'});
+      toast(target==='weather'?'Enable Weather & air quality and choose a city first.':'Enable F1 next race first.');return;
+    }
+    widgetPreferences.view=target;saveWidgetPreferences();target='widgets';
+  }
+  if(target==='focus'){focusView=true;target='clock'}else if(target==='clock')focusView=false;
+  goPage(target); // Voice is explicit user input, so hold automatic display changes just like touch.
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')resetVoiceNavigation()});
 function voiceScreen(){
   return `<section class="voice-surface"><div class="voice-intro"><span class="surface-overline">JARVIS / AT YOUR SERVICE</span><div class="jarvis-identity">${jarvisCore()}<div><span class="jarvis-overline">JUST A RATHER VERY INTELLIGENT SYSTEM</span><h2>J.A.R.V.I.S.</h2><p>At your service, sir.<br>Say “Jarvis”, pause, then ask.</p></div></div><div class="voice-history"><div class="voice-history-heading"><h4>Your conversations</h4><span>Saved on this PC</span></div><div id="voice-history-list" role="log" aria-live="polite"></div><div class="voice-history-actions"><button id="voice-history-older" hidden>Earlier conversations</button>${state.auth?.owner?'<button id="voice-history-clear">Clear history</button>':''}</div></div></div><div class="voice-console"><span class="surface-overline">VOICE LINK / CONTROL</span><h3 id="voice-phase">One moment, sir…</h3><p id="voice-message" role="status" aria-live="polite">Checking the voice connection, sir.</p><div class="voice-input"><label for="voice-input">PC microphone</label><select id="voice-input"><option value="">Auto · PC microphone</option></select><button data-voice-refresh type="button" aria-label="Refresh PC microphones">↻</button></div><div class="voice-input"><label for="voice-output">Jarvis speaker</label><select id="voice-output"><option value="">Auto · built-in speakers</option></select></div><div class="voice-input"><label for="voice-followup">Follow-up listening</label><select id="voice-followup"><option value="0">Off · wake phrase each turn</option><option value="15" selected>15 seconds after a reply</option><option value="30">30 seconds after a reply</option></select></div><div class="voice-actions"><button id="voice-toggle" disabled>Turn on Jarvis</button><button id="voice-preview" disabled>Preview voice</button></div><div class="voice-alert-setting"><button id="voice-alert-toggle" type="button" aria-pressed="true">Alerts on</button><small>CPU / RAM 90% · GPU 70°C<br>Once per hour</small></div><p class="voice-caption">PC microphone. Dedicated speaker output. Pauses on Windows lock; starts off after a restart.</p><div class="voice-setup"><h4>OpenAI connection</h4><p id="voice-key-status">Checking connection…</p>${state.auth?.owner?`<details id="voice-key-details" open><summary>Manage API key</summary><form id="voice-key-form" autocomplete="off"><label for="voice-api-key">API key</label><div class="voice-key-entry"><input id="voice-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your API key here" required aria-describedby="voice-key-help"><button type="submit">Save key</button></div></form><p id="voice-key-help">Encrypted for your Windows account. Never stored in this browser. OpenAI API billing is separate.</p><button id="voice-delete-key" hidden>Remove saved key</button></details>`:`<p>Save or remove the key on the approved Windows browser at https://localhost:18761/#voice.</p>`}<p id="voice-install-status"></p><a class="voice-guide" href="/static/jarvis-help.html" target="_blank" rel="noopener">Setup & supported commands ↗</a></div></div></section>`;
 }
@@ -27,7 +57,7 @@ function paintVoice(){
 async function refreshVoice(){
   if(voicePolling||!state.paired||document.visibilityState!=='visible')return;
   voicePolling=true;const epoch=jarvisVisualEpoch;
-  try{const status=await api('/api/voice/status',{signal:AbortSignal.timeout(4000)});if(!state.paired||epoch!==jarvisVisualEpoch)return;voiceState=status;jarvisStatusFreshAt=Date.now();const mark=voiceState.history?.at(-1)?.id??null;if(state.page==='voice'&&mark!==voiceHistoryMark){voiceHistoryMark=mark;await loadVoiceHistory()}paintVoice()}
+  try{const status=await api('/api/voice/status',{signal:AbortSignal.timeout(4000)});if(!state.paired||epoch!==jarvisVisualEpoch)return;voiceState=status;jarvisStatusFreshAt=Date.now();acceptVoiceNavigation(status);const mark=voiceState.history?.at(-1)?.id??null;if(state.page==='voice'&&mark!==voiceHistoryMark){voiceHistoryMark=mark;await loadVoiceHistory()}paintVoice()}
   catch(error){jarvisStatusFreshAt=0;paintJarvisHome();const message=document.querySelector('#voice-message');if(message)message.textContent='I can’t read the voice status, sir. Reconnecting…';document.querySelector('#voice-toggle')?.setAttribute('disabled','');document.querySelector('#voice-preview')?.setAttribute('disabled','')}
   finally{voicePolling=false}
 }
