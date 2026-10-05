@@ -4,6 +4,115 @@ Jarvis Parallax: a local touchscreen dashboard with PC telemetry, app and media 
 
 Run it on your Windows desktop or laptop and open it from a tablet browser over your private network. The PC hosts the dashboard; the tablet shows readings and sends approved controls. The project is public at [SupradeepDanturti/jarvis-parallax](https://github.com/SupradeepDanturti/jarvis-parallax).
 
+## Screenshots
+
+Actual frontend captures with sample telemetry, games, conversation, memory and account data. These examples contain no personal records or credentials; supported readings depend on your PC.
+
+**Home — the desk display and floating dock**
+
+![Jarvis Parallax Home with black-hole artwork, sample readings and app shortcuts](docs/screenshots/home.jpg)
+
+<details>
+<summary>See the main frontend pages: Live, Games, Apps, Clock and Ambient</summary>
+
+**Live performance**
+
+![Live performance readings and resource use](docs/screenshots/gaming.jpg)
+
+**Game library**
+
+![Game library with sample games and touch launch controls](docs/screenshots/games.jpg)
+
+**Applications**
+
+![Applications page with local app logos and sample running state](docs/screenshots/apps.jpg)
+
+**Clock**
+
+![Full-screen split-flap clock with the floating dock](docs/screenshots/clock.jpg)
+
+**Ambient**
+
+![Ambient Event horizon artwork with scene and immersive controls](docs/screenshots/ambient.jpg)
+
+</details>
+
+**Chat with Jarvis — one conversation for voice and typing**
+
+![Shared Jarvis chat with a sample reply and artifact Open and Download links](docs/screenshots/chat.jpg)
+
+<details>
+<summary>See local Markdown memory, interactive HTML and PDF previews</summary>
+
+**Local memory files**
+
+![Local memory enabled with an editable sample preferences.md file](docs/screenshots/memory.jpg)
+
+**Interactive HTML artifact**
+
+![Isolated HTML artifact preview with an interactive focus plan](docs/screenshots/artifact-html.jpg)
+
+**PDF artifact**
+
+![Locally rendered PDF artifact with preview and download controls](docs/screenshots/artifact-pdf.jpg)
+
+</details>
+
+<details>
+<summary>See the other frontend pages and settings</summary>
+
+**Now playing**
+
+![Now playing with sample media metadata, artwork and playback controls](docs/screenshots/media.jpg)
+
+**Hardware**
+
+![Hardware monitor with sample readings and unavailable sensors labelled honestly](docs/screenshots/hardware.jpg)
+
+**Live graphs**
+
+![Live graphs showing sample system history](docs/screenshots/graphs.jpg)
+
+**Rest and alarms**
+
+![Rest and alarms screen with display and alarm controls](docs/screenshots/rest.jpg)
+
+**Widgets**
+
+![Optional weather widget showing sample Toronto weather](docs/screenshots/widgets.jpg)
+
+**Jarvis voice settings**
+
+![Jarvis voice settings with sample microphone and speaker choices](docs/screenshots/voice.jpg)
+
+**Personalization**
+
+![Personalization preferences and connected-service navigation](docs/screenshots/personalization.jpg)
+
+**Connections**
+
+![Connections screen showing a sample Google account](docs/screenshots/connections.jpg)
+
+**Today**
+
+![Calendar briefing with two sample events](docs/screenshots/agenda.jpg)
+
+**Sheets**
+
+![Sheets discovery and sample spreadsheet registration](docs/screenshots/sheets.jpg)
+
+**System and controls**
+
+![System and connection settings using sample PC details](docs/screenshots/system.jpg)
+
+**Device access**
+
+![Device access with fictional approved browsers and example addresses](docs/screenshots/devices.jpg)
+
+</details>
+
+## Features
+
 **Compatibility:** designed for Windows PCs and laptops, with a responsive display for any tablet using a supported HTTPS browser. Available sensors, NVIDIA readings, monitor power controls, microphone/speaker choices and browser keep-awake depend on the machine and browser. Unsupported readings remain unavailable. Physical validation so far uses a Dell G16 and Redmi Pad Pro; that hardware is a tested setup, not a requirement.
 
 **Current build:** twenty responsive pages with Jarvis branding, a clock, Rest mode and an alarm, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, Windows media keys, and an optional owner-only Google Calendar briefing with editable preferences. No cloud assets or frontend build step.
