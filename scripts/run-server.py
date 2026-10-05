@@ -36,7 +36,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--port', type=int, default=18761)
     parser.add_argument('--setup-port', type=int, default=18760)
+    parser.add_argument('--no-jarvis', action='store_true', help='Start with microphone listening off.')
+    parser.add_argument('--no-assistant', action='store_true', help='Start with personal account access off.')
     args = parser.parse_args()
+    os.environ['G16_START_JARVIS'] = '0' if args.no_jarvis else '1'
+    os.environ['G16_START_ASSISTANT'] = '0' if args.no_assistant else '1'
     if not 1024 <= args.port <= 65535:
         parser.error('Port must be between 1024 and 65535.')
     if not 1024 <= args.setup_port <= 65535 or args.setup_port == args.port:
@@ -81,6 +85,8 @@ def main():
         from backend.connection_info import write_connection_files
         tls_directory = state / 'tls'
         secure = (tls_directory / 'ca.pem').exists()
+        if not secure:
+            raise RuntimeError('Prepare HTTPS first: make https or scripts/setup-https.ps1.')
         if secure:
             from backend.tls import ensure_tls
             ensure_tls(tls_directory)

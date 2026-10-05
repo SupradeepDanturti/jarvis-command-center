@@ -1,4 +1,5 @@
-param([switch]$Lan, [ValidateRange(1024, 65535)][int]$Port = 18761)
+param([switch]$Lan, [ValidateRange(1024, 65535)][int]$Port = 18761,
+      [switch]$NoJarvis, [switch]$NoAssistant)
 $ErrorActionPreference = 'Stop'
 $projectPath = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $projectPath
@@ -8,7 +9,14 @@ if (-not (Test-Path -LiteralPath $pythonPath)) {
 }
 $bindAddress = if ($Lan) { '0.0.0.0' } else { '127.0.0.1' }
 $tlsPath = Join-Path $projectPath '.state\private\tls'
-$scheme = if (Test-Path -LiteralPath (Join-Path $tlsPath 'server.pem')) { 'https' } else { 'http' }
+foreach ($name in @('server.pem', 'server-key.pem')) {
+    if (-not (Test-Path -LiteralPath (Join-Path $tlsPath $name))) {
+        throw 'Prepare HTTPS first: make https or scripts/setup-https.ps1.'
+    }
+}
+$scheme = 'https'
+$env:G16_START_JARVIS = if ($NoJarvis) { '0' } else { '1' }
+$env:G16_START_ASSISTANT = if ($NoAssistant) { '0' } else { '1' }
 Write-Host "Laptop: ${scheme}://localhost:$Port" -ForegroundColor Green
 if ($Lan) {
     Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
@@ -19,3 +27,4 @@ if ($Lan) {
 $serverArgs = @('-m','uvicorn','backend.main:app','--host',$bindAddress,'--port',"$Port",'--no-access-log','--no-proxy-headers')
 if ($scheme -eq 'https') { $serverArgs += @('--ssl-certfile',(Join-Path $tlsPath 'server.pem'),'--ssl-keyfile',(Join-Path $tlsPath 'server-key.pem')) }
 & $pythonPath @serverArgs
+exit $LASTEXITCODE

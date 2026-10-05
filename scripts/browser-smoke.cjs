@@ -18,6 +18,7 @@ const assert = require('node:assert/strict');
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error' && /Content Security Policy|Refused/i.test(message.text())) errors.push(message.text()); });
     await page.goto(process.env.G16_BASE_URL || 'https://localhost:18761');
+    assert.equal(await page.title(), 'Jarvis Parallax');
     await page.locator('#pair-dialog').waitFor({state:'visible'});
     await page.waitForFunction(() => state.auth?.local === true);
     await page.locator('#device-name').fill('Browser smoke check');

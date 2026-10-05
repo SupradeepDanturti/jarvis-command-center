@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Jarvis · Setup</title><link rel="icon" href="/static/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/static/voice-help.css">
+<title>Jarvis Parallax — setup &amp; commands</title><link rel="icon" href="/static/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/static/voice-help.css">
 </head><body><main>
-<p class="eyebrow">JARVIS COMMAND CENTER</p><h1>At your service, sir.</h1>
+<p class="eyebrow">JARVIS PARALLAX</p><h1>At your service, sir.</h1>
 <p>I run on your Windows PC or laptop, sir. Your command surface chooses its microphone and speaker, turns it on, and shows its conversations.</p>
-<p>New installation? Start with the <a href="https://github.com/SupradeepDanturti/jarvis-command-center/blob/main/SETUP.md" target="_blank" rel="noopener noreferrer">complete installation and tablet guide</a>. The repository is public.</p>
+<p>New installation? Start with the <a href="https://github.com/SupradeepDanturti/jarvis-parallax/blob/main/SETUP.md" target="_blank" rel="noopener noreferrer">complete installation and tablet guide</a>. The repository is public.</p>
 <h2>1. Install the optional voice components</h2>
 <p>Skip this if already installed. Open PowerShell in the project folder on the PC:</p>
 <pre>.\.venv\Scripts\python.exe -m pip install -r requirements-voice.txt
@@ -58,7 +58,7 @@
 <p>The Iron Man activity overlay on every screen follows wake/listening, understanding, processing, speaking, follow-up, and warning activity including Clock, Ambient and Rest. It shows live readings, leaves touch controls available, and respects reduced motion.</p>
 <h2>Saved history, stopping, and restarts</h2>
 <p>The latest <strong>500 text exchanges</strong>, results and sources persist privately on the PC. <strong>Earlier conversations</strong> loads more. The latest six conversation exchanges provide OpenAI context across restarts. Only the approved localhost owner can <strong>Clear history</strong>, which also stops Jarvis.</p>
-<p>Closing this webpage leaves Jarvis running. <strong>Turn off Jarvis</strong> releases the microphone and models. Windows lock pauses listening and prevents actions. A server restart starts Jarvis <strong>off</strong>: reload and turn it on again after a PC restart or backend update.</p>
+<p>Closing this webpage leaves Jarvis running. <strong>Turn off Jarvis</strong> releases the microphone and models. Windows lock pauses listening and prevents actions. A server restart starts configured Jarvis <strong>on</strong> by default. Missing components or a saved API key leave it off with a setup explanation. You can stop it here for this session, or use the startup opt-out to leave it off after restarts.</p>
 <h2>If something does not work</h2>
 <ul>
 <li><strong>No sound:</strong> turn Jarvis off, check its selected speaker, refresh devices, and try Preview voice. Changing Windows' default alone does not change Jarvis's output.</li>
