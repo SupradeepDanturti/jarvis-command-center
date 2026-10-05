@@ -13,6 +13,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   await page.route('**/api/assistant/**',async route=>{
    const req=route.request(),endpoint=new URL(req.url()).pathname.slice('/api/assistant/'.length),method=req.method();let body={ok:true};
    if(endpoint==='status')body={enabled:true,clientConfigured:true,account:{email:'qa@example.test'},calendarReady:true,sheetsReady:true,sheetSearchReady:true,cloudContext:cloud};
+   else if(endpoint==='profile')body={address:'sir',timezone:'America/Toronto',tone:'jarvis'};
    else if(endpoint==='memory/cloud')cloud=req.postDataJSON().enabled;
    else if(endpoint==='memory'&&method==='GET')body={facts,cloudContext:cloud,profile:{address:'sir'},recentConversation:[],lastContext:null,limits:{facts:200}};
    else if(endpoint==='memory'&&method==='POST')facts.push({id:'saved',text:req.postDataJSON().text,pending:0,source:'owner',updated:1});
@@ -32,6 +33,15 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
    await route.fulfill({json:body});
   });
   async function screen(id){await page.evaluate(id=>goPage(id),id);await page.waitForTimeout(150)}
+  await page.locator('#more-toggle').click();
+  for(const id of ['agenda','connections','sheets','memory'])assert.equal(await page.locator(`#more-menu [data-page="${id}"]`).count(),0);
+  await page.locator('#more-menu [data-page=personalization]').click();await page.waitForFunction(()=>document.querySelector('#assistant-profile [type=submit]')?.disabled===false);
+  assert.equal(await page.locator('.assistant-links [data-go=personalization]').getAttribute('aria-current'),'page');
+  for(const id of ['agenda','connections','sheets','memory'])assert.equal(await page.locator(`.assistant-links [data-go="${id}"]`).count(),1);
+  await page.locator('.assistant-links [data-go=memory]').click();await page.locator('#memory-add').waitFor();assert.equal(await page.locator('#more-menu [data-page=personalization]').getAttribute('aria-current'),'page');
+  await page.reload();await page.waitForFunction(()=>state.paired&&state.socket?.readyState===WebSocket.OPEN&&document.querySelector('#assistant-cloud')?.disabled===false);
+  assert.equal(await page.locator('.assistant-links [data-go=memory]').getAttribute('aria-current'),'page');
+  await page.goBack();await page.waitForFunction(()=>state.page==='personalization'&&document.querySelector('#assistant-profile [type=submit]')?.disabled===false);
   await screen('memory');await page.locator('#assistant-cloud').check();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Personal context updated'));
   await page.locator('#memory-add textarea').fill('<script>owner fact</script>');await page.locator('#memory-add button').click();await page.waitForFunction(()=>document.querySelectorAll('#memory-list form').length===2);
   assert.equal(await page.locator('#memory-list script').count(),0);
@@ -56,6 +66,6 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   assert.equal(await page.evaluate(()=>Object.values(localStorage).some(value=>/I prefer jazz|owner fact|fixture_sheet/.test(value))),false);
   await screen('memory');await page.locator('[data-memory-clear]').click();assert.equal(facts.length,1);await page.locator('[data-memory-clear]').click();await page.waitForFunction(()=>document.querySelector('#memory-list').textContent.includes('No saved'));assert.equal(facts.length,0);
   await page.evaluate(()=>showPairing());assert.equal(await page.locator('#assistant-private').innerText(),'');assert.deepEqual(errors,[]);
-  console.log('Personal tools smoke passed: memory, fixed/full spreadsheet grants, paged tabs/cells, Drive discovery, exact previews, safe rendering, explicit apply, no local storage and three layouts.');
+  console.log('Personal tools smoke passed: grouped Personalization menu, child navigation/reload/back, memory, full Sheets/discovery, exact previews, explicit apply, no local storage and three layouts.');
  }finally{if(page)try{await page.evaluate(async()=>{await fetch('/api/logout',{method:'POST',headers:{'Content-Type':'application/json'}})})}catch{}if(context)await context.close();await browser.close()}
 })().catch(error=>{console.error(error);process.exitCode=1});

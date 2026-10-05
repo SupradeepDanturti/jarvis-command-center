@@ -6,7 +6,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   const browser=await chromium.launch({channel:'msedge',headless:true});
   const context=await browser.newContext({viewport:{width:1280,height:800},hasTouch:true});
   const page=await context.newPage(),errors=[],writes=[];
-  page.on('pageerror',error=>errors.push(error.message));
+  page.on('pageerror',error=>errors.push(error.stack||error.message));
   await page.addInitScript(()=>{window.qaCsp=[];document.addEventListener('securitypolicyviolation',e=>qaCsp.push(e.violatedDirective))});
   const rest={instance:'e'.repeat(24),revision:0,serverTime:Date.now(),rest:false,displayAvailable:true,keepingAwake:false,alarm:null,message:'',audio:{ready:false,phase:'off',message:''}};
   await page.route('**/api/alarms',route=>route.fulfill({json:rest}));
@@ -27,6 +27,14 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     return route.fulfill({json:endpoint==='status'?{...current,serverTime:Date.now()}:[]});
   });
   await page.route('**/api/widgets/**',route=>route.fulfill({json:{status:'unavailable',data:null,fetchedAt:null,serverTime:Date.now()/1000}}));
+  await page.route('**/api/assistant/**',route=>{
+    assert.equal(route.request().method(),'GET','Opening personal sections must not change account settings');
+    const endpoint=new URL(route.request().url()).pathname.split('/').pop(),profile={address:'sir',timezone:'America/Toronto',tone:'jarvis'};
+    const fixtures={status:{enabled:false,clientConfigured:false,account:null,calendarReady:false,connecting:false},profile,
+      memory:{facts:[],cloudContext:false,profile,recentConversation:[],lastContext:null,limits:{}},
+      sheets:{sheets:[],proposals:[],discoveryEnabled:false,discoveryReady:false}};
+    assert(Object.hasOwn(fixtures,endpoint),'Unexpected personal endpoint');return route.fulfill({json:fixtures[endpoint]});
+  });
   page.on('request',request=>{
     if(request.url().includes('/api/')&&request.method()!=='GET')writes.push(new URL(request.url()).pathname);
   });
@@ -48,6 +56,8 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     assert.equal(await page.evaluate(()=>state.page),'home','Initial snapshot must not replay a request');
     const screens=await page.evaluate(()=>Object.keys(pages));
     for(const screen of screens){await send(screen);await view(screen==='widgets'?'system':screen)}
+    // An artwork failure may arrive after navigation has removed its player screen.
+    await page.evaluate(()=>{goPage('media');state.playback={available:true,title:'Fixture',status:'paused',artwork:'/api/media/artwork/'+ 'a'.repeat(24)};mediaReceipt=performance.now();paintNowPlaying();window.qaLateArtwork=document.querySelector('#media-art').onerror;goPage('personalization');qaLateArtwork();delete window.qaLateArtwork});
     await send('focus');await view('clock');assert.equal(await page.evaluate(()=>focusView),true);
     await send('clock');assert.equal(await page.evaluate(()=>focusView),false);
     await send('weather');await view('system');

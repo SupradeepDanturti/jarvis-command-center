@@ -9,3 +9,4 @@
 .sheet-preview{flex:1;min-width:100px;border-top:1px solid #ffffff28;padding:10px 0}.sheet-preview small{display:block;color:#b0b8aa;font-size:11px}.sheet-preview span{display:block;white-space:pre-wrap;overflow-wrap:anywhere;padding-top:10px}
 .sheet-row select{width:100%;min-height:44px;background:#11150fe0;color:#e1e8d9;border:1px solid #ffffff28;border-radius:8px;font:inherit;font-size:14px;margin-top:6px}
 .assistant-controls [hidden]{display:none!important}.assistant-controls h3,.assistant-controls p{overflow-wrap:anywhere}#sheet-browse .page-actions{margin:18px 0}
+.assistant-links [aria-current=page]{color:var(--green);border-color:#bbf78070;background:#bbf78012}

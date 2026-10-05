@@ -1,5 +1,12 @@
 # Foundation validation — 2026-10-03
 
+## Personalization menu grouping · 2026-10-04
+
+- More now has one Personalization entry for Preferences, Today, Connections, Sheets and Memory. Child sections highlight their parent in More and their current section inside Personalization. Direct links and voice destinations remain available.
+- JavaScript syntax and trusted fresh-browser checks pass for menu entry removal, section navigation, reload/back, personal workflows and landscape/portrait/narrow layouts. Existing foundation, general dashboard and voice-navigation checks also pass. Account, memory and control operations are fixtures; QA revokes only its own browser.
+- The first voice-navigation run exposed a delayed artwork error touching an already removed player screen. Its callback now ignores detached artwork, with a deterministic delayed-failure navigation check; this makes no player/control change.
+- Frontend/documentation only; the running server was not restarted. Google connections, assistant access and listening were not changed. The owner reports spreadsheet discovery works after re-consent; live cell edits and physical tablet navigation are not newly verified here.
+
 ## Spreadsheet discovery and full-file access · 2026-10-04
 
 - Backend suite: **425 passed**. New checks cover full-file versus legacy range grants, bounded tab/range reads, fixed Drive spreadsheet filters and escaped name queries, account-specific discovery opt-in, scope gates, expiring handles, account switches, cancellation, read-only files, concrete preview cells, same-origin/direct-owner restrictions and the five-step SDK search → tabs → read → proposal → reply flow. Physical controls remain mocked.
