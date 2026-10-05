@@ -1,4 +1,5 @@
-param([ValidateRange(1024, 65535)][int]$Port = 18761)
+param([ValidateRange(1024, 65535)][int]$Port = 18761,
+      [switch]$NoJarvis, [switch]$NoAssistant)
 $ErrorActionPreference = 'Stop'
 $taskName = 'G16 Command Center'
 $projectPath = Split-Path -Parent $PSScriptRoot
@@ -8,7 +9,10 @@ if (-not (Test-Path -LiteralPath $pythonPath)) {
     throw 'Create the virtual environment and install requirements before enabling startup.'
 }
 $accountName = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
-$action = New-ScheduledTaskAction -Execute $pythonPath -Argument ('"{0}" --port {1}' -f $runnerPath, $Port) -WorkingDirectory $projectPath
+$arguments = '"{0}" --port {1}' -f $runnerPath, $Port
+if ($NoJarvis) { $arguments += ' --no-jarvis' }
+if ($NoAssistant) { $arguments += ' --no-assistant' }
+$action = New-ScheduledTaskAction -Execute $pythonPath -Argument $arguments -WorkingDirectory $projectPath
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $accountName
 $principal = New-ScheduledTaskPrincipal -UserId $accountName -LogonType Interactive -RunLevel Limited
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)

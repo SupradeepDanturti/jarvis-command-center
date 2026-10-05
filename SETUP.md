@@ -1,8 +1,41 @@
-# Jarvis Command Center — installation and setup
+# Jarvis Parallax — installation and setup
 
-Any supported Windows PC or laptop can run Jarvis Command Center in the background. The tablet opens it in a browser over your private Wi-Fi. No Android app or frontend build is required.
+Any supported Windows PC or laptop can run Jarvis Parallax in the background. The tablet opens it in a browser over your private Wi-Fi. No Android app or frontend build is required.
 
 **Already installed?** Go to [Everyday use](#everyday-use) or [Update an existing installation](#update-an-existing-installation). Normal updates do not require a new certificate or fresh approval of the same browser.
+
+## Short setup with Make
+
+Install Git, 64-bit Python and native GNU Make. For Make, run `winget install --id GnuWin32.Make --exact --source winget`. If `make --version` is not found, add the installed `bin` folder to PATH (typically `C:\Program Files (x86)\GnuWin32\bin`) and reopen PowerShell. Use native Windows Make, not a WSL Python environment.
+
+From this project's folder:
+
+```powershell
+make install
+make https
+make startup
+make start
+```
+
+This installs the dashboard and Jarvis's dependencies/checksum-verified models, prepares trusted HTTPS, and registers/starts the silent sign-in task. Complete the browser approval, tablet certificate and API-key/Google connection steps below. For a temporary terminal run, use `make run` after `make https` and stop with Ctrl+C. `make run-local` limits it to the PC. Stop a temporary server before starting the background task on the same port.
+
+Both Jarvis listening and personal account access default to **on**. Jarvis starts only when its saved API key and local components are ready; otherwise the dashboard still starts and Jarvis explains the missing setup. Account access does not create Google grants, fetch an agenda, start a schedule or enable personal-context consent. Connect Google and choose your Memory consent separately. Windows lock and owner-only management remain enforced.
+
+To start with one or both services off:
+
+```powershell
+make run JARVIS=0 ASSISTANT=0
+make startup JARVIS=0 ASSISTANT=0
+make restart
+```
+
+The background task saves the options from `make startup`; `make start` and `make restart` use those saved options. `make stop` stops it until sign-in or manual start; `make remove-startup` also unregisters it. A UI stop stays in effect for the current server session. The next restart applies the startup options again.
+
+`make install JARVIS=0` installs only the dashboard. `make install-voice` adds Jarvis later. `make install-dev`, `make test` and `make check` cover development dependencies, backend checks and JavaScript syntax (Node.js needed for `check`). Use `PYTHON="C:/path/to/python.exe"` on installation to choose Python; an existing `.venv` is reused. `make help` lists the commands.
+
+Direct scripts also default both services on. `scripts/start.ps1` and `scripts/install-startup.ps1` accept `-NoJarvis` / `-NoAssistant`; `scripts/run-server.py` accepts `--no-jarvis` / `--no-assistant`. Direct Uvicorn launches use `G16_START_JARVIS=0` / `G16_START_ASSISTANT=0` environment variables to opt out. Defaults are dashboard port **18761** and background certificate setup port **18760**; use `PORT=18762` with Make to change the dashboard port. HTTPS is required before launching.
+
+For updates, run `make install` to refresh installed dependencies/models and `make restart` only when backend/dependencies changed. Static frontend/documentation updates need only a browser reload. Private state, browser approvals and CA trust are preserved. The longer equivalent setup steps follow.
 
 ## 1. Prepare your Windows PC
 
@@ -18,13 +51,13 @@ python --version
 The examples use `D:\TabletDashboard`. If you have no D: drive, choose another permanent folder and use that path throughout. The startup task stores the installation path.
 
 ```powershell
-git clone https://github.com/SupradeepDanturti/g16-command-center.git D:\TabletDashboard
+git clone https://github.com/SupradeepDanturti/jarvis-parallax.git D:\TabletDashboard
 cd D:\TabletDashboard
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-The repository is private. Sign in with a GitHub account that has access if Git asks. If the project already exists on this laptop, skip cloning and use [the update steps](#update-an-existing-installation).
+The repository is public. If the project already exists on this laptop, skip cloning and use [the update steps](#update-an-existing-installation).
 
 ## 2. Set up trusted HTTPS
 
@@ -167,7 +200,7 @@ This app uses `gpt-transcribe` for recognition and `gpt-6-luna` for interpretati
 
 **Alerts on / Alerts off** controls hardware warnings: CPU/RAM **90% or above**, or GPU temperature **70°C or above**, across three fresh readings. Jarvis waits for idle wake listening and speaks through the dedicated speaker. All warnings share a **one-hour cooldown across restarts**. Alerts off cancels warning playback without turning Jarvis off.
 
-Every screen, including Clock, Ambient and Rest, shows Jarvis activity during a request, processing, speech, follow-up and warnings. The idle wake-word badge appears only on Home; it stays hidden on all other screens. Widgets reserve a separate strip for active Jarvis, and other screens use a compact header overlay. Closing the webpage leaves Jarvis running. **Turn off Jarvis** releases its microphone and models. Windows lock pauses listening. A server restart always starts Jarvis **off**; turn it back on after updating/restarting.
+Every screen, including Clock, Ambient and Rest, shows Jarvis activity during a request, processing, speech, follow-up and warnings. The idle wake-word badge appears only on Home; it stays hidden on all other screens. Widgets reserve a separate strip for active Jarvis, and other screens use a compact header overlay. Closing the webpage leaves Jarvis running. **Turn off Jarvis** releases its microphone and models. Windows lock pauses listening. A server restart starts configured Jarvis **on** by default; startup opt-outs can leave it off. Use the Jarvis switch to stop listening during the current session.
 
 See [JARVIS_SPEC.md](spec/JARVIS_SPEC.md) or **Setup & supported commands** on Jarvis for details.
 

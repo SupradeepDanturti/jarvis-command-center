@@ -1,4 +1,4 @@
-# Jarvis Command Center — implementation specification
+# Jarvis Parallax — implementation specification
 
 Version 0.3 • 2026-10-03 • Windows PC/laptop host + tablet browser surface; Dell G16/Redmi physically validated
 

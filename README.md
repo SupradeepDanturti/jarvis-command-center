@@ -1,14 +1,14 @@
-# Jarvis Command Center
+# Jarvis Parallax
 
-Jarvis Command Center: a local touchscreen dashboard with PC telemetry, app and media controls, and an optional voice assistant for any tablet and Windows PC or laptop.
+Jarvis Parallax: a local touchscreen dashboard with PC telemetry, app and media controls, and an optional voice assistant for any tablet and Windows PC or laptop.
 
-Run it on your Windows desktop or laptop and open it from a tablet browser over your private network. The PC hosts the dashboard; the tablet shows readings and sends approved controls. The project is public at [SupradeepDanturti/jarvis-command-center](https://github.com/SupradeepDanturti/jarvis-command-center).
+Run it on your Windows desktop or laptop and open it from a tablet browser over your private network. The PC hosts the dashboard; the tablet shows readings and sends approved controls. The project is public at [SupradeepDanturti/jarvis-parallax](https://github.com/SupradeepDanturti/jarvis-parallax).
 
 **Compatibility:** designed for Windows PCs and laptops, with a responsive display for any tablet using a supported HTTPS browser. Available sensors, NVIDIA readings, monitor power controls, microphone/speaker choices and browser keep-awake depend on the machine and browser. Unsupported readings remain unavailable. Physical validation so far uses a Dell G16 and Redmi Pad Pro; that hardware is a tested setup, not a requirement.
 
 **Current build:** nineteen responsive pages with Jarvis branding, a clock, Rest mode and an alarm, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, Windows media keys, and an optional owner-only Google Calendar briefing with editable preferences. No cloud assets or frontend build step.
 
-**Personal assistant:** on the PC at **https://localhost:18761**, open **More → Personalization → Connections** for Google Cloud/Desktop-client setup, then enable account access and connect Google. **More → Personalization** sets the agenda address/style/timezone; **More → Personalization → Today → Brief me for today** checks your primary calendar. Account access and microphone listening start off independently. **More → Personalization → Sheets** finds spreadsheets by name, explores all tabs and reviews cell updates. Enable the Google Drive API and reconnect for discovery; turn on **Let Jarvis find and use my spreadsheets**, or grant an individual whole file/range. **More → Personalization → Memory** lets you add/edit/forget/export facts and inspect selected context. Enable **Use personal context with Jarvis** there for voice Calendar/Sheets/memory tools, then enable listening in Jarvis. Personal changes stop listening to clear stale context. Calendar writes, Gmail, Health and background tasks remain later milestones. See [tools and memory](spec/ASSISTANT_TOOLS_MEMORY.md). See [assistant setup and boundaries](spec/ASSISTANT_FOUNDATION.md).
+**Personal assistant:** on the PC at **https://localhost:18761**, open **More → Personalization → Connections** for Google Cloud/Desktop-client setup, then enable account access and connect Google. **More → Personalization** sets the agenda address/style/timezone; **More → Personalization → Today → Brief me for today** checks your primary calendar. Account access and configured microphone listening start on independently by default; both have their own stop controls. **More → Personalization → Sheets** finds spreadsheets by name, explores all tabs and reviews cell updates. Enable the Google Drive API and reconnect for discovery; turn on **Let Jarvis find and use my spreadsheets**, or grant an individual whole file/range. **More → Personalization → Memory** lets you add/edit/forget/export facts and inspect selected context. Enable **Use personal context with Jarvis** there for voice Calendar/Sheets/memory tools, then enable listening in Jarvis. Personal changes stop listening to clear stale context. Calendar writes, Gmail, Health and background tasks remain later milestones. See [tools and memory](spec/ASSISTANT_TOOLS_MEMORY.md). See [assistant setup and boundaries](spec/ASSISTANT_FOUNDATION.md).
 
 Read [the dashboard specification](spec/SPEC.md) for the complete target, implementation decisions, security model, and roadmap. All specifications and design plans are indexed in [spec/](spec/README.md).
 
@@ -38,6 +38,24 @@ All pages have local moving artwork behind the interface, with dimmer background
 Tablet layouts adjust to both width and the visible browser height, leaving space for the dock and Android safe areas. Landscape keeps the main composition and shortcuts above the dock; portrait reflows the telemetry strip and arranges shortcuts in two rows. Rotate normally or use Fullscreen; neither is required to make the layout fit. After an update, reload the tablet page to load the latest styles. Short phone windows and detailed settings can scroll.
 
 Approved browsers automatically report their current display size, visible area, orientation, pixel scale and fullscreen mode while this page is visible. On the PC, **More → Device access** shows the latest size beside each reporting browser. Reports refresh on resizing/fullscreen changes and every 30 seconds; only the latest report is kept in memory for five minutes. For manual troubleshooting, the tablet’s **More → System & controls → Tablet settings** includes **Display size** and **Copy display details**. Reload once after installing this update to enable automatic reports.
+
+## Quick commands with Make (Windows)
+
+Install native GNU Make if needed: `winget install --id GnuWin32.Make --exact --source winget`. Add its `bin` folder to PATH if `make --version` is not found; a typical location is `C:\Program Files (x86)\GnuWin32\bin`. Run these from the project folder in PowerShell:
+
+```powershell
+make install       # Dashboard + Jarvis dependencies and verified local models
+make https         # One-time certificate setup; accept Windows CA trust
+make run           # HTTPS for the PC and tablet; Ctrl+C stops it
+```
+
+Jarvis listening and personal-assistant account access default to **on** at startup. Jarvis needs its saved API key, installed models and working PC audio; incomplete setup leaves it off with an explanation while the dashboard starts. Account access uses only an existing Google connection; it does not connect an account, fetch data or grant personal-context consent automatically. Windows lock still blocks listening/actions and personal operations.
+
+Use `make run JARVIS=0 ASSISTANT=0` to start both off, or set either option independently. `make install JARVIS=0` installs the dashboard without voice dependencies/models. `make run-local` binds only to loopback; `PORT=18762` changes the dashboard port. Certificate setup remains on 18760 for background runs.
+
+For silent sign-in startup, use `make startup` then `make start`. Startup saves the current `PORT`, `JARVIS` and `ASSISTANT` options in the Windows task. `make stop` stops it without unregistering it; `make restart` uses the existing safe restart helper and the task's saved options. Re-run `make startup` to change background options. `make remove-startup` stops and unregisters it. Temporary runs do not publish connection files or serve the public certificate-download listener.
+
+`make install-dev` installs test dependencies, `make test` runs backend tests, and `make check` checks frontend/script JavaScript (Node.js required). `make install-voice` adds Jarvis to an existing dashboard installation. `make help` lists every command. Installation does not start/restart the server or delete private state; normal updates use `make install` and, for backend changes, `make restart`.
 
 ## Run on Windows
 
@@ -180,7 +198,7 @@ After Jarvis replies, speak again within **15 seconds** without another “Jarvi
 
 **Your conversations** saves the latest 500 text exchanges, action results and sources privately on this laptop across restarts. The latest six conversation exchanges (excluding automatic hardware warnings) accompany each OpenAI turn so follow-up answers retain context. Audio is not saved. Scroll the history or choose **Earlier conversations**; the localhost owner can choose **Clear history**, which also turns Jarvis off.
 
-Closing the webpage keeps Jarvis running. **Turn off Jarvis** releases the microphone and models. Listening pauses while Windows is locked and while processing/speaking. A server restart always starts with Jarvis off. Any approved browser can toggle it; only an approved direct-localhost owner can save or remove the key. OpenAI API billing is separate from ChatGPT subscriptions.
+Closing the webpage keeps Jarvis running. **Turn off Jarvis** releases the microphone and models. Listening pauses while Windows is locked and while processing/speaking. A server restart starts configured Jarvis on by default; use `JARVIS=0` with Make or the script opt-out to start it off. Any approved browser can toggle it; only an approved direct-localhost owner can save or remove the key. OpenAI API billing is separate from ChatGPT subscriptions.
 
 Optional setup on a new laptop:
 

@@ -132,7 +132,8 @@ class WidgetSearch(BaseModel):
     query: str = Field(min_length=2, max_length=80, pattern=r'^[^\x00-\x1f\x7f]+$')
 
 
-def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=None, alarm_path=None, apps_path=None):
+def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=None, alarm_path=None, apps_path=None,
+               start_jarvis=False, start_assistant=False):
     state_dir = ROOT / '.state/private'
     code = pairing_code or secrets.token_hex(4).upper()
     pairing = Pairing(code)
@@ -163,6 +164,14 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
         focus_task = asyncio.create_task(focus.run())
         activity_task = asyncio.create_task(activity.run())
         rest_task = asyncio.create_task(rest.run())
+        if start_assistant:
+            assistant.enable(True)
+        if start_jarvis:
+            try:
+                await asyncio.to_thread(voice.start)
+            except HTTPException as error:
+                # Expected setup failures must not prevent the dashboard from starting.
+                voice.phase, voice.message = 'off', str(error.detail)
         print(f"\nG16 Command Center | Laptop setup code: {code}\nApproved browsers are remembered for 180 days, including across restarts.\n", flush=True)
         yield
         assistant.close()
@@ -510,4 +519,5 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     return app
 
 
-app = create_app()
+app = create_app(start_jarvis=os.environ.get('G16_START_JARVIS', '1') == '1',
+                 start_assistant=os.environ.get('G16_START_ASSISTANT', '1') == '1')

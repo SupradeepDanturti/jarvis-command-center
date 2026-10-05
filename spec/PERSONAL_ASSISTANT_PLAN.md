@@ -4,7 +4,7 @@ Planning record · 2026-10-04 · Connection/profile/primary-calendar foundation,
 
 ## Direction and user decisions
 
-Evolve the existing Jarvis Command Center into a personal agent inspired by Meta Muse and OpenAI dots. The user wants Google Calendar, Gmail, Google Sheets and **Google Health API connected to their Google account**, full service capabilities, and personalization. Google Health is the intended cloud service; Health Connect is not a substitute selected by the user.
+Evolve the existing Jarvis Parallax into a personal agent inspired by Meta Muse and OpenAI dots. The user wants Google Calendar, Gmail, Google Sheets and **Google Health API connected to their Google account**, full service capabilities, and personalization. Google Health is the intended cloud service; Health Connect is not a substitute selected by the user.
 
 The experience should remember useful preferences, handle requests across services, maintain ongoing goals, and return when something meaningful changes. Keep the existing Jarvis identity, concise completed-action replies, optional local voice, floating dock, and full-screen clock/artwork. This document is a build plan, not a claim that accounts are connected or features are shipped.
 
