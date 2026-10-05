@@ -165,6 +165,23 @@ def test_personal_read_rechecks_cancellation_and_fixed_tools(chat, monkeypatch):
     assert not chat.dispatch(job, 'rest-entry', {})['ok']
 
 
+def test_chat_sheet_failure_preserves_safe_cause_without_raw_exception(chat, monkeypatch):
+    from backend.agent.google import GoogleError
+    def fail(*args):
+        raise ValueError('Choose at most 100 rows, 20 columns and 1,000 cells.')
+    monkeypatch.setattr('backend.agent.chat.execute_personal', fail)
+    result = chat.dispatch(turn(chat), 'read_sheet', {'id': 'fixture', 'range': "'Stocks_'!A1:Z100"})
+    assert result['code'] == 'invalid_sheet_range' and 'No cell read was sent' in result['message']
+    def denied(*args):
+        raise GoogleError('Google denied access. Check the API is enabled and the requested permissions were granted.')
+    monkeypatch.setattr('backend.agent.chat.execute_personal', denied)
+    assert 'Google denied access' in chat.dispatch(turn(chat), 'read_sheet', {'id': 'fixture'})['message']
+    def raw(*args):
+        raise ValueError('secret provider text')
+    monkeypatch.setattr('backend.agent.chat.execute_personal', raw)
+    assert 'secret' not in str(chat.dispatch(turn(chat), 'read_sheet', {'id': 'fixture'}))
+
+
 def test_stop_targets_only_current_turn_and_voice_stop_cancels(chat):
     job = turn(chat)
     chat.turn = job

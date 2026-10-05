@@ -67,6 +67,17 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     await page.locator('#chat-input').fill('Private draft');await page.locator('[data-page="home"]').click();assert.equal(await page.evaluate(()=>chatRows.length),0);assert.equal(await page.locator('#chat-input').count(),0);
     await page.evaluate(()=>goPage('chat'));await page.locator('#chat-thread').getByText('Voice answer',{exact:true}).waitFor();
     assert.equal(await page.locator('#chat-input').inputValue(),'');
+    // Returning from a hidden tab replaces the cleared surface and its event handlers.
+    for(let i=0;i<2;i++){
+      await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});document.dispatchEvent(new Event('visibilitychange'))});
+      assert.equal(await page.evaluate(()=>chatRows.length),0);
+      await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});document.dispatchEvent(new Event('visibilitychange'))});
+      await page.locator('#chat-thread').getByText('Voice answer',{exact:true}).waitFor();
+    }
+    const sent=writes.length;
+    await page.locator('#chat-input').fill('One request after returning');await page.locator('#chat-input').press('Enter');
+    await page.locator('#chat-stop').waitFor({state:'visible'});assert.equal(writes.length,sent+1);
+    await page.locator('#chat-stop').click();await page.locator('#chat-status').getByText('Request stopped.',{exact:true}).waitFor();
     await page.evaluate(()=>{state.auth.owner=true;render()});await page.locator('#chat-clear').click();await page.locator('#chat-clear').click();await page.waitForFunction(()=>document.querySelectorAll('[data-chat-row]').length===0);
     assert.deepEqual(errors,[]);
     console.log('Unified chat browser checks passed: shared live voice history, typed follow-up, safe sources/text, no message storage, navigation/reload, cancellation, lock, PC/tablet controls, four touch sizes, private draft clearing and shared history deletion. All chat requests mocked.');

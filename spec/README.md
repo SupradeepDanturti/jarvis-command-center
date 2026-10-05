@@ -3,6 +3,7 @@
 - [Dashboard specification](SPEC.md): scope, architecture, interface and roadmap.
 - [Jarvis specification](JARVIS_SPEC.md): optional voice behavior and safeguards.
 - [Unified chat](CHAT_SPEC.md): shared voice/typed context, approved tablet access and cancellation.
+- [Artifacts and Markdown memory](ARTIFACTS_MEMORY_SPEC.md): shared local fact files, agent-created HTML/JS/PDF and isolated previews.
 - [Personal assistant plan](PERSONAL_ASSISTANT_PLAN.md): Muse/dots-inspired personalization, responsibilities and full Google Calendar/Gmail/Sheets capabilities, with a Google Health API access gate.
 - [Assistant foundation](ASSISTANT_FOUNDATION.md): Google Desktop-client setup, private primary-calendar briefings, editable preferences and harness/context boundaries.
 - [Desk experience plan](EXPERIENCE_PLAN.md): media, focus, display automation and thermal design, with implementation status.

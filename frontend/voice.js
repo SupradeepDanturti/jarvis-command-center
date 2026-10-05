@@ -19,6 +19,7 @@ function acceptVoiceNavigation(status){
   if(!['weather','f1','focus'].includes(target)&&!Object.hasOwn(pages,target))return;
   if(request.scene!==undefined&&(target!=='ambient'||typeof request.scene!=='string'||!Object.hasOwn(ambientScenes,request.scene)))return;
   if(document.querySelector('dialog[open]')){toast('Finish the open dialog, then ask Jarvis again.');return}
+  if(request.artifact!==undefined){if(target!=='artifacts'||!(/^[0-9a-f]{24}$/.test(request.artifact)))return;artifactSelection=request.artifact}
   setPresentation(false);
   if(target==='ambient'&&request.scene!==undefined){screenPreferences.scene=request.scene;saveScreenPreferences()}
   if(['weather','f1'].includes(target)){

@@ -3,6 +3,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 
 # Force privacy defaults before importing the SDK, even if the environment enables debug traces.
 os.environ['OPENAI_AGENTS_DONT_LOG_MODEL_DATA'] = '1'
@@ -15,6 +16,9 @@ from openai import AsyncOpenAI
 from openai.types.shared import Reasoning
 
 from .voice_actions import VOICE_MODEL, response_sources, safe_sources, spoken_reply
+from .artifacts import prepare_artifact
+from .sheets import rectangle
+from .personal_tools import personal_tool_failure
 
 set_tracing_disabled(True)
 
@@ -83,6 +87,18 @@ async def _run_turn(client, instructions, text, tools, dispatch, allowed, histor
                             discovered.extend(result.get('sheets', []))
                     if arguments.get('id') not in {sheet.get('id') for sheet in discovered}:
                         return {'ok': False, 'message': 'Call list_sheets or search_sheets and select a returned ID first.'}
+                    # Invalid read arguments make no provider call and must not consume the read slot.
+                    if spec['name'] == 'read_sheet':
+                        sheet = next(sheet for sheet in discovered if sheet.get('id') == arguments.get('id'))
+                        if sheet.get('access') == 'spreadsheet' or arguments.get('range') is not None:
+                            try:
+                                if not isinstance(arguments.get('range'), str):
+                                    raise ValueError('Choose a bounded range within this spreadsheet first.')
+                                rectangle(arguments['range'])
+                                if sheet.get('access', 'range') == 'range' and arguments['range'] != sheet.get('range'):
+                                    raise ValueError('This registration only allows its saved range.')
+                            except ValueError as error:
+                                return personal_tool_failure(spec['name'], error)
                 key = (spec['name'], json.dumps(arguments, sort_keys=True))
                 if key in completed:
                     return completed[key]  # Never repeat even a timed-out or failed physical request.
@@ -98,13 +114,36 @@ async def _run_turn(client, instructions, text, tools, dispatch, allowed, histor
                     slot = 'sheet-proposal'
                 elif spec['name'] == 'remember_fact':
                     slot = 'memory'
+                elif spec['name'] == 'create_artifact':
+                    slot = 'artifact-write'
+                elif spec['name'] == 'list_artifacts':
+                    slot = 'artifact-list'
+                elif spec['name'] == 'open_artifact':
+                    slot = 'screen'
+                    known = completed.get(('list_artifacts', '{}'), {}).get('artifacts', [])
+                    known = [*known, *(result.get('artifact') for (name, _), result in completed.items()
+                                       if name == 'create_artifact' and result.get('ok'))]
+                    if arguments.get('id') not in {item.get('id') for item in known if isinstance(item, dict)}:
+                        return {'ok': False, 'message': 'Create or list artifacts and select a returned ID first.'}
+                elif spec['name'] == 'write_memory':
+                    slot = 'memory-file-write'
+                    prior = completed.get(('read_memory', json.dumps({'name': arguments.get('name')}, sort_keys=True)), {})
+                    if not prior.get('ok') or arguments.get('revision') != prior.get('revision'):
+                        return {'ok': False, 'message': 'Read the memory topic first and use its current revision.'}
+                elif spec['name'] == 'list_memories':
+                    slot = 'memory-file-list'
+                elif spec['name'] == 'read_memory':
+                    slot = 'memory-file-read'
                 if slot in slots:
                     return {'ok': False, 'message': 'One PC control, one screen request and one hardware read per turn.'}
                 slots.add(slot)
                 # Reserve before sending. A follow-up failure or extra SDK round cannot retry this operation.
                 completed[key] = {'ok': False, 'message': 'This action could not be carried out.'}
                 try:
-                    result = await asyncio.to_thread(dispatch, spec['name'], arguments)
+                    dispatched = await asyncio.to_thread(prepare_artifact, arguments) if spec['name'] == 'create_artifact' else arguments
+                    if not allowed():
+                        raise VoiceCancelled()
+                    result = await asyncio.to_thread(dispatch, spec['name'], dispatched)
                     completed[key] = result
                 except Exception:
                     result = completed[key]
@@ -119,8 +158,10 @@ async def _run_turn(client, instructions, text, tools, dispatch, allowed, histor
                             strict_json_schema=True)
 
     sdk_tools = [WebSearchTool(search_context_size='low') if spec['type'] == 'web_search' else wrap(spec) for spec in tools]
+    artifact_turn = bool(re.search(r'\b(create|build|make|generate|design|write|update|edit|change|add|revise)\b', text, re.I))
     settings = ModelSettings(parallel_tool_calls=True, store=False, reasoning=Reasoning(effort='none'),
-                             max_tokens=350, extra_args={'max_tool_calls': 2}, retry={'max_retries': 0})
+                             max_tokens=8000 if artifact_turn or (personal_context or {}).get('localMemory') else 350,
+                             extra_args={'max_tool_calls': 2}, retry={'max_retries': 0})
     try:
         async with async_client(client) as connection:
             agent = Agent(name='Jarvis', instructions=instructions, model=JarvisModel(connection, allowed, sources),

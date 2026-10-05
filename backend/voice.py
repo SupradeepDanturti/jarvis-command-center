@@ -19,8 +19,10 @@ from .voice_history import VoiceHistory
 from .voice_alerts import HardwareAlerts
 from .voice_wake import WAKE_MODEL, WAKE_PHRASE
 from .ambient import load_ambient_scenes
-from .agent.personal_tools import PERSONAL_NAMES, execute_personal
+from .agent.personal_tools import PERSONAL_NAMES, execute_personal, personal_tool_failure
 from .agent.google import GoogleError
+from .agent.artifacts import ARTIFACT_NAMES
+from .agent.memory_files import MEMORY_FILE_NAMES, execute_memory_file
 
 MODEL_FILES = ('jarvis-medium.onnx', 'jarvis-medium.onnx.json', WAKE_MODEL,
                'melspectrogram.onnx', 'embedding_model.onnx')
@@ -50,6 +52,7 @@ class VoiceService:
         self.rest = None
         self.assistant = None
         self.chat = None
+        self.artifacts = None
         self.pending_rest = None
         self.navigation = None
         self.alert_policy = HardwareAlerts(self.directory / 'alerts.json' if self.directory else None)
@@ -103,7 +106,7 @@ class VoiceService:
             self.navigation = None
         return dict(self.navigation) if self.navigation else None
 
-    def _show_screen(self, screen, scene=None):
+    def _show_screen(self, screen, scene=None, artifact=None):
         # Called under the parent lock after checking the live worker generation.
         # Read the flag without acquiring Rest's lock: alarm delivery calls voice.stop under that lock.
         if self.rest is not None and self.rest.rest:
@@ -117,6 +120,11 @@ class VoiceService:
         self.navigation = {'id': secrets.token_hex(12), 'screen': screen, 'expiresAt': time.time() * 1000 + 10000}
         if scene is not None:
             self.navigation['scene'] = scene
+        if artifact is not None:
+            if screen != 'artifacts' or self.artifacts is None:
+                raise ValueError('Artifact preview unavailable.')
+            self.artifacts.get(artifact)
+            self.navigation['artifact'] = artifact
         return {'ok': True, 'message': f'{label} selected.',
                 'delivery': 'Visible connected browsers only; disabled widgets open their settings.'}
 
@@ -369,7 +377,7 @@ class VoiceService:
 
     def _monitor(self, generation, process, pipe):
         from .voice_worker import desktop_unlocked
-        personal_heard, personal_generation, private_turn = '', None, False
+        personal_heard, personal_generation, private_turn, private_kind = '', None, False, 'conversation'
         try:
             while process.is_alive() or pipe.poll():
                 with self.lock:
@@ -383,6 +391,23 @@ class VoiceService:
                 event = pipe.recv()
                 app_inventory = None
                 personal_result = None
+                if event.get('type') == 'action' and event.get('name') in MEMORY_FILE_NAMES:
+                    memory_deadline = time.monotonic() + 4
+                    with self.lock:
+                        try:
+                            def memory_allowed():
+                                return (generation == self.generation and self.phase == 'thinking' and self.pending_rest is None
+                                        and process is self.process and not self.stop_event.is_set() and desktop_unlocked()
+                                        and time.monotonic() < memory_deadline)
+                            if self.assistant is None or personal_generation is None:
+                                raise ValueError('Fresh conversation context required.')
+                            personal_result = execute_memory_file(self.assistant, event['name'], event.get('arguments'),
+                                                                  personal_heard, personal_generation, memory_allowed)
+                            private_turn = True
+                            if private_kind != 'personal':
+                                private_kind = 'memory'
+                        except (OSError, ValueError, TypeError, GoogleError):
+                            personal_result = {'ok': False, 'message': 'Local memory is unavailable. Check Memory on the PC.'}
                 if event.get('type') == 'action' and event.get('name') in PERSONAL_NAMES | {'assistant_context'}:
                     deadline = time.monotonic() + (4 if event['name'] == 'assistant_context' else 24)
                     def personal_allowed():
@@ -400,6 +425,8 @@ class VoiceService:
                             personal_result = self.assistant.voice_context(personal_heard)
                             personal_generation = personal_result['generation']
                             private_turn = bool(personal_result.get('personal'))
+                            private_kind = ('personal' if 'profile' in (personal_result.get('personal') or {}) else
+                                            'memory' if private_turn else 'conversation')
                         elif personal_generation is not None:
                             personal_result = execute_personal(self.assistant, event['name'], event.get('arguments'),
                                                                personal_heard, personal_generation, personal_allowed)
@@ -407,8 +434,8 @@ class VoiceService:
                             raise GoogleError('Start a fresh voice turn before using personal tools.', 409)
                         if not personal_allowed() or personal_generation != self.assistant.generation:
                             raise GoogleError('Personal access stopped.', 409)
-                    except (GoogleError, OSError, ValueError, TypeError):
-                        personal_result = {'ok': False, 'message': 'Personal tools are unavailable. Check Memory and Connections, sir.'}
+                    except (GoogleError, OSError, ValueError, TypeError) as error:
+                        personal_result = personal_tool_failure(event.get('name'), error)
                 if event.get('type') == 'action' and event.get('name') == 'list_apps':
                     # Windows enumeration is read-only and may take seconds. Keep stop/lock/status responsive.
                     with self.lock:
@@ -432,20 +459,22 @@ class VoiceService:
                         result = {'ok': False, 'message': 'Voice control is unavailable.'}
                         if self.phase == 'thinking' and self.pending_rest is None and not self.stop_event.is_set() and desktop_unlocked():
                             try:
-                                if event.get('name') in PERSONAL_NAMES | {'assistant_context'}:
+                                if event.get('name') in PERSONAL_NAMES | MEMORY_FILE_NAMES | {'assistant_context'}:
                                     result = personal_result or result
                                 elif event.get('name') == 'list_apps':
                                     result = app_inventory or result
                                 else:
                                     result = execute_tool(event.get('name'), event.get('arguments'), self.registry,
-                                                          self.telemetry, navigate=self._show_screen)
+                                                          self.telemetry, navigate=self._show_screen, artifacts=self.artifacts)
                             except (OSError, ValueError, TypeError, HTTPException):
                                 result = {'ok': False, 'message': 'This action could not be carried out.'}
                         pipe.send({'type': 'result', 'id': event.get('id'), 'result': result})
                         if event.get('name') == 'assistant_context':
                             continue
-                        self.last_action = {'name': event.get('name'), 'arguments': {} if event.get('name') in PERSONAL_NAMES else event.get('arguments'),
+                        self.last_action = {'name': event.get('name'), 'arguments': {} if event.get('name') in PERSONAL_NAMES | ARTIFACT_NAMES | MEMORY_FILE_NAMES else event.get('arguments'),
                                             'ok': bool(result.get('ok')), 'message': result.get('message', '')[:200]}
+                        if result.get('artifact'):
+                            self.last_action['artifact'] = result['artifact']
                         self.last_actions.append(self.last_action)
                         if len(self.last_actions) > 1:
                             self.last_action = {'name': 'parallel_tools', 'arguments': {},
@@ -464,13 +493,13 @@ class VoiceService:
                         self.last_heard = str(event.get('heard', ''))[:500]
                         self.last_reply = str(event.get('reply', ''))[:500]
                         self.history.add(event.get('heard', ''), self.last_reply, self.last_action, event.get('sources'),
-                                         kind='alert' if event.get('kind') == 'alert' else 'personal' if private_turn else 'conversation')
+                                         kind='alert' if event.get('kind') == 'alert' else private_kind)
                         self.last_action = None
                         self.last_actions = []
                     elif event.get('type') == 'turn':
                         if self.chat:
                             self.chat.stop()
-                        personal_heard, personal_generation, private_turn = '', None, False
+                        personal_heard, personal_generation, private_turn, private_kind = '', None, False, 'conversation'
                         self.last_action = None
                         self.last_actions = []
         except (EOFError, OSError, ValueError):

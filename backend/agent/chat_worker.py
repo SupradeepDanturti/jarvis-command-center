@@ -33,7 +33,8 @@ def chat_worker(pipe, stop, key, text, tools, context):
             reply = result.get('message', 'Rest control is unavailable.')
         else:
             reply = respond(client, text, tools, dispatch, allowed, context['history'],
-                            cite=sources.extend, personal_context=context.get('personal'))
+                            cite=sources.extend, personal_context=context.get('personal'),
+                            memory_files=context.get('memoryFilesEnabled', False))
         if reply and allowed():
             pipe.send({'type': 'reply', 'reply': reply[:500], 'sources': safe_sources(sources)})
     except Exception as error:

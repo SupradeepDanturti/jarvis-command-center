@@ -13,7 +13,8 @@ from ..security import require_origin
 from ..tls import dpapi
 from .chat_worker import chat_worker
 from .google import GoogleError
-from .personal_tools import PERSONAL_NAMES, execute_personal
+from .personal_tools import PERSONAL_NAMES, execute_personal, personal_tool_failure
+from .memory_files import MEMORY_FILE_NAMES, execute_memory_file
 from .voice_actions import execute_tool, voice_tools, safe_sources, rest_entry_requested, rest_wake_requested
 
 
@@ -111,7 +112,7 @@ class ChatService:
                 self.turn['navigation'] = None
 
     def _navigate(self, turn, screen, **options):
-        if not self.allowed(turn) or self.voice.rest and self.voice.rest.snapshot()['rest']:
+        if not self.allowed(turn) or self.voice.rest and self.voice.rest.rest:
             return {'ok': False, 'message': 'Navigation is unavailable.'}
         turn['navigation'] = {'id': secrets.token_hex(12), 'screen': screen, **options,
                               'expiresAt': time.time() * 1000 + 10000}
@@ -121,35 +122,43 @@ class ChatService:
         if not self.allowed(turn):
             return {'ok': False, 'message': 'Request cancelled.'}
         try:
-            if name in PERSONAL_NAMES:
+            if name in MEMORY_FILE_NAMES:
+                with self.voice.lock:
+                    result = execute_memory_file(self.assistant, name, arguments, turn['text'],
+                                                 turn['assistantGeneration'], lambda: self.allowed(turn))
+            elif name in PERSONAL_NAMES:
                 result = execute_personal(self.assistant, name, arguments, turn['text'],
                                           turn['assistantGeneration'], lambda: self.allowed(turn))
             elif name == 'list_apps':
                 result = execute_tool(name, arguments, self.voice.registry, self.voice.telemetry)
+            elif name in {'rest-entry', 'rest-wake'} and arguments == {} and self.voice.rest:
+                # Rest's native adapter calls voice.stop for alarms. Never invert those locks.
+                if name == 'rest-entry' and rest_entry_requested(turn['text']):
+                    revision = self.voice.rest.snapshot()['revision']
+                    prepared = self.voice.rest.prepare('chat-' + turn['id'])
+                    result = self.voice.rest.enter('chat-' + turn['id'], prepared['nonce'],
+                                                  revision, lambda: self.allowed(turn))
+                elif name == 'rest-wake' and rest_wake_requested(turn['text']):
+                    result = self.voice.rest.wake(lambda: self.allowed(turn))
+                else:
+                    raise ValueError('Explicit rest request required.')
+                result = {'ok': True, 'message': result['message']}
             else:
                 with self.voice.lock:
                     if not self.allowed(turn):
                         return {'ok': False, 'message': 'Request cancelled.'}
-                    if name in {'rest-entry', 'rest-wake'} and arguments == {} and self.voice.rest:
-                        if name == 'rest-entry' and rest_entry_requested(turn['text']):
-                            revision = self.voice.rest.snapshot()['revision']
-                            prepared = self.voice.rest.prepare('chat-' + turn['id'])
-                            result = self.voice.rest.enter('chat-' + turn['id'], prepared['nonce'],
-                                                          revision, lambda: self.allowed(turn))
-                        elif name == 'rest-wake' and rest_wake_requested(turn['text']):
-                            result = self.voice.rest.wake(lambda: self.allowed(turn))
-                        else:
-                            raise ValueError('Explicit rest request required.')
-                        result = {'ok': True, 'message': result['message']}
-                    else:
-                        result = execute_tool(name, arguments, self.voice.registry, self.voice.telemetry,
-                                              navigate=lambda screen, **options: self._navigate(turn, screen, **options))
-        except (GoogleError, HTTPException, OSError, ValueError, TypeError):
-            result = {'ok': False, 'message': 'This action is unavailable. Check settings on the PC.'}
+                    result = execute_tool(name, arguments, self.voice.registry, self.voice.telemetry,
+                                          navigate=lambda screen, **options: self._navigate(turn, screen, **options),
+                                          artifacts=self.voice.artifacts)
+        except (GoogleError, HTTPException, OSError, ValueError, TypeError) as error:
+            result = (personal_tool_failure(name, error) if name in PERSONAL_NAMES else
+                      {'ok': False, 'message': 'This action is unavailable. Check settings on the PC.'})
         if not self.allowed(turn):
             return {'ok': False, 'message': 'Request cancelled.'}
         turn['actions'].append({'name': str(name)[:60], 'ok': bool(result.get('ok')),
                                 'message': str(result.get('message', ''))[:200]})
+        if result.get('artifact'):
+            turn['actions'][-1]['artifact'] = result['artifact']
         return result
 
     def _monitor(self, turn, process, pipe):
@@ -167,8 +176,12 @@ class ChatService:
                         actions = turn['actions']
                         action = {'name': 'assistant_tools', 'ok': all(a['ok'] for a in actions),
                                   'message': ' · '.join(a['message'] for a in actions)[:200]} if actions else None
-                        self.voice.history.add(turn['text'], event['reply'], action, safe_sources(event.get('sources')),
-                                               kind='personal' if turn['context'].get('personal') else 'conversation')
+                        if action:
+                            action['artifacts'] = [a['artifact'] for a in actions if a.get('artifact')]
+                        context = turn['context'].get('personal') or {}
+                        kind = ('personal' if 'profile' in context else 'memory' if 'localMemory' in context or
+                                any(a['name'] in MEMORY_FILE_NAMES for a in actions) else 'conversation')
+                        self.voice.history.add(turn['text'], event['reply'], action, safe_sources(event.get('sources')), kind=kind)
                         turn['phase'], turn['message'] = 'done', 'Ready for your next message.'
                     return
                 elif event.get('type') == 'error':

@@ -8,6 +8,8 @@ from ..controllers import MEDIA_KEYS, media_action, open_website
 from ..ambient import ambient_options, load_ambient_scenes
 from .personal_tools import personal_tools
 from .memory import explicit_fact
+from .artifacts import artifact_tools, ARTIFACT_NAMES
+from .memory_files import memory_file_tools, topic_for
 
 VOICE_MODEL = 'gpt-6-luna'
 PROMPT_PATH = Path(__file__).with_name('jarvis_prompt.txt')
@@ -19,7 +21,7 @@ VOICE_SCREENS = {
     'apps': 'Applications', 'hardware': 'Hardware monitor', 'graphs': 'Live graphs',
     'clock': 'Clock', 'focus': 'Focus timer', 'ambient': 'Ambient',
     'media': 'Now playing', 'system': 'System & controls', 'devices': 'Device access',
-    'rest': 'Rest & alarms', 'voice': 'Jarvis', 'chat': 'Chat with Jarvis', 'widgets': 'Widgets',
+    'rest': 'Rest & alarms', 'voice': 'Jarvis', 'chat': 'Chat with Jarvis', 'artifacts': 'Artifacts', 'widgets': 'Widgets',
     'weather': 'Weather & air quality', 'f1': 'F1 next race',
 }
 
@@ -94,7 +96,7 @@ def voice_tools(registry):
                   'strict': True, 'parameters': {'type': 'object', 'properties': {},
                                                'required': [], 'additionalProperties': False}})
     tools.append({'type': 'web_search', 'search_context_size': 'low'})
-    return scene_voice_tools(tools) + personal_tools()
+    return scene_voice_tools(tools) + personal_tools() + artifact_tools() + memory_file_tools()
 
 
 def scene_voice_tools(tools):
@@ -154,7 +156,11 @@ def spoken_reply(text):
     return text.strip()[:500]
 
 
-def execute_tool(name, arguments, registry, telemetry, navigate=None):
+def execute_tool(name, arguments, registry, telemetry, navigate=None, artifacts=None):
+    if name in ARTIFACT_NAMES:
+        if artifacts is None:
+            raise ValueError('Artifacts are unavailable.')
+        return artifacts.dispatch(name, arguments, navigate)
     # Treat model output as untrusted, even with strict API schemas.
     if not isinstance(arguments, dict):
         raise ValueError('Invalid action arguments.')
@@ -203,13 +209,27 @@ def execute_tool(name, arguments, registry, telemetry, navigate=None):
     raise ValueError('This voice action is not allowed.')
 
 
-def respond(client, text, tools, dispatch, allowed=lambda: True, history=None, cite=lambda sources: None, personal_context=None):
+def respond(client, text, tools, dispatch, allowed=lambda: True, history=None, cite=lambda sources: None, personal_context=None, memory_files=False):
     """Load the trusted local prompt; the optional SDK stays inside the voice worker."""
     if intro_requested(text):
         if not allowed():
             return ''
         result = dispatch('play_intro', {})
         return str(result.get('message') or 'The introduction could not be played.') if allowed() else ''
+    if memory_files and explicit_fact(text):
+        fact = explicit_fact(text)
+        topic = topic_for(fact)
+        if not allowed():
+            return ''
+        prior = dispatch('read_memory', {'name': topic})
+        if not allowed() or not prior.get('ok'):
+            return 'Local memory is unavailable.' if allowed() else ''
+        content = prior.get('content') or '# ' + topic[:-3].replace('-', ' ').title()
+        entry = '\n- ' + fact
+        if entry not in content:
+            content += entry
+        result = dispatch('write_memory', {'name': topic, 'content': content, 'revision': prior.get('revision'), 'evidence': text})
+        return str(result.get('message') or 'Memory could not be saved.') if allowed() else ''
     if personal_context and explicit_fact(text):
         if not allowed():
             return ''

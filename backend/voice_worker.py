@@ -319,7 +319,8 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                         context = personal['history']
                     reply = 'Very good, sir.' if end_conversation else respond(client, text, tools, dispatch, allowed,
                                                                              context, cite=sources.extend,
-                                                                             personal_context=personal.get('personal'))
+                                                                             personal_context=personal.get('personal'),
+                                                                             memory_files=personal.get('memoryFilesEnabled', False))
                     if reply and allowed():
                         pipe.send({'type': 'exchange', 'heard': text, 'reply': reply, 'sources': sources})
                         context = [*context, {'role': 'user', 'content': text}, {'role': 'assistant', 'content': reply}][-12:]

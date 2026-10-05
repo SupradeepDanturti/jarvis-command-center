@@ -453,6 +453,47 @@ def test_agent_searches_tabs_reads_and_prepares_in_one_bounded_turn(personal):
     assert len(personal.sheets.proposals) == 1 and personal.google.sheet_values.call_count == 1
 
 
+@pytest.mark.usefixtures('jarvis_sdk_transport')
+def test_agent_corrects_oversized_stock_read_before_using_provider_slot(personal):
+    personal.sheets.set_discovery(personal.account_id(), True)
+    personal.google.search_sheets.return_value = {'files': [{'id': 'fixture_sheet_789', 'name': 'Planner',
+        'mimeType': 'application/vnd.google-apps.spreadsheet', 'capabilities': {'canEdit': True}}]}
+    personal.google.sheet_metadata.return_value = {'sheets': [{'properties': {'title': 'Stocks_', 'sheetType': 'GRID',
+        'gridProperties': {'rowCount': 1000, 'columnCount': 30}}}]}
+    client, found, dispatches = Mock(), {}, []
+    def responses(**kwargs):
+        step = client.responses.create.call_count
+        name, args = ('search_sheets', {'query': 'Planner', 'pageToken': None}) if step == 1 else (
+            ('list_sheet_tabs', {'id': found['id'], 'offset': 0}) if step == 2 else (
+            ('read_sheet', {'id': found['id'], 'range': "'Stocks_'!A1:Z100"}) if step == 3 else
+            ('read_sheet', {'id': found['id'], 'range': "'Stocks_'!A1:J50"})))
+        if step == 5:
+            return SimpleNamespace(output=[], output_text='This is a partial portfolio snapshot.')
+        return SimpleNamespace(output=[SimpleNamespace(type='function_call', name=name, arguments=json.dumps(args),
+                                                       call_id=str(step))], output_text='')
+    def dispatch(name, args):
+        dispatches.append((name, args))
+        result = tool(personal, name, args)
+        if name == 'search_sheets':
+            found['id'] = result['sheets'][0]['id']
+        return result
+    client.responses.create.side_effect = responses
+    assert 'partial' in respond(client, 'How is my portfolio doing?', voice_tools(Mock()), dispatch,
+                                personal_context=personal.voice_context('portfolio')['personal'])
+    assert [name for name, _ in dispatches] == ['search_sheets', 'list_sheet_tabs', 'read_sheet']
+    assert dispatches[-1][1]['range'] == "'Stocks_'!A1:J50"
+    assert personal.google.sheet_values.call_count == 1
+
+
+def test_personal_tool_errors_distinguish_bounds_permissions_and_redact_unknown_values():
+    from backend.agent.personal_tools import personal_tool_failure
+    bounded = personal_tool_failure('read_sheet', ValueError('Choose at most 100 rows, 20 columns and 1,000 cells.'))
+    assert bounded['code'] == 'invalid_sheet_range' and 'No cell read was sent' in bounded['message']
+    denied = 'Google denied access. Check the API is enabled and the requested permissions were granted.'
+    assert personal_tool_failure('read_sheet', GoogleError(denied))['message'] == denied
+    assert 'secret' not in str(personal_tool_failure('read_sheet', ValueError('secret provider payload')))
+
+
 def test_search_and_full_sheet_routes_require_direct_owner_origin_and_concrete_cells(tmp_path):
     app = create_app(pairing_code='ABCD1234', voice_dir=tmp_path)
     with TestClient(app, base_url='https://testserver', client=('127.0.0.1', 4000)) as owner:
