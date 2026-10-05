@@ -31,6 +31,8 @@ from .widgets import WidgetFeeds
 from .ambient import ambient_script
 from .agent.service import AssistantService
 from .agent.routes import assistant_router
+from .agent.chat import ChatService, chat_router
+from .agent.artifacts import ArtifactStore, artifacts_router
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -146,6 +148,10 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     voice = VoiceService(voice_dir or (state_dir / 'voice' if not pairing_code else None), registry, telemetry)
     assistant = AssistantService(voice.history, voice.directory)
     voice.assistant = assistant
+    artifacts = ArtifactStore(voice.history)
+    voice.artifacts = artifacts
+    chat = ChatService(voice, assistant)
+    voice.chat = chat
     assistant.stop_voice = voice.stop
     focus = FocusTimer(focus_path or (None if pairing_code else state_dir / 'focus.json'), notify=voice.remind)
     activity = ActivityMonitor(games)
@@ -174,12 +180,13 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
                 voice.phase, voice.message = 'off', str(error.detail)
         print(f"\nG16 Command Center | Laptop setup code: {code}\nApproved browsers are remembered for 180 days, including across restarts.\n", flush=True)
         yield
+        chat.stop()
+        await asyncio.to_thread(voice.stop)
         assistant.close()
         await widgets.close()
         rest_task.cancel()
         with suppress(asyncio.CancelledError):
             await rest_task
-        await asyncio.to_thread(voice.stop)
         task.cancel()
         media_task.cancel()
         focus_task.cancel()
@@ -197,7 +204,7 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
 
     @app.exception_handler(RequestValidationError)
     async def private_validation(request, error):
-        if request.url.path.startswith('/api/assistant/'):
+        if request.url.path.startswith(('/api/assistant/', '/api/chat/')):
             # FastAPI's default validation detail includes the submitted input.
             return JSONResponse({'detail': 'Check the assistant entry and try again.'}, status_code=422)
         return await request_validation_exception_handler(request, error)
@@ -210,6 +217,8 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
     app.state.media = media_monitor
     app.state.voice = voice
     app.state.assistant = assistant
+    app.state.chat = chat
+    app.state.artifacts = artifacts
     app.state.focus = focus
     app.state.activity = activity
     app.state.rest = rest
@@ -241,6 +250,8 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
 
     app.include_router(voice_router(voice, authenticate, owner))
     app.include_router(assistant_router(assistant, owner, authenticate))
+    app.include_router(chat_router(chat, authenticate, owner, devices))
+    app.include_router(artifacts_router(artifacts, voice, assistant, authenticate, owner))
 
     @app.post('/api/widgets/locations')
     async def widget_locations(body: WidgetSearch, request: Request, device=Depends(authenticate)):
@@ -266,7 +277,8 @@ def create_app(pairing_code=None, device_db=None, voice_dir=None, focus_path=Non
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "no-referrer"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"
+        if "Content-Security-Policy" not in response.headers:
+            response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"
         if request.url.path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
         return response

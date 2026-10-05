@@ -2,6 +2,18 @@
 
 Any supported Windows PC or laptop can run Jarvis Parallax in the background. The tablet opens it in a browser over your private Wi-Fi. No Android app or frontend build is required.
 
+## Talk or type to Jarvis
+
+After configuring the OpenAI key and installing Jarvis dependencies, open **More → Chat with Jarvis** on the PC or an approved tablet. Personal assistant starts enabled by default. Typed requests work with microphone listening off and without downloaded audio models. Enter sends; Shift+Enter inserts a line; Stop cancels pending work but cannot undo completed controls.
+
+Chat and voice share one conversation, including follow-ups, sources and saved memories. For personal Calendar/Sheets tools, enable **Use personal context with Jarvis** in **More → Personalization → Memory**; Google setup and Sheets edit approval stay with the PC owner. Approved browsers can see the shared conversation, including personal spoken requests, while Windows is unlocked. A spoken request interrupts pending chat. The owner's **Clear conversation** button deletes both voice and typed exchanges and stops listening; saved facts remain in Memory. See [the chat specification](spec/CHAT_SPEC.md).
+
+Local memory starts **on**. Tell Jarvis a lasting fact or preference, such as “I am vegetarian” or “Remember that I prefer morning meetings.” The agent saves and recalls topic files in **`.state/private/voice/memory/`** across voice/chat and server restarts. On the PC, **More → Personalization → Memory → Local memory files** lets you inspect, edit, download, delete or disable them. Relevant file text goes to OpenAI when enabled; this switch is separate from account-context consent. Existing reviewed facts migrate to `reviewed-facts.md`; manage their approval/content in the collapsed reviewed-facts editor. Clearing conversation does not delete saved files, and deleting a file does not remove earlier exchanges.
+
+Ask **“Create an interactive HTML page for my plan”**, **“Make a PDF summary”**, or **“Open the report you created.”** Open/download links appear in chat; **More → Artifacts** previews saved files on either approved device. HTML supports its own inline JavaScript/CSS inside an isolated preview. Separate JavaScript/CSS and other text formats are source downloads. PDFs use locally installed ReportLab and locally served PDF.js. Update optional dependencies with `make install-voice` (or the voice requirements file), then restart for backend/dependency changes and reload browsers. See [artifacts and local memory](spec/ARTIFACTS_MEMORY_SPEC.md).
+
+For spreadsheet questions such as **“How is my portfolio doing?”**, Jarvis must find the correct file/tab and read actual cells before assessing it. If several files have the same name, choose one. Reads use bounded chunks; a range error is corrected without changing permissions. Only a specific denied-access or missing-consent message calls for changing Connections/Memory settings.
+
 **Already installed?** Go to [Everyday use](#everyday-use) or [Update an existing installation](#update-an-existing-installation). Normal updates do not require a new certificate or fresh approval of the same browser.
 
 ## Short setup with Make
@@ -306,7 +318,8 @@ Confirm it is installed. YouTube requires Brave. Use **Games → Refresh** for n
 
 - `.state/private/server.log` and rotated backups: operational logs, roughly 6 MB total across three files.
 - `.state/private/devices.sqlite3`: browser approvals and hashed credentials.
-- `.state/private/voice/history.sqlite3`: the latest 500 Jarvis text exchanges.
+- `.state/private/voice/history.sqlite3`: the latest 500 Jarvis text exchanges, settings and newest twenty artifacts.
+- `.state/private/voice/memory/`: agent-written topical Markdown and migrated `reviewed-facts.md`; saved facts persist across restarts.
 - `.state/private/voice/`: encrypted key, audio/preferences, alert cooldown, downloaded models.
 - `.state/private/tls/`: HTTPS certificates and protected private keys.
 
@@ -335,7 +348,7 @@ Open **More → Rest & alarms**, **Clock → Rest & alarms**, or `/#rest`. Keep 
 
 First try a two-minute alarm while at the desk. Confirm the monitors go off, the tablet remains connected with the lid closed, the alarm sounds and the monitors return. If a monitor cannot be restored through DDC/CI, use its power button. A process crash or cable change can lose its temporary handle. Manual Windows sleep prevents the laptop server/alarm from running; this feature cannot wake an actually sleeping system remotely.
 
-With **Jarvis on** and Windows unlocked, say **“Jarvis, enter rest mode.”** Jarvis first says “I'll enter Rest mode, sir,” checks the monitors and enters the same shared Rest mode. It keeps its models loaded and resumes wake listening, including after button entry. Say **“Jarvis, wake up”** to restore the monitors and the tablet's previous page; Jarvis then says “Displays awake, sir” and continues listening. Both commands preserve your alarm. Say **Jarvis**, pause briefly, then say the command. The dedicated local Jarvis model also recognizes the older Hey Jarvis phrase. Optional “please,” wake-phrase punctuation and a trailing “Jarvis” are accepted in recognized command text. Failed requests explain why in **Jarvis → History**. Off, Windows lock, worker replacement or expiry cancel pending actions. Windows lock pauses listening; voice wake does not unlock Windows or resume an actually sleeping laptop. A server restart leaves Jarvis off until you enable it again. Normal command transcription still needs your configured API key and internet.
+With **Jarvis on** and Windows unlocked, say **“Jarvis, enter rest mode.”** Jarvis first says “I'll enter Rest mode, sir,” checks the monitors and enters the same shared Rest mode. It keeps its models loaded and resumes wake listening, including after button entry. Say **“Jarvis, wake up”** to restore the monitors and the tablet's previous page; Jarvis then says “Displays awake, sir” and continues listening. Both commands preserve your alarm. Say **Jarvis**, pause briefly, then say the command. The dedicated local Jarvis model also recognizes the older Hey Jarvis phrase. Optional “please,” wake-phrase punctuation and a trailing “Jarvis” are accepted in recognized command text. Failed requests explain why in **Jarvis → History**. Off, Windows lock, worker replacement or expiry cancel pending actions. Windows lock pauses listening; voice wake does not unlock Windows or resume an actually sleeping laptop. A server restart applies the saved startup options; configured Jarvis listening defaults on. Normal command transcription still needs your configured API key and internet.
 
 Reloads retain the laptop alarm; future alarms also survive server restarts. Overdue/ringing recovery is silent and shows **Missed**. Clock changes show **Paused** for review. Review and save a new time after either state. The private file is `.state/private/alarms.json`; normal updates preserve it. See [REST_ALARM_SPEC.md](spec/REST_ALARM_SPEC.md) for detailed behavior.
 

@@ -1,16 +1,131 @@
 # Jarvis Parallax
 
-Jarvis Parallax: a local touchscreen dashboard with PC telemetry, app and media controls, and an optional voice assistant for any tablet and Windows PC or laptop.
+Jarvis Parallax: a local touchscreen dashboard with PC telemetry, app and media controls, and an optional unified voice and chat assistant for any tablet and Windows PC or laptop.
 
 Run it on your Windows desktop or laptop and open it from a tablet browser over your private network. The PC hosts the dashboard; the tablet shows readings and sends approved controls. The project is public at [SupradeepDanturti/jarvis-parallax](https://github.com/SupradeepDanturti/jarvis-parallax).
 
+## Screenshots
+
+Actual frontend captures with sample telemetry, games, conversation, memory and account data. These examples contain no personal records or credentials; supported readings depend on your PC.
+
+**Home — the desk display and floating dock**
+
+![Jarvis Parallax Home with black-hole artwork, sample readings and app shortcuts](docs/screenshots/home.jpg)
+
+<details>
+<summary>See the main frontend pages: Live, Games, Apps, Clock and Ambient</summary>
+
+**Live performance**
+
+![Live performance readings and resource use](docs/screenshots/gaming.jpg)
+
+**Game library**
+
+![Game library with sample games and touch launch controls](docs/screenshots/games.jpg)
+
+**Applications**
+
+![Applications page with local app logos and sample running state](docs/screenshots/apps.jpg)
+
+**Clock**
+
+![Full-screen split-flap clock with the floating dock](docs/screenshots/clock.jpg)
+
+**Ambient**
+
+![Ambient Event horizon artwork with scene and immersive controls](docs/screenshots/ambient.jpg)
+
+</details>
+
+**Chat with Jarvis — one conversation for voice and typing**
+
+![Shared Jarvis chat with a sample reply and artifact Open and Download links](docs/screenshots/chat.jpg)
+
+<details>
+<summary>See local Markdown memory, interactive HTML and PDF previews</summary>
+
+**Local memory files**
+
+![Local memory enabled with an editable sample preferences.md file](docs/screenshots/memory.jpg)
+
+**Interactive HTML artifact**
+
+![Isolated HTML artifact preview with an interactive focus plan](docs/screenshots/artifact-html.jpg)
+
+**PDF artifact**
+
+![Locally rendered PDF artifact with preview and download controls](docs/screenshots/artifact-pdf.jpg)
+
+</details>
+
+<details>
+<summary>See the other frontend pages and settings</summary>
+
+**Now playing**
+
+![Now playing with sample media metadata, artwork and playback controls](docs/screenshots/media.jpg)
+
+**Hardware**
+
+![Hardware monitor with sample readings and unavailable sensors labelled honestly](docs/screenshots/hardware.jpg)
+
+**Live graphs**
+
+![Live graphs showing sample system history](docs/screenshots/graphs.jpg)
+
+**Rest and alarms**
+
+![Rest and alarms screen with display and alarm controls](docs/screenshots/rest.jpg)
+
+**Widgets**
+
+![Optional weather widget showing sample Toronto weather](docs/screenshots/widgets.jpg)
+
+**Jarvis voice settings**
+
+![Jarvis voice settings with sample microphone and speaker choices](docs/screenshots/voice.jpg)
+
+**Personalization**
+
+![Personalization preferences and connected-service navigation](docs/screenshots/personalization.jpg)
+
+**Connections**
+
+![Connections screen showing a sample Google account](docs/screenshots/connections.jpg)
+
+**Today**
+
+![Calendar briefing with two sample events](docs/screenshots/agenda.jpg)
+
+**Sheets**
+
+![Sheets discovery and sample spreadsheet registration](docs/screenshots/sheets.jpg)
+
+**System and controls**
+
+![System and connection settings using sample PC details](docs/screenshots/system.jpg)
+
+**Device access**
+
+![Device access with fictional approved browsers and example addresses](docs/screenshots/devices.jpg)
+
+</details>
+
+## Features
+
 **Compatibility:** designed for Windows PCs and laptops, with a responsive display for any tablet using a supported HTTPS browser. Available sensors, NVIDIA readings, monitor power controls, microphone/speaker choices and browser keep-awake depend on the machine and browser. Unsupported readings remain unavailable. Physical validation so far uses a Dell G16 and Redmi Pad Pro; that hardware is a tested setup, not a requirement.
 
-**Current build:** nineteen responsive pages with Jarvis branding, a clock, Rest mode and an alarm, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, Windows media keys, and an optional owner-only Google Calendar briefing with editable preferences. No cloud assets or frontend build step.
+**Current build:** twenty responsive pages with Jarvis branding, a clock, Rest mode and an alarm, local ambient video/animations, an automatically detected game library, real CPU/RAM/storage/network/battery readings, NVIDIA sensors when available, graphs, HTTPS with remembered approved browsers, app launching, Windows media keys, and an optional owner-only Google Calendar briefing with editable preferences. No cloud assets or frontend build step.
 
 **Personal assistant:** on the PC at **https://localhost:18761**, open **More → Personalization → Connections** for Google Cloud/Desktop-client setup, then enable account access and connect Google. **More → Personalization** sets the agenda address/style/timezone; **More → Personalization → Today → Brief me for today** checks your primary calendar. Account access and configured microphone listening start on independently by default; both have their own stop controls. **More → Personalization → Sheets** finds spreadsheets by name, explores all tabs and reviews cell updates. Enable the Google Drive API and reconnect for discovery; turn on **Let Jarvis find and use my spreadsheets**, or grant an individual whole file/range. **More → Personalization → Memory** lets you add/edit/forget/export facts and inspect selected context. Enable **Use personal context with Jarvis** there for voice Calendar/Sheets/memory tools, then enable listening in Jarvis. Personal changes stop listening to clear stale context. Calendar writes, Gmail, Health and background tasks remain later milestones. See [tools and memory](spec/ASSISTANT_TOOLS_MEMORY.md). See [assistant setup and boundaries](spec/ASSISTANT_FOUNDATION.md).
 
 Read [the dashboard specification](spec/SPEC.md) for the complete target, implementation decisions, security model, and roadmap. All specifications and design plans are indexed in [spec/](spec/README.md).
+
+**Chat with Jarvis:** open **More → Chat with Jarvis** on the PC or an approved tablet. Speak or type into the same conversation: both use the same agent, tools, memories and recent context. Chat requires enabled Personal assistant and the configured OpenAI key/optional Jarvis dependencies; microphone listening and audio models can stay off. Approved browsers can see the shared conversation, including personal voice exchanges, while the PC is unlocked. Only the PC owner manages keys/accounts or clears conversation history. See [unified chat](spec/CHAT_SPEC.md).
+
+**Local memory:** Jarvis saves durable facts you tell it into Markdown files in **`.state/private/voice/memory/`**, such as `profile.md`, `diet.md` and `preferences.md`. Voice and chat share these files, with local memory **on by default**. Inspect, edit, download, delete or disable them on the PC at **More → Personalization → Memory**. Relevant file text is sent to OpenAI for enabled assistant turns. Calendar/Sheets, briefing preferences and earlier reviewed facts still require **Use personal context with Jarvis**; local file memory has its own switch. Earlier saved facts migrate to `reviewed-facts.md` with approval state preserved.
+
+**Artifacts:** ask Jarvis to build an interactive HTML page, JavaScript/CSS source, Markdown, text, JSON, CSV or a PDF. Open and download the result from its chat reply or **More → Artifacts** on the PC/tablet. HTML interactions run in an isolated preview; PDFs render locally. The newest twenty artifacts persist on this PC. See [artifacts and Markdown memory](spec/ARTIFACTS_MEMORY_SPEC.md) for limits, privacy and examples.
 
 **Desk experience:** **More → Now playing** shows the Windows-selected Spotify/Brave session's artwork, title and artist, with session-specific playback controls and progress/seeking when supported. **Clock → Focus timer** adds a shared PC countdown. **More → System & controls → Tablet settings** holds opt-in night dimming, slow rotation, context switching and timer settings. **Hardware** has optional read-only HWiNFO sensor mapping; real extra readings remain unavailable until the owner enables and verifies the provider. See [SETUP.md](SETUP.md#now-playing-focus-and-automatic-display) and the original [experience plan](spec/EXPERIENCE_PLAN.md).
 

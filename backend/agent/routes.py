@@ -1,5 +1,5 @@
 """Personal data is restricted to the approved direct-loopback owner over HTTPS."""
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from ..security import require_origin
@@ -17,6 +17,12 @@ class ClientImport(BaseModel):
 class Enabled(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
     enabled: bool
+
+
+class MemoryFileEntry(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    content: str = Field(min_length=1, max_length=10000)
+    revision: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
 
 
 class SheetRange(BaseModel):
@@ -143,6 +149,30 @@ def assistant_router(service, owner, authenticate):
     def cloud(body: Enabled, request: Request):
         mutate(request, service.memory.set_cloud, body.enabled)
         return {'ok': True}
+
+    @router.get('/memory/files')
+    def memory_files():
+        return {'enabled': service.files.enabled(), 'files': call(service.files.all)}
+
+    @router.put('/memory/files/enabled')
+    def memory_files_enabled(body: Enabled, request: Request):
+        mutate(request, service.files.set_enabled, body.enabled)
+        return {'ok': True}
+
+    @router.put('/memory/files/{name}')
+    def edit_memory_file(name: str, body: MemoryFileEntry, request: Request):
+        return mutate(request, service.files.write, name, body.content, body.revision)
+
+    @router.delete('/memory/files/{name}')
+    def forget_memory_file(name: str, request: Request):
+        mutate(request, service.files.delete, name)
+        return {'ok': True}
+
+    @router.get('/memory/files/{name}/download')
+    def download_memory_file(name: str):
+        entry = call(service.files.read, name)
+        return Response(entry['content'], media_type='text/markdown',
+                        headers={'Content-Disposition': f'attachment; filename="{entry["name"]}"'})
 
     @router.post('/memory')
     def add_memory(body: Fact, request: Request):

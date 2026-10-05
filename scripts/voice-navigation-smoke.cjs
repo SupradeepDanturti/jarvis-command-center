@@ -31,7 +31,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
     assert.equal(route.request().method(),'GET','Opening personal sections must not change account settings');
     const endpoint=new URL(route.request().url()).pathname.split('/').pop(),profile={address:'sir',timezone:'America/Toronto',tone:'jarvis'};
     const fixtures={status:{enabled:false,clientConfigured:false,account:null,calendarReady:false,connecting:false},profile,
-      memory:{facts:[],cloudContext:false,profile,recentConversation:[],lastContext:null,limits:{}},
+      memory:{facts:[],cloudContext:false,profile,recentConversation:[],lastContext:null,limits:{}},files:{enabled:true,files:[]},
       sheets:{sheets:[],proposals:[],discoveryEnabled:false,discoveryReady:false}};
     assert(Object.hasOwn(fixtures,endpoint),'Unexpected personal endpoint');return route.fulfill({json:fixtures[endpoint]});
   });

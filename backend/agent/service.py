@@ -19,6 +19,7 @@ from ..tls import dpapi
 from .google import AUTH_URL, EVENTS_SCOPE, SHEETS_SCOPE, DRIVE_SCOPE, SCOPES, GoogleClient, GoogleError
 from .profile import ProfileStore
 from .memory import MemoryStore
+from .memory_files import MemoryFiles
 from .sheets import SheetStore, target, values
 
 
@@ -71,7 +72,8 @@ class Flow:
 class AssistantService:
     def __init__(self, history, directory=None, google=None, unlocked=desktop_unlocked):
         self.profile = ProfileStore(history)
-        self.memory = MemoryStore(history)
+        self.memory = MemoryStore(history, directory)
+        self.files = MemoryFiles(history, directory)
         self.sheets = SheetStore(history)
         self.last_context = None
         self.stop_voice = lambda: None
@@ -574,16 +576,23 @@ class AssistantService:
     def inspect_memory(self):
         with self.lock:
             return {'facts': self.memory.all(), 'profile': self.profile.get().model_dump(),
-                    'cloudContext': self.memory.cloud(), 'recentConversation': self.memory.history.context(personal=True),
+                    'cloudContext': self.memory.cloud(), 'recentConversation': self.memory.history.context(personal=True, memory=True),
                     'lastContext': self.last_context,
                     'limits': {'facts': 200, 'selectedFacts': 20, 'recentExchanges': 6, 'savedExchanges': 500}}
 
     def voice_context(self, heard):
         with self.lock:
             personal_enabled = self.enabled and self.unlocked() and self.memory.cloud()
-            history = self.memory.history.context(personal=personal_enabled)
+            local_enabled = self.enabled and self.unlocked() and self.files.enabled()
+            history = self.memory.history.context(personal=personal_enabled, memory=local_enabled)
             context = {'history': history, 'personal': None, 'generation': self.generation}
+            context['memoryFilesEnabled'] = local_enabled
             if personal_enabled:
-                context['personal'] = {'profile': self.profile.get().model_dump(), 'facts': self.memory.selected(heard)}
+                context['personal'] = {'profile': self.profile.get().model_dump(),
+                                       'facts': self.memory.selected(heard) if self.files.enabled() else []}
+            if local_enabled:
+                memories = self.files.selected(heard)
+                if memories:
+                    context['personal'] = {**(context['personal'] or {}), 'localMemory': memories}
             self.last_context = {'checkedAt': time.time(), 'personal': context['personal'], 'history': history}
             return {'ok': True, **context}

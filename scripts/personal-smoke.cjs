@@ -16,6 +16,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
    else if(endpoint==='profile')body={address:'sir',timezone:'America/Toronto',tone:'jarvis'};
    else if(endpoint==='memory/cloud')cloud=req.postDataJSON().enabled;
    else if(endpoint==='memory'&&method==='GET')body={facts,cloudContext:cloud,profile:{address:'sir'},recentConversation:[],lastContext:null,limits:{facts:200}};
+   else if(endpoint==='memory/files'&&method==='GET')body={enabled:true,files:[]};
    else if(endpoint==='memory'&&method==='POST')facts.push({id:'saved',text:req.postDataJSON().text,pending:0,source:'owner',updated:1});
    else if(endpoint==='memory'&&method==='DELETE')facts=[];
    else if(endpoint.startsWith('memory/')){const id=endpoint.split('/')[1];if(method==='DELETE')facts=facts.filter(fact=>fact.id!==id);else facts=facts.map(fact=>fact.id===id?{...fact,text:req.postDataJSON().text,pending:0}:fact)}
@@ -38,11 +39,11 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
   await page.locator('#more-menu [data-page=personalization]').click();await page.waitForFunction(()=>document.querySelector('#assistant-profile [type=submit]')?.disabled===false);
   assert.equal(await page.locator('.assistant-links [data-go=personalization]').getAttribute('aria-current'),'page');
   for(const id of ['agenda','connections','sheets','memory'])assert.equal(await page.locator(`.assistant-links [data-go="${id}"]`).count(),1);
-  await page.locator('.assistant-links [data-go=memory]').click();await page.locator('#memory-add').waitFor();assert.equal(await page.locator('#more-menu [data-page=personalization]').getAttribute('aria-current'),'page');
+  await page.locator('.assistant-links [data-go=memory]').click();await page.locator('#memory-add').waitFor({state:'attached'});assert.equal(await page.locator('#more-menu [data-page=personalization]').getAttribute('aria-current'),'page');
   await page.reload();await page.waitForFunction(()=>state.paired&&state.socket?.readyState===WebSocket.OPEN&&document.querySelector('#assistant-cloud')?.disabled===false);
   assert.equal(await page.locator('.assistant-links [data-go=memory]').getAttribute('aria-current'),'page');
   await page.goBack();await page.waitForFunction(()=>state.page==='personalization'&&document.querySelector('#assistant-profile [type=submit]')?.disabled===false);
-  await screen('memory');await page.locator('#assistant-cloud').check();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Personal context updated'));
+  await screen('memory');await page.locator('details').filter({has:page.locator('#memory-add')}).locator('summary').first().click();await page.locator('#assistant-cloud').check();await page.waitForFunction(()=>document.querySelector('#toast').textContent.includes('Personal context updated'));
   await page.locator('#memory-add textarea').fill('<script>owner fact</script>');await page.locator('#memory-add button').click();await page.waitForFunction(()=>document.querySelectorAll('#memory-list form').length===2);
   assert.equal(await page.locator('#memory-list script').count(),0);
   await page.locator('[data-memory-id=suggested] textarea').fill('I prefer jazz');await page.locator('[data-memory-id=suggested] [type=submit]').click();await page.waitForFunction(()=>document.querySelector('[data-memory-id=suggested] [type=submit]').textContent==='Save changes');
@@ -64,7 +65,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
    await page.setViewportSize({width,height});for(const id of ['memory','sheets']){await screen(id);assert.equal(await page.locator('#page-content').evaluate(el=>el.scrollWidth<=el.clientWidth+1),true);assert.equal(await page.locator('.surface-dock').isVisible(),true);await page.screenshot({path:path.join(root,'artifacts',`personal-${id}-${label}.png`),fullPage:true})}
   }
   assert.equal(await page.evaluate(()=>Object.values(localStorage).some(value=>/I prefer jazz|owner fact|fixture_sheet/.test(value))),false);
-  await screen('memory');await page.locator('[data-memory-clear]').click();assert.equal(facts.length,1);await page.locator('[data-memory-clear]').click();await page.waitForFunction(()=>document.querySelector('#memory-list').textContent.includes('No saved'));assert.equal(facts.length,0);
+  await screen('memory');await page.locator('details').filter({has:page.locator('#memory-add')}).locator('summary').first().click();await page.locator('[data-memory-clear]').click();assert.equal(facts.length,1);await page.locator('[data-memory-clear]').click();await page.waitForFunction(()=>document.querySelector('#memory-list').textContent.includes('No saved'));assert.equal(facts.length,0);
   await page.evaluate(()=>showPairing());assert.equal(await page.locator('#assistant-private').innerText(),'');assert.deepEqual(errors,[]);
   console.log('Personal tools smoke passed: grouped Personalization menu, child navigation/reload/back, memory, full Sheets/discovery, exact previews, explicit apply, no local storage and three layouts.');
  }finally{if(page)try{await page.evaluate(async()=>{await fetch('/api/logout',{method:'POST',headers:{'Content-Type':'application/json'}})})}catch{}if(context)await context.close();await browser.close()}
