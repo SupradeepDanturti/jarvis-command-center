@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from backend.controllers import open_website, website_url
 from backend.voice import VoiceService
-from backend.voice_actions import execute_tool, respond, voice_tools
+from backend.agent.voice_actions import execute_tool, respond, voice_tools
 
 
 @pytest.mark.parametrize('supplied,expected', [
@@ -55,7 +55,7 @@ def test_brave_is_fixed_and_url_is_one_shell_free_argument(tmp_path):
     {'url': 'https://example.com', 'browser': 'cmd.exe'}, {'url': 'https://example.com', 'target': 'anything'},
     {'url': 'https://example.com', 'command': 'whoami'}, {'url': 'https://example.com', 'headers': {}}, {}])
 def test_website_tool_accepts_only_url(arguments):
-    with patch('backend.voice_actions.open_website') as opened, pytest.raises(ValueError):
+    with patch('backend.agent.voice_actions.open_website') as opened, pytest.raises(ValueError):
         execute_tool('open_website', arguments, Mock(), Mock())
     opened.assert_not_called()
 
@@ -125,7 +125,7 @@ def test_parent_website_opening_requires_live_unlocked_enabled_worker(generation
     pipe.poll.side_effect = lambda *args: bool(events)
     pipe.recv.side_effect = lambda: events.pop(0)
     with patch('backend.voice_worker.desktop_unlocked', return_value=unlocked), \
-         patch('backend.voice_actions.open_website', return_value={'ok': True, 'message': 'example.com opened in Brave.'}) as opened:
+         patch('backend.agent.voice_actions.open_website', return_value={'ok': True, 'message': 'example.com opened in Brave.'}) as opened:
         service._monitor(1, process, pipe)
     if generation == 1 and unlocked and not stopped:
         opened.assert_called_once_with('https://example.com')

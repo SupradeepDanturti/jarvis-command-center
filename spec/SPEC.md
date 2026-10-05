@@ -26,6 +26,10 @@ Primary layout is landscape, with a responsive portrait layout. Support current 
 
 ## Information architecture and future acceptance criteria
 
+### Personal assistant foundation
+
+More has one **Personalization** entry. Inside it, **Preferences**, **Today**, **Connections**, **Sheets** and **Memory** provide the personal assistant sections. The approved HTTPS direct-loopback owner can import a Google Desktop OAuth client, explicitly enable account access separately from the microphone, connect a verified account and request a bounded primary-calendar agenda for the saved timezone. Credentials are DPAPI-protected; agenda payloads remain transient and outside the shared telemetry/voice history. All agent harness code and persona assets are under `backend/agent/`. See [setup and implementation boundaries](ASSISTANT_FOUNDATION.md) and [the broader plan](PERSONAL_ASSISTANT_PLAN.md). Calendar writes, Gmail, Health, delegated agents and scheduled responsibilities remain future work.
+
 The target comprises 12 feature pages. Seven feature pages plus Clock, Ambient, and Device access are implemented (ten tabs). Remaining feature pages will appear when their integrations work.
 
 1. **Overview:** CPU/GPU/RAM overview, short graphs, resource capacity, quick launch, media keys. Later add temperatures, fan speeds, SSD temperature, and FPS when their sources are connected.

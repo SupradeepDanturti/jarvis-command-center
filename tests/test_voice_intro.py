@@ -7,9 +7,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from backend import voice_actions
+from backend.agent import voice_actions
 from backend.voice import VoiceService
-from backend.voice_actions import execute_tool, intro_requested, introduction, respond, voice_tools
+from backend.agent.voice_actions import execute_tool, intro_requested, introduction, respond, voice_tools
 
 
 @pytest.mark.parametrize('text', ['Introduce yourself.', 'Jarvis, introduce yourself!', 'Hey Jarvis: introduce yourself please.',
@@ -50,7 +50,7 @@ def test_invalid_scripts_are_not_truncated_or_spoken(tmp_path, monkeypatch, text
 
 @pytest.mark.parametrize('arguments', [{'text': 'Anything'}, {'file': '../private/key'}, {'url': 'https://example.com'}, {'voice': 'anything'}])
 def test_model_cannot_supply_intro_text_file_or_voice(arguments):
-    with patch('backend.voice_actions.introduction') as read, pytest.raises(ValueError):
+    with patch('backend.agent.voice_actions.introduction') as read, pytest.raises(ValueError):
         execute_tool('play_intro', arguments, Mock(), Mock())
     read.assert_not_called()
 

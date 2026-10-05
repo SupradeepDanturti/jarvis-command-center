@@ -4,8 +4,10 @@ from pathlib import Path
 import re
 from urllib.parse import urlsplit
 
-from .controllers import MEDIA_KEYS, media_action, open_website
-from .ambient import ambient_options, load_ambient_scenes
+from ..controllers import MEDIA_KEYS, media_action, open_website
+from ..ambient import ambient_options, load_ambient_scenes
+from .personal_tools import personal_tools
+from .memory import explicit_fact
 
 VOICE_MODEL = 'gpt-6-luna'
 PROMPT_PATH = Path(__file__).with_name('jarvis_prompt.txt')
@@ -92,7 +94,7 @@ def voice_tools(registry):
                   'strict': True, 'parameters': {'type': 'object', 'properties': {},
                                                'required': [], 'additionalProperties': False}})
     tools.append({'type': 'web_search', 'search_context_size': 'low'})
-    return scene_voice_tools(tools)
+    return scene_voice_tools(tools) + personal_tools()
 
 
 def scene_voice_tools(tools):
@@ -201,13 +203,18 @@ def execute_tool(name, arguments, registry, telemetry, navigate=None):
     raise ValueError('This voice action is not allowed.')
 
 
-def respond(client, text, tools, dispatch, allowed=lambda: True, history=None, cite=lambda sources: None):
+def respond(client, text, tools, dispatch, allowed=lambda: True, history=None, cite=lambda sources: None, personal_context=None):
     """Load the trusted local prompt; the optional SDK stays inside the voice worker."""
     if intro_requested(text):
         if not allowed():
             return ''
         result = dispatch('play_intro', {})
         return str(result.get('message') or 'The introduction could not be played.') if allowed() else ''
+    if personal_context and explicit_fact(text):
+        if not allowed():
+            return ''
+        result = dispatch('remember_fact', {'text': explicit_fact(text)})
+        return str(result.get('message') or 'Memory could not be saved.') if allowed() else ''
     instructions = PROMPT_PATH.read_text(encoding='utf-8').replace('{now}', datetime.now().astimezone().isoformat())
     from .voice_agent import run_turn
-    return run_turn(client, instructions, text, scene_voice_tools(tools), dispatch, allowed, history, cite)
+    return run_turn(client, instructions, text, scene_voice_tools(tools), dispatch, allowed, history, cite, personal_context)

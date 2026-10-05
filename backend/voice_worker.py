@@ -8,7 +8,7 @@ import re
 import secrets
 import time
 import wave
-from .voice_actions import respond, rest_entry_requested, rest_wake_requested
+from .agent.voice_actions import respond, rest_entry_requested, rest_wake_requested, intro_requested
 from .voice_wake import WAKE_MODEL, WAKE_PHRASE, WAKE_THRESHOLD
 
 
@@ -51,7 +51,7 @@ def request_tool_action(pipe, stop, name, arguments, allowed, control):
     identity = secrets.token_hex(12)
     pipe.send({'type': 'action', 'id': identity, 'name': name, 'arguments': arguments})
     # Fixed Windows discovery can take two bounded twelve-second reads; other actions stay short.
-    deadline = time.monotonic() + (30 if name == 'list_apps' else 5)
+    deadline = time.monotonic() + (30 if name == 'list_apps' or name in {'calendar_today', 'read_sheet', 'list_sheet_tabs', 'search_sheets'} else 5)
     while not stop.is_set() and time.monotonic() < deadline:
         if pipe.poll(0.08):
             message = pipe.recv()
@@ -314,8 +314,12 @@ def worker_main(pipe, stop, model_directory, key, tools, preview=False, input_id
                     normalized = re.sub(r'^(?:hey\s+)?jarvis[,\s:]*|[,\s]+jarvis$', '', normalized).strip()
                     end_conversation = normalized in {'thanks', 'thank you', "that's all", 'that is all', 'never mind', 'goodbye'}
                     sources = []
+                    personal = dispatch('assistant_context', {'heard': text}) if not end_conversation and not intro_requested(text) else {}
+                    if personal.get('ok') and isinstance(personal.get('history'), list):
+                        context = personal['history']
                     reply = 'Very good, sir.' if end_conversation else respond(client, text, tools, dispatch, allowed,
-                                                                             context, cite=sources.extend)
+                                                                             context, cite=sources.extend,
+                                                                             personal_context=personal.get('personal'))
                     if reply and allowed():
                         pipe.send({'type': 'exchange', 'heard': text, 'reply': reply, 'sources': sources})
                         context = [*context, {'role': 'user', 'content': text}, {'role': 'assistant', 'content': reply}][-12:]

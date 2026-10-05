@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.main import create_app
-from backend.voice_actions import respond, safe_sources, spoken_reply, voice_tools
+from backend.agent.voice_actions import respond, safe_sources, spoken_reply, voice_tools
 from backend.voice_history import VoiceHistory
 from backend.voice_worker import collect_utterance, worker_main
 

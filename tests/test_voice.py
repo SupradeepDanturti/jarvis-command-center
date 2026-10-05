@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 
 from backend.main import create_app
 from backend.voice import MODEL_FILES, VoiceService
-from backend.voice_actions import execute_tool, respond, voice_tools
+from backend.agent.voice_actions import execute_tool, respond, voice_tools
 
 pytestmark = pytest.mark.usefixtures('jarvis_sdk_transport')
 
@@ -103,10 +103,10 @@ def test_voice_tools_and_valid_registered_action():
     tools = voice_tools(apps)
     assert any(tool.get('name') == 'list_apps' for tool in tools)
     assert next(tool for tool in tools if tool.get('name') == 'launch_app')['parameters']['properties']['id']['type'] == 'string'
-    assert 'target' not in str(tools)
+    assert all('target' not in tool.get('parameters', {}).get('properties', {}) for tool in tools)
     assert execute_tool('launch_app', {'id': 'youtube'}, apps, Mock())['ok']
     apps.launch_voice.assert_called_once_with('youtube')
-    with patch('backend.voice_actions.media_action', return_value={'ok': True}) as send:
+    with patch('backend.agent.voice_actions.media_action', return_value={'ok': True}) as send:
         execute_tool('media_control', {'action': 'volume-up'}, apps, Mock())
         send.assert_called_once_with('volume-up')
 

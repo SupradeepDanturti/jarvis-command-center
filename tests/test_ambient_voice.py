@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from backend import ambient
 from backend.main import create_app
 from backend.voice import VoiceService
-from backend.voice_actions import execute_tool, respond, voice_tools
+from backend.agent.voice_actions import execute_tool, respond, voice_tools
 
 
 @pytest.fixture

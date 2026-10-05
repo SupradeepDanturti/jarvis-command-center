@@ -31,7 +31,7 @@ function paintNowPlaying(){
   const haze=document.querySelector('#media-haze');
   if(src){if(art.getAttribute('src')!==src){
     art.onload=()=>{const cover=art.parentElement;cover.style.aspectRatio=String(art.naturalWidth/art.naturalHeight);cover.style.setProperty('--art-limit',`${Math.max(180,Math.min(440,art.naturalWidth*1.5))}px`)};
-    art.onerror=()=>{art.hidden=true;haze.hidden=true;document.querySelector('#media-art-fallback').hidden=false};
+    art.onerror=()=>{if(!art.isConnected)return;art.hidden=true;haze.hidden=true;document.querySelector('#media-art-fallback').hidden=false};
     art.hidden=false;haze.hidden=false;haze.src=src;art.src=src;
   }}
   else{art.removeAttribute('src');haze.removeAttribute('src');art.hidden=true;haze.hidden=true;art.parentElement.style.aspectRatio='1'}
