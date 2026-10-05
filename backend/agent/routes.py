@@ -19,7 +19,23 @@ class Enabled(BaseModel):
     enabled: bool
 
 
-class SheetValues(BaseModel):
+class SheetRange(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    range: str | None = Field(default=None, min_length=1, max_length=220)
+
+
+class TabPage(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    offset: int = Field(default=0, ge=0, le=100000)
+
+
+class SheetSearch(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    query: str = Field(default='', max_length=100)
+    pageToken: str | None = Field(default=None, min_length=1, max_length=2048)
+
+
+class SheetValues(SheetRange):
     model_config = ConfigDict(extra='forbid', strict=True)
     values: list[list[str | int | float | bool | None]] = Field(min_length=1, max_length=100)
 
@@ -152,7 +168,21 @@ def assistant_router(service, owner, authenticate):
             service.sheets.expire()
             account = service.vault.get('account')
             return {'sheets': service.sheets.all(account['id']) if account else [],
+                    'discoveryEnabled': service.sheets.discovery_enabled(account['id']) if account else False,
+                    'discoveryReady': service.status()['sheetSearchReady'],
                     'proposals': list(service.sheets.proposals.values())}
+
+    @router.put('/sheets/discovery')
+    def sheet_discovery(body: Enabled, request: Request):
+        mutate(request, lambda: service.sheets.set_discovery(service.account_id(), body.enabled))
+        return {'ok': True, 'enabled': body.enabled}
+
+    @router.post('/sheets/search')
+    def search_sheets(body: SheetSearch, request: Request):
+        require_origin(request)
+        result = call(service.search_sheets, body.query, body.pageToken, lambda: authorized(request))
+        private(request, owner(request, authenticate(request)))
+        return result
 
     @router.post('/sheets')
     def register_sheet(body: SheetRegistration, request: Request):
@@ -170,16 +200,23 @@ def assistant_router(service, owner, authenticate):
         return {'ok': True}
 
     @router.post('/sheets/{identity}/read')
-    def read_sheet(identity: str, request: Request):
+    def read_sheet(identity: str, request: Request, body: SheetRange | None = None):
         require_origin(request)
-        result = call(service.sheet_read, identity, lambda: authorized(request))
+        result = call(service.sheet_read, identity, lambda: authorized(request), body.range if body else None)
+        private(request, owner(request, authenticate(request)))
+        return result
+
+    @router.post('/sheets/{identity}/tabs')
+    def sheet_tabs(identity: str, request: Request, body: TabPage | None = None):
+        require_origin(request)
+        result = call(service.sheet_tabs, identity, lambda: authorized(request), body.offset if body else 0)
         private(request, owner(request, authenticate(request)))
         return result
 
     @router.post('/sheets/{identity}/propose')
     def propose_sheet(identity: str, body: SheetValues, request: Request):
         require_origin(request)
-        return call(service.sheet_propose, identity, body.values)
+        return call(service.sheet_propose, identity, body.values, body.range)
 
     @router.delete('/sheet-proposals/{identity}')
     def discard_sheet(identity: str, request: Request):

@@ -2,17 +2,17 @@
 
 Implementation record · 2026-10-04
 
-This is the first runnable slice of [the personal assistant plan](PERSONAL_ASSISTANT_PLAN.md): Google installed-app OAuth, owner-only primary-calendar reads, editable briefing preferences, and an account-access switch separate from the microphone. Registered Sheets ranges, reviewed RAW updates, bounded facts and opt-in voice tools now extend this slice; see [personal tools and memory](ASSISTANT_TOOLS_MEMORY.md). Calendar writes/selection, Gmail, Health, background responsibilities and specialist delegation remain future milestones.
+This is the first runnable slice of [the personal assistant plan](PERSONAL_ASSISTANT_PLAN.md): Google installed-app OAuth, owner-only primary-calendar reads, editable briefing preferences, and an account-access switch separate from the microphone. Discoverable/full-file Sheets access, reviewed RAW updates, bounded facts and opt-in voice tools now extend this slice; see [personal tools and memory](ASSISTANT_TOOLS_MEMORY.md). Calendar writes/selection, Gmail, Health, background responsibilities and specialist delegation remain future milestones.
 
 ## Set up Google on the PC
 
 1. Update normal dependencies with the README procedure, including the pinned Windows timezone database.
 2. Open **https://localhost:18761** in the approved owner browser; choose **More → Connections**.
-3. In [Google Cloud Console](https://console.cloud.google.com/), create/select a project and enable the **Google Calendar API** and **Google Sheets API**.
+3. In [Google Cloud Console](https://console.cloud.google.com/), create/select a project and enable the **Google Calendar API**, **Google Sheets API** and **Google Drive API** (for spreadsheet discovery).
 4. Configure **Google Auth Platform → Branding** and **Audience**. For personal testing, add your Google account as a test user. Organization policies may constrain available clients/accounts.
 5. Under **Clients**, create an OAuth client with application type **Desktop app** and download its JSON. A web client, API key or service-account JSON is not accepted. Keep the downloaded original private and out of Git.
 6. Expand **Set up Google access** in Connections and choose that JSON. Only the required installed-client values are encrypted; caller endpoint/redirect metadata is discarded. Reimporting replaces the client and disconnects the previous local account.
-7. Select **Enable assistant**, then **Connect Google**. Allow the new tab, choose your account and grant Calendar and Sheets access. Existing Calendar-only connections need one reconnect for Sheets, using the saved client. Return to Jarvis after sign-in to see the verified account and outcome.
+7. Select **Enable assistant**, then **Connect Google**. Allow the new tab, choose your account and grant Calendar, Sheets and Drive metadata access. Existing connections need one reconnect for the added permission, using the saved client. Return to Jarvis after sign-in to see the verified account and outcome.
 8. Set your form of address, city timezone (for example `America/Toronto`) and briefing style in **More → Personalization**. These affect the agenda briefing; they also personalize voice replies when personal-context consent is enabled in Memory.
 9. Select **More → Today → Brief me for today**. It fetches primary-calendar events overlapping the current day in your saved timezone. Google expands recurring events. All-day end dates remain exclusive. At most 100 events are fetched once; pagination or malformed time records produce an explicit partial-agenda warning.
 
@@ -27,7 +27,7 @@ The access switch always starts off after a server restart. Enabling it does not
 All agent orchestration, tool definitions, provider operations, profile access and persona prompts live in `backend/agent/`. The optional SDK still loads only inside the enabled isolated voice worker. Audio capture, physical device adapters and dashboard transport stay separate.
 
 - `voice_agent.py`, `voice_actions.py`, `jarvis_prompt.txt`, `jarvis_intro.txt`: existing bounded voice runner, typed desktop tools and persona, relocated together.
-- `google.py`: fixed Google token, user-info and primary-calendar operations; no caller URL/header API, redirects, proxy inheritance or retries.
+- `google.py`: fixed Google token, user-info, primary-calendar, Sheets values/metadata and spreadsheet-only Drive search operations; no caller URL/header API, redirects, proxy inheritance or retries.
 - `service.py`: encrypted connection store, PKCE/state receiver, account generation, cancellation, read budget and deterministic agenda briefing.
 - `profile.py`: bounded owner-authored address/timezone/style in one private SQLite row.
 - `routes.py`: HTTPS/owner checks, same-origin mutations, redacted validation and late revocation checks.

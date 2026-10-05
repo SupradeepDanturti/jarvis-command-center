@@ -1,5 +1,11 @@
 # Foundation validation — 2026-10-03
 
+## Spreadsheet discovery and full-file access · 2026-10-04
+
+- Backend suite: **425 passed**. New checks cover full-file versus legacy range grants, bounded tab/range reads, fixed Drive spreadsheet filters and escaped name queries, account-specific discovery opt-in, scope gates, expiring handles, account switches, cancellation, read-only files, concrete preview cells, same-origin/direct-owner restrictions and the five-step SDK search → tabs → read → proposal → reply flow. Physical controls remain mocked.
+- JavaScript syntax and trusted fresh Edge personal QA pass. Fixture-only browser checks cover fixed/full-file registration, tab pagination, row/column paging, safe file/tab/cell rendering, search pagination, exact target previews without writes, explicit apply, memory controls, no personal browser storage and landscape/portrait/narrow layouts. Foundation screens and existing voice navigation also pass with mocked provider/control operations. QA revokes only its own browser.
+- Loaded backend changes with `scripts/restart-server.ps1`, preserving Google ciphertext, CA trust and approved devices. Assistant account access and listening start off again. Live Drive re-consent, private spreadsheet discovery/read/write and physical voice behavior remain owner acceptance checks. The owner's actual spreadsheet ID and OAuth JSON were not inspected or used in fixtures.
+
 ## Personal tools and memory · 2026-10-04
 
 - Backend suite: **414 passed**. Existing dashboard/Jarvis/voice-navigation fresh-browser checks also pass with mocked controls. New coverage exercises fact capacity/persistence/relevance, pending versus exact explicit remember, fresh context, cloud consent/current-generation/lock/voice gates, account-bound registered ranges, invalid ranges/value types, RAW transport, preview expiry/single use, uncertain writes without retries, read cancellation, memory/Sheets owner boundaries, personal-history isolation and SDK/parent tool wiring.

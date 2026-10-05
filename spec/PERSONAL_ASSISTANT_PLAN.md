@@ -1,6 +1,6 @@
 # Personal Jarvis: connected, personalized and proactive
 
-Planning record · 2026-10-04 · Connection/profile/primary-calendar foundation, registered Sheets read/reviewed RAW updates and editable facts/voice context implemented; broader milestones remain planned. See [the foundation record](ASSISTANT_FOUNDATION.md).
+Planning record · 2026-10-04 · Connection/profile/primary-calendar foundation, discoverable/full-file Sheets read/reviewed RAW updates and editable facts/voice context implemented; broader milestones remain planned. See [the foundation record](ASSISTANT_FOUNDATION.md).
 
 ## Direction and user decisions
 
@@ -10,7 +10,7 @@ The experience should remember useful preferences, handle requests across servic
 
 Meta describes Muse as a personal agent with connected services, persistent context, goals and a reviewable activity trail. OpenAI describes dots as agents that continue assigned work between conversations and bring back results or decisions. These are product references, not assumptions that their proprietary services can be embedded in this app. [Meta Muse](https://about.fb.com/news/2026/09/introducing-muse-personal-ai-agent/), [Meet dots](https://learn.chatgpt.com/docs/dots).
 
-The current app supplies the voice/control foundation. It now has Google OAuth, primary-calendar reads, registered Sheets ranges, reviewed RAW updates and editable long-term facts with opt-in voice context. Durable tasks and background personal briefings remain planned. See [implemented tools and memory](ASSISTANT_TOOLS_MEMORY.md). The current voice worker's four-step runner, single hardware-read slot and short physical-action timeout cannot simply be reused for a multi-service background agent.
+The current app supplies the voice/control foundation. It now has Google OAuth, primary-calendar reads, name-discovered or registered whole spreadsheets/ranges, reviewed RAW updates and editable long-term facts with opt-in voice context. Durable tasks and background personal briefings remain planned. See [implemented tools and memory](ASSISTANT_TOOLS_MEMORY.md). The current voice worker's bounded four/six-step runner, single hardware-read slot and short physical-action timeout cannot simply be reused for a multi-service background agent.
 
 ## The personal experience
 

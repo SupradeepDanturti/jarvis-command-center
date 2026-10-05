@@ -315,3 +315,171 @@ def test_voice_monitor_delivers_private_tools_without_holding_voice_lock(persona
     assert results[1]['result']['values'] == [['Private value']]
     assert voice.history.recent()[0]['kind'] == 'personal'
     assert voice.history.recent()[0]['action']['arguments'] == {}
+
+
+def full_registration(service):
+    return service.sheets.register(service.account_id(), SheetRegistration(name='Whole file', spreadsheetId='fixture_sheet_456', access='spreadsheet'))
+
+
+def discovery(service, editable=True):
+    service.sheets.set_discovery(service.account_id(), True)
+    service.google.search_sheets.return_value = {'files': [{'id': 'fixture_sheet_789', 'name': 'Planner',
+        'mimeType': 'application/vnd.google-apps.spreadsheet', 'capabilities': {'canEdit': editable}}]}
+    return tool(service, 'search_sheets', {'query': 'Planner', 'pageToken': None})['sheets'][0]['id']
+
+
+def test_full_spreadsheet_grant_allows_any_bounded_tab_but_preserves_legacy_range(personal):
+    identity = full_registration(personal)
+    with pytest.raises(ValueError, match='bounded'):
+        personal.sheet_read(identity)
+    for area in ["'Other tab'!K101:L102", "'Owner''s tab'!A1:B2"]:
+        assert personal.sheet_read(identity, area=area)['sheet']['range'] == area
+        preview = personal.sheet_propose(identity, [['change']], area)['proposalId']
+        personal.sheet_apply(preview)
+        assert personal.google.sheet_values.call_args.args[1]['range'] == area
+    legacy = register(personal)
+    with pytest.raises(ValueError, match='saved range'):
+        personal.sheet_read(legacy, area="'Other tab'!A1:B2")
+    with pytest.raises(ValueError):
+        personal.sheet_propose(identity, [['change']], 'Sheet1!A1:Z1000')
+    with pytest.raises(ValueError):
+        SheetRegistration(**{**REGISTRATION, 'access': 'spreadsheet'})
+
+
+def test_metadata_discovery_is_paged_without_values_or_unsupported_tab_claims(personal):
+    identity = full_registration(personal)
+    personal.google.sheet_metadata.return_value = {'sheets': [{'properties': {'sheetId': i, 'title': f'Tab {i}',
+        'sheetType': 'GRID', 'gridProperties': {'rowCount': 1000, 'columnCount': 40}}} for i in range(51)]}
+    result = tool(personal, 'list_sheet_tabs', {'id': identity, 'offset': 0})
+    assert len(result['tabs']) == 50 and result['nextOffset'] == 50
+    assert tool(personal, 'list_sheet_tabs', {'id': identity, 'offset': 50})['tabs'][0]['title'] == 'Tab 50'
+    personal.google.sheet_values.assert_not_called()
+    google = GoogleClient()
+    with patch.object(google, '_request', return_value={}) as request:
+        google.sheet_metadata('token', personal.sheets.get(personal.account_id(), identity))
+    assert request.call_args.args[0].endswith('/fixture_sheet_456')
+    assert 'values' not in request.call_args.kwargs['query']['fields']
+    personal.google.sheet_metadata.return_value = {'sheets': [{'properties': {'title': 'Chart', 'sheetType': 'OBJECT'}}]}
+    assert not personal.sheet_tabs(identity)['tabs'][0]['supported']
+    with pytest.raises(ValueError):
+        personal.sheet_tabs(identity, offset=True)
+
+
+def test_drive_search_keeps_fixed_mime_filter_and_escapes_query():
+    from backend.agent.google import FILES_URL
+    google = GoogleClient()
+    with patch.object(google, '_request', return_value={}) as request:
+        google.search_sheets('fixture', "x' or trashed = true or name contains '\\", 'next-fixture')
+    assert request.call_args.args == (FILES_URL,)
+    query = request.call_args.kwargs['query']
+    assert query['q'].startswith("mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false and name contains '")
+    assert "x\\' or" in query['q'] and query['q'].endswith("\\\\'")
+    assert query['pageToken'] == 'next-fixture' and query['pageSize'] == 20
+    with pytest.raises(ValueError):
+        google.search_sheets('fixture', 'bad\nquery')
+    with pytest.raises(GoogleError, match='Unsupported'):
+        google._request('https://www.googleapis.com/drive/v3/files/arbitrary')
+
+
+@pytest.mark.parametrize('change', ['expiry', 'account', 'cancel', 'discovery', 'read-only'])
+def test_search_handles_are_account_bound_temporary_revocable_and_permission_aware(personal, change):
+    identity = discovery(personal, editable=change != 'read-only')
+    area = "'Sheet1'!A1:B2"
+    assert personal.sheet_read(identity, area=area)['values']
+    if change == 'expiry':
+        personal.sheets.discovered[identity]['expiresAt'] = 0
+    elif change == 'account':
+        personal.vault['account']['id'] = 'different-account'
+    elif change == 'cancel':
+        personal._cancel()
+    elif change == 'discovery':
+        personal.sheets.set_discovery(personal.account_id(), False)
+    with pytest.raises(GoogleError):
+        personal.sheet_propose(identity, [['new']], area)
+    assert personal.sheets.proposals == {}
+    assert all(row['id'] != identity for row in personal.sheets.all(personal.account_id()))
+
+
+def test_discovery_requires_opt_in_scope_and_live_authorization(personal):
+    from backend.agent.google import DRIVE_SCOPE
+    with pytest.raises(GoogleError, match='discovery'):
+        personal.search_sheets('Planner')
+    personal.sheets.set_discovery(personal.account_id(), True)
+    personal.vault['scopes'].remove(DRIVE_SCOPE)
+    with pytest.raises(GoogleError, match='Drive metadata'):
+        personal.search_sheets('Planner')
+    personal.vault['scopes'].append(DRIVE_SCOPE)
+    personal.google.search_sheets.side_effect = lambda *args: (personal._cancel() or {'files': []})
+    with pytest.raises(GoogleError, match='stopped'):
+        personal.search_sheets('Planner')
+    assert personal.sheets.discovered == {}
+    personal.google.search_sheets.reset_mock(side_effect=True)
+    personal.access, personal.access_until = 'access-fixture', time.monotonic() + 600
+    with pytest.raises(GoogleError, match='stopped'):
+        personal.search_sheets('Planner', allowed=lambda: False)
+    personal.google.search_sheets.assert_not_called()
+
+
+@pytest.mark.usefixtures('jarvis_sdk_transport')
+def test_agent_searches_tabs_reads_and_prepares_in_one_bounded_turn(personal):
+    personal.sheets.set_discovery(personal.account_id(), True)
+    personal.google.search_sheets.return_value = {'files': [{'id': 'fixture_sheet_789', 'name': 'Planner',
+        'mimeType': 'application/vnd.google-apps.spreadsheet', 'capabilities': {'canEdit': True}}]}
+    personal.google.sheet_metadata.return_value = {'sheets': [{'properties': {'title': 'Sheet1', 'sheetType': 'GRID', 'gridProperties': {'rowCount': 1000, 'columnCount': 20}}}]}
+    client = Mock()
+    found = {}
+    def output(name=None, arguments=None):
+        return SimpleNamespace(output=[SimpleNamespace(type='function_call', name=name, arguments=json.dumps(arguments), call_id=name)] if name else [], output_text='' if name else 'Change prepared, sir.')
+    def responses(**kwargs):
+        turn = client.responses.create.call_count
+        if turn == 1:
+            return output('search_sheets', {'query': 'Planner', 'pageToken': None})
+        if turn == 2:
+            return output('list_sheet_tabs', {'id': found['id'], 'offset': 0})
+        if turn == 3:
+            return output('read_sheet', {'id': found['id'], 'range': "'Sheet1'!A1:B2"})
+        if turn == 4:
+            return output('propose_sheet_update', {'id': found['id'], 'range': "'Sheet1'!A1:B2", 'values': [['next']]})
+        return output()
+    client.responses.create.side_effect = responses
+    def dispatch(name, args):
+        result = tool(personal, name, args)
+        if name == 'search_sheets':
+            found['id'] = result['sheets'][0]['id']
+        return result
+    assert 'prepared' in respond(client, 'Find Planner and update its first cell.', voice_tools(Mock()), dispatch,
+        personal_context=personal.voice_context('Planner')['personal'])
+    assert client.responses.create.call_count == 5
+    assert len(personal.sheets.proposals) == 1 and personal.google.sheet_values.call_count == 1
+
+
+def test_search_and_full_sheet_routes_require_direct_owner_origin_and_concrete_cells(tmp_path):
+    app = create_app(pairing_code='ABCD1234', voice_dir=tmp_path)
+    with TestClient(app, base_url='https://testserver', client=('127.0.0.1', 4000)) as owner:
+        owner.post('/api/pair', json={'code': 'ABCD1234'}, headers=ORIGIN)
+        service = app.state.assistant
+        service.vault = {'account': {'id': 'owner-1', 'email': 'qa@example.test'}, 'refresh': 'fixture', 'scopes': list(SCOPES)}
+        service.enabled = True
+        service.google = Mock()
+        service.google.sheet_values.return_value = {'values': [['fixture']]}
+        with patch.object(service, '_access', return_value='fixture'), patch.object(service, 'unlocked', return_value=True), patch.object(service, 'stop_voice') as stop:
+            assert owner.put('/api/assistant/sheets/discovery', json={'enabled': True}, headers=ORIGIN).status_code == 200
+            assert stop.called and owner.get('/api/assistant/sheets').json()['discoveryEnabled']
+            body = {'name': 'Whole file', 'spreadsheetId': 'fixture_sheet_456', 'access': 'spreadsheet', 'range': None}
+            identity = owner.post('/api/assistant/sheets', json=body, headers=ORIGIN).json()['id']
+            area = "'Sheet1'!K101:L102"
+            result = owner.post(f'/api/assistant/sheets/{identity}/read', json={'range': area}, headers=ORIGIN)
+            assert result.status_code == 200 and result.json()['sheet']['range'] == area
+            assert owner.post(f'/api/assistant/sheets/{identity}/propose', json={'range': area, 'values': [['change']]}, headers=ORIGIN).status_code == 200
+            service.google.search_sheets.return_value = {'files': []}
+            assert owner.post('/api/assistant/sheets/search', json={'query': 'Planner'}, headers=ORIGIN).status_code == 200
+            assert owner.post('/api/assistant/sheets/search', json={'query': 'Planner'}, headers={'origin': 'https://evil.example'}).status_code == 403
+            assert owner.put('/api/assistant/sheets/discovery', json={'enabled': False}, headers={'origin': 'https://evil.example'}).status_code == 403
+            with TestClient(app, base_url='https://testserver', client=('192.168.2.20', 4001)) as tablet:
+                pending = tablet.post('/api/device/request', json={'name': 'Full sheet QA'}, headers=ORIGIN).json()
+                owner.post(f"/api/devices/{pending['device']['id']}/approve", headers=ORIGIN)
+                for endpoint, data in [('sheets/search', {'query': ''}), (f'sheets/{identity}/tabs', {'offset': 0}),
+                                       (f'sheets/{identity}/read', {'range': area}), (f'sheets/{identity}/propose', {'range': area, 'values': [['change']]})]:
+                    assert tablet.post('/api/assistant/'+endpoint, json=data, headers=ORIGIN).status_code == 403
+            assert owner.put('/api/assistant/sheets/discovery', json={'enabled': False}, headers=ORIGIN).status_code == 200
+            assert service.sheets.proposals == {} and not service.sheets.discovery_enabled('owner-1')

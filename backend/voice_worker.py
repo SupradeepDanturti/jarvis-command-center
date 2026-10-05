@@ -51,7 +51,7 @@ def request_tool_action(pipe, stop, name, arguments, allowed, control):
     identity = secrets.token_hex(12)
     pipe.send({'type': 'action', 'id': identity, 'name': name, 'arguments': arguments})
     # Fixed Windows discovery can take two bounded twelve-second reads; other actions stay short.
-    deadline = time.monotonic() + (30 if name == 'list_apps' or name in {'calendar_today', 'read_sheet'} else 5)
+    deadline = time.monotonic() + (30 if name == 'list_apps' or name in {'calendar_today', 'read_sheet', 'list_sheet_tabs', 'search_sheets'} else 5)
     while not stop.is_set() and time.monotonic() < deadline:
         if pipe.poll(0.08):
             message = pipe.recv()

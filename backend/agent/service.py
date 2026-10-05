@@ -16,10 +16,10 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..tls import dpapi
-from .google import AUTH_URL, EVENTS_SCOPE, SHEETS_SCOPE, SCOPES, GoogleClient, GoogleError
+from .google import AUTH_URL, EVENTS_SCOPE, SHEETS_SCOPE, DRIVE_SCOPE, SCOPES, GoogleClient, GoogleError
 from .profile import ProfileStore
 from .memory import MemoryStore
-from .sheets import SheetStore, values
+from .sheets import SheetStore, target, values
 
 
 def desktop_unlocked():
@@ -117,9 +117,10 @@ class AssistantService:
                     'account': self.vault.get('account'), 'grantedScopes': self.vault.get('scopes', []),
                     'calendarReady': EVENTS_SCOPE in self.vault.get('scopes', []),
                     'sheetsReady': SHEETS_SCOPE in self.vault.get('scopes', []),
+                    'sheetSearchReady': DRIVE_SCOPE in self.vault.get('scopes', []),
                     'cloudContext': self.memory.cloud(),
                     'connecting': self.flow is not None, 'message': self.notice,
-                    'services': {'calendar': 'read-only', 'gmail': 'planned', 'sheets': 'registered-ranges',
+                    'services': {'calendar': 'read-only', 'gmail': 'planned', 'sheets': 'read-and-reviewed-edits',
                                  'health': 'awaiting-google-access'}}
 
     def _cancel(self):
@@ -127,6 +128,7 @@ class AssistantService:
         self.access = None
         self.access_until = 0
         self.sheets.proposals.clear()
+        self.sheets.discovered.clear()
         self.last_context = None
         if self.flow:
             self.flow.stop.set()
@@ -317,7 +319,7 @@ class AssistantService:
             self._check(generation)
             if self.flow:
                 raise GoogleError('Finish or cancel Google sign-in first.', 409)
-            label = 'Calendar' if scope == EVENTS_SCOPE else 'Sheets'
+            label = 'Calendar' if scope == EVENTS_SCOPE else 'Drive metadata' if scope == DRIVE_SCOPE else 'Sheets'
             if scope not in self.vault.get('scopes', []) or not self.vault.get('refresh'):
                 raise GoogleError(f'Connect Google and grant {label} permission first.', 409)
             if self.access and time.monotonic() < self.access_until:
@@ -398,16 +400,110 @@ class AssistantService:
             raise GoogleError('Connect Google first.', 409)
         return account['id']
 
-    def sheet_read(self, identity, allowed=lambda: True):
+    def search_sheets(self, query, page_token=None, allowed=lambda: True):
         if not self.operation.acquire(blocking=False):
             raise GoogleError('A personal data request is already running.', 409)
         try:
             with self.lock:
                 generation = self.generation
                 self._check(generation)
-                sheet = self.sheets.get(self.account_id(), identity)
+                account = self.account_id()
+                if not self.sheets.discovery_enabled(account):
+                    raise GoogleError('Enable spreadsheet discovery in More → Sheets first.', 409)
+            token = self._access(generation, DRIVE_SCOPE)
+            with self.lock:
+                self._check(generation)
+                if not allowed():
+                    raise GoogleError('Personal access stopped.', 409)
+            result = self.google.search_sheets(token, query, page_token)
+            files = result.get('files', [])
+            next_page = result.get('nextPageToken')
+            if not isinstance(files, list) or len(files) > 20 or next_page is not None and (not isinstance(next_page, str) or not 1 <= len(next_page) <= 2048 or any(ord(c) < 33 or ord(c) == 127 for c in next_page)):
+                raise GoogleError()
+            sheets = []
+            with self.lock:
+                self._check(generation)
+                if not allowed():
+                    raise GoogleError('Personal access stopped.', 409)
+                for file in files:
+                    if not isinstance(file, dict) or file.get('mimeType') != 'application/vnd.google-apps.spreadsheet':
+                        raise GoogleError()
+                    identifier, name = file.get('id'), file.get('name')
+                    if not isinstance(identifier, str) or not re.fullmatch(r'[A-Za-z0-9_-]{10,150}', identifier) or not isinstance(name, str) or not 1 <= len(name) <= 255:
+                        raise GoogleError()
+                    name = text(name, 200).strip()
+                    if not name.strip():
+                        raise GoogleError()
+                    capabilities = file.get('capabilities', {})
+                    if not isinstance(capabilities, dict):
+                        raise GoogleError()
+                    sheets.append(self.sheets.found(account, {'name': name[:60], 'displayName': name,
+                        'spreadsheetId': identifier, 'access': 'spreadsheet', 'range': None,
+                        'canEdit': capabilities.get('canEdit') is True}, generation))
+                return {'ok': True, 'sheets': sheets, 'nextPageToken': next_page, 'partial': bool(result.get('incompleteSearch')),
+                        'message': 'Spreadsheets found. Results expire in five minutes; search again if needed.'}
+        finally:
+            self.operation.release()
+
+    def sheet_tabs(self, identity, allowed=lambda: True, offset=0):
+        if type(offset) is not int or not 0 <= offset <= 100000:
+            raise ValueError('Invalid tab page.')
+        if not self.operation.acquire(blocking=False):
+            raise GoogleError('A personal data request is already running.', 409)
+        try:
+            with self.lock:
+                generation = self.generation
+                self._check(generation)
+                sheet = self.sheets.resolve(self.account_id(), identity, generation)
+                if not sheet or sheet.get('access', 'range') != 'spreadsheet':
+                    raise GoogleError('Choose an entire spreadsheet or search again for a fresh result.', 404)
+            token = self._access(generation, SHEETS_SCOPE)
+            with self.lock:
+                self._check(generation)
+                if not allowed():
+                    raise GoogleError('Personal access stopped.', 409)
+            result = self.google.sheet_metadata(token, sheet)
+            items = result.get('sheets')
+            if not isinstance(items, list):
+                raise GoogleError()
+            tabs = []
+            for item in items[offset:offset + 50]:
+                props = item.get('properties', {}) if isinstance(item, dict) else {}
+                if not isinstance(props, dict):
+                    raise GoogleError()
+                title = props.get('title')
+                grid = props.get('gridProperties', {})
+                if not isinstance(grid, dict):
+                    raise GoogleError()
+                rows, columns = grid.get('rowCount'), grid.get('columnCount')
+                if not isinstance(title, str) or not 1 <= len(title) <= 100 or any(ord(c) < 32 or ord(c) == 127 for c in title):
+                    raise GoogleError()
+                supported = props.get('sheetType') == 'GRID'
+                if supported and (type(rows) is not int or type(columns) is not int or not 1 <= rows <= 10000000 or not 1 <= columns <= 18278):
+                    raise GoogleError()
+                tabs.append({'title': title, 'rows': rows if supported else None,
+                             'columns': columns if supported else None, 'supported': supported})
+            with self.lock:
+                self._check(generation)
+                if not allowed():
+                    raise GoogleError('Personal access stopped.', 409)
+                return {'ok': True, 'sheet': sheet, 'tabs': tabs,
+                        'nextOffset': offset + 50 if offset + 50 < len(items) else None,
+                        'message': 'Spreadsheet tabs checked. Grid tabs support cell reads and proposals.'}
+        finally:
+            self.operation.release()
+
+    def sheet_read(self, identity, allowed=lambda: True, area=None):
+        if not self.operation.acquire(blocking=False):
+            raise GoogleError('A personal data request is already running.', 409)
+        try:
+            with self.lock:
+                generation = self.generation
+                self._check(generation)
+                sheet = self.sheets.resolve(self.account_id(), identity, generation)
                 if not sheet:
-                    raise GoogleError('Choose a registered sheet range.', 404)
+                    raise GoogleError('Choose a registered spreadsheet or search again for a fresh result.', 404)
+                sheet = target(sheet, area)
             token = self._access(generation, SHEETS_SCOPE)
             with self.lock:
                 self._check(generation)
@@ -415,6 +511,8 @@ class AssistantService:
                     raise GoogleError('Personal access stopped.', 409)
             result = self.google.sheet_values(token, sheet)
             rows = result.get('values', [])
+            if not isinstance(rows, list):
+                raise GoogleError()
             if rows:
                 values(rows, sheet['range'])
             with self.lock:
@@ -425,12 +523,15 @@ class AssistantService:
         finally:
             self.operation.release()
 
-    def sheet_propose(self, identity, rows):
+    def sheet_propose(self, identity, rows, area=None):
         with self.lock:
             self._check(self.generation)
-            sheet = self.sheets.get(self.account_id(), identity)
+            sheet = self.sheets.resolve(self.account_id(), identity, self.generation)
             if not sheet:
-                raise GoogleError('Choose a registered sheet range.', 404)
+                raise GoogleError('Choose a registered spreadsheet or search again for a fresh result.', 404)
+            if sheet.get('canEdit') is False:
+                raise GoogleError('This spreadsheet is read-only for your Google account.', 409)
+            sheet = target(sheet, area)
             if SHEETS_SCOPE not in self.vault.get('scopes', []):
                 raise GoogleError('Reconnect Google and grant Sheets access.', 409)
             values(rows, sheet['range'])

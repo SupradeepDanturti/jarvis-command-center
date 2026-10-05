@@ -1,14 +1,16 @@
-"""Owner registered ranges and single-use, short-lived RAW update proposals."""
+"""Account-bound spreadsheet grants, discovery handles and reviewed RAW proposals."""
 import json
 import re
 import secrets
 import time
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 def rectangle(value):
-    match = re.fullmatch(r"(?:[A-Za-z_][A-Za-z0-9_ ]{0,79}|'(?:[^'\x00-\x1f]|''){1,80}')!([A-Z]{1,3})([1-9][0-9]{0,6}):([A-Z]{1,3})([1-9][0-9]{0,6})", value)
+    match = re.fullmatch(r"(?:[A-Za-z_][A-Za-z0-9_ ]{0,99}|'(?:[^'\x00-\x1f\x7f]|''){1,100}')!([A-Z]{1,3})([1-9][0-9]{0,6}):([A-Z]{1,3})([1-9][0-9]{0,6})", value)
     if not match:
         raise ValueError('Use a bounded range such as Sheet1!A1:D20.')
     def column(name):
@@ -27,13 +29,34 @@ class SheetRegistration(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True, str_strip_whitespace=True)
     name: str = Field(min_length=1, max_length=60, pattern=r'^[^\x00-\x1f\x7f]+$')
     spreadsheetId: str = Field(min_length=10, max_length=150, pattern=r'^[A-Za-z0-9_-]+$')
-    range: str = Field(min_length=1, max_length=160)
+    access: Literal['range', 'spreadsheet'] = 'range'
+    range: str | None = Field(default=None, min_length=1, max_length=220)
 
     @field_validator('range')
     @classmethod
     def valid_range(cls, value):
-        rectangle(value)
+        if value is not None:
+            rectangle(value)
         return value
+
+    @model_validator(mode='after')
+    def valid_access(self):
+        if (self.access == 'range') != (self.range is not None):
+            raise ValueError('Choose an entire spreadsheet or one specific range.')
+        return self
+
+
+def target(sheet, area=None):
+    """Resolve a request within its stored grant; never broaden a legacy range."""
+    grant = SheetRegistration.model_validate({key: sheet[key] for key in ('name', 'spreadsheetId', 'range', 'access') if key in sheet})
+    if grant.access == 'range':
+        if area is not None and area != grant.range:
+            raise ValueError('This registration only allows its saved range.')
+        area = grant.range
+    elif not isinstance(area, str):
+        raise ValueError('Choose a bounded range within this spreadsheet first.')
+    rectangle(area)
+    return {**sheet, 'range': area}
 
 
 def values(value, area):
@@ -55,9 +78,40 @@ class SheetStore:
     def __init__(self, history):
         self.history = history
         self.proposals = {}
+        self.discovered = {}
         with history.lock, history.db:
             history.db.execute('CREATE TABLE IF NOT EXISTS assistant_sheets '
                                '(id TEXT PRIMARY KEY, account TEXT NOT NULL, data TEXT NOT NULL)')
+            history.db.execute('CREATE TABLE IF NOT EXISTS assistant_sheet_access '
+                               '(account TEXT PRIMARY KEY, enabled INTEGER NOT NULL)')
+
+    def discovery_enabled(self, account):
+        with self.history.lock:
+            row = self.history.db.execute('SELECT enabled FROM assistant_sheet_access WHERE account=?', (account,)).fetchone()
+            return bool(row and row['enabled'])
+
+    def set_discovery(self, account, enabled):
+        with self.history.lock, self.history.db:
+            self.history.db.execute('INSERT INTO assistant_sheet_access VALUES(?,?) ON CONFLICT(account) DO UPDATE SET enabled=excluded.enabled', (account, int(enabled)))
+        self.discovered.clear()
+
+    def found(self, account, sheet, generation):
+        self.discovered = {key: value for key, value in self.discovered.items() if value['expiresAt'] > time.time()}
+        if len(self.discovered) >= 100:
+            self.discovered.pop(next(iter(self.discovered)))
+        identity = secrets.token_hex(16)
+        self.discovered[identity] = {'account': account, 'generation': generation, 'expiresAt': time.time() + 300,
+                                     'sheet': {'id': identity, **sheet}}
+        return self.discovered[identity]['sheet']
+
+    def resolve(self, account, identity, generation):
+        registered = self.get(account, identity)
+        if registered:
+            return registered
+        found = self.discovered.get(identity)
+        if self.discovery_enabled(account) and found and found['account'] == account and found['generation'] == generation and found['expiresAt'] > time.time():
+            return found['sheet']
+        return None
 
     def all(self, account):
         with self.history.lock:
@@ -67,7 +121,7 @@ class SheetStore:
     def register(self, account, body):
         with self.history.lock, self.history.db:
             if len(self.all(account)) >= 20:
-                raise ValueError('At most twenty sheet ranges can be registered.')
+                raise ValueError('At most twenty spreadsheets or ranges can be registered.')
             identity = secrets.token_hex(12)
             self.history.db.execute('INSERT INTO assistant_sheets VALUES(?,?,?)',
                                     (identity, account, json.dumps(body.model_dump())))
