@@ -110,6 +110,12 @@ The Jarvis HUD now uses approved fresh voice status on every visible screen. Hid
 Added-app logos are approved-only PNG responses selected by a saved app ID. Executable icons are extracted locally with Windows Shell/GDI; package logos must remain inside the registered installation directory, be bounded PNG files, and have bounded dimensions. No browser file path or remote image URL is accepted. Missing icons use a generic local glyph, and removing a shortcut removes access to its cached icon.
 
 
+## Unified typed and voice conversation
+
+The owner explicitly authorized full assistant chat on approved PC/tablet browsers. `/api/chat/*` requires approved HTTPS; sends/stops/deletion also require same origin. Chat reads include the shared bounded voice history, **including personal voice exchanges**, while Windows is unlocked. This is an intentional extension of read access to trusted approved tablets; existing voice and assistant management endpoints retain their restrictions. Keys, Google connections, profile/fact management, Sheets apply and conversation deletion remain direct-loopback owner-only.
+
+Typed requests run the same trusted voice Agent/Runner and fixed tool dispatch in an isolated optional process, without audio dependencies/capture. Recent voice/typed context uses one existing private SQLite store (500 exchanges; twelve messages per turn), and personal cloud context still requires Memory consent. No prompt/reply enters browser storage, logs, provider tracing or provider retained-response storage. Requests and validation errors are bounded/redacted. Approval expiry/revocation, desktop lock, assistant/voice generations, consent/key/history changes, Stop and the turn deadline cancel late actions/results. Spoken requests interrupt chat; physical effects completed before cancellation remain. Source links are escaped and constrained to HTTP(S) without credentials. See [CHAT_SPEC.md](spec/CHAT_SPEC.md).
+
 ## Optional read-only widget feeds
 
 Widget settings are harmless browser-local preferences, off by default. City search requires an explicit submission; Weather sends rounded selected-city coordinates only while viewed. No GPS permission, credentials or feed history are stored in browser preferences. The selected city/search text reaches Open-Meteo through the PC, whose public network address is visible to providers.

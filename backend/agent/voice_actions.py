@@ -19,7 +19,7 @@ VOICE_SCREENS = {
     'apps': 'Applications', 'hardware': 'Hardware monitor', 'graphs': 'Live graphs',
     'clock': 'Clock', 'focus': 'Focus timer', 'ambient': 'Ambient',
     'media': 'Now playing', 'system': 'System & controls', 'devices': 'Device access',
-    'rest': 'Rest & alarms', 'voice': 'Jarvis', 'widgets': 'Widgets',
+    'rest': 'Rest & alarms', 'voice': 'Jarvis', 'chat': 'Chat with Jarvis', 'widgets': 'Widgets',
     'weather': 'Weather & air quality', 'f1': 'F1 next race',
 }
 

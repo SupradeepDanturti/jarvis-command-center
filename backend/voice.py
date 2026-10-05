@@ -49,6 +49,7 @@ class VoiceService:
         self.pending_reminder = None
         self.rest = None
         self.assistant = None
+        self.chat = None
         self.pending_rest = None
         self.navigation = None
         self.alert_policy = HardwareAlerts(self.directory / 'alerts.json' if self.directory else None)
@@ -453,6 +454,8 @@ class VoiceService:
                                 'actions': list(self.last_actions)}
                     elif event.get('type') == 'status':
                         self.phase = event['phase']
+                        if self.chat and self.phase not in {'off', 'listening', 'followup', 'error'}:
+                            self.chat.stop()
                         self.message = event['message'][:200]
                         if self.phase in {'off', 'preview', 'locked', 'error'}:
                             self.navigation = None
@@ -465,6 +468,8 @@ class VoiceService:
                         self.last_action = None
                         self.last_actions = []
                     elif event.get('type') == 'turn':
+                        if self.chat:
+                            self.chat.stop()
                         personal_heard, personal_generation, private_turn = '', None, False
                         self.last_action = None
                         self.last_actions = []
@@ -481,6 +486,8 @@ class VoiceService:
             process.join(timeout=0.5)
 
     def stop(self):
+        if self.chat:
+            self.chat.stop()
         with self.lock:
             self.generation += 1  # Reject all late actions and replies from the old worker.
             self.pending_reminder = None

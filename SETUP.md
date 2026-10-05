@@ -2,6 +2,12 @@
 
 Any supported Windows PC or laptop can run Jarvis Parallax in the background. The tablet opens it in a browser over your private Wi-Fi. No Android app or frontend build is required.
 
+## Talk or type to Jarvis
+
+After configuring the OpenAI key and installing Jarvis dependencies, open **More → Chat with Jarvis** on the PC or an approved tablet. Personal assistant starts enabled by default. Typed requests work with microphone listening off and without downloaded audio models. Enter sends; Shift+Enter inserts a line; Stop cancels pending work but cannot undo completed controls.
+
+Chat and voice share one conversation, including follow-ups, sources and saved memories. For personal Calendar/Sheets tools, enable **Use personal context with Jarvis** in **More → Personalization → Memory**; Google setup and Sheets edit approval stay with the PC owner. Approved browsers can see the shared conversation, including personal spoken requests, while Windows is unlocked. A spoken request interrupts pending chat. The owner's **Clear conversation** button deletes both voice and typed exchanges and stops listening; saved facts remain in Memory. See [the chat specification](spec/CHAT_SPEC.md).
+
 **Already installed?** Go to [Everyday use](#everyday-use) or [Update an existing installation](#update-an-existing-installation). Normal updates do not require a new certificate or fresh approval of the same browser.
 
 ## Short setup with Make
